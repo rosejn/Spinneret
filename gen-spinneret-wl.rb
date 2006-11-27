@@ -6,7 +6,7 @@
 #
 # == Usage
 #
-# gen-substrate-wl.rb [OPTIONS] FILENAME
+# gen-substrate-wl.rb [OPTIONS]
 #
 # -h, --help:
 #    Show this help
@@ -45,8 +45,6 @@
 # -s secs, --mean-search-time secs:
 #    Time between searching for each node, where 0 is no search.  0 is the 
 #    default. 
-#
-# FILENAME: The file into which the workload is dumped
 
 ######
 # The basic FSM for this generator is as follows:

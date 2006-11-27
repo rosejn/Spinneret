@@ -1,7 +1,7 @@
 require 'gosim'
 
 class WorkloadParser < GoSim::Entity
-  def initialize(filename, generators)
+  def initialize(filename, generators, id_map = {})
     super()
 
     @generators = generators
@@ -9,7 +9,7 @@ class WorkloadParser < GoSim::Entity
       return self[sym].call(opts)
     end
 
-    @obj_map = []
+    @obj_map = id_map
     @file = File.new(filename, "r")
 
     @sim.schedule_event(:parse, @sid, 0, nil)
