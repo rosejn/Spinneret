@@ -8,15 +8,15 @@ module Spinneret
     
     attr_reader :link_table
 
-    def initialize(addr = nil,
+    def initialize(id = nil,
                    start_peer_addr = nil, 
                    distance_func = nil, 
                    address_space = DEFAULT_ADDRESS_SPACE)
-      super(addr)
+      super(id)
 
-      @link_table = [] #Array.new(log2(address_space).floor)
       @addr_cache = {}
-      @address_space = DEFAULT_ADDRESS_SPACE
+      @address_space = address_space
+      @link_table = [] #Array.new(log2(@address_space).ceil)
 
       if distance_func
         @distance_func = distance_func 
@@ -25,7 +25,7 @@ module Spinneret
       end
 
       if start_peer_addr
-      puts "making a node"
+        puts "making a node"
         store_address(start_peer_addr)
         do_maintenance
       end
@@ -84,6 +84,11 @@ module Spinneret
     def handle_neighbor_response(pkt)
       pkt.neighbors.each {|n| store_address n }
     end
+
+    def handle_search(id)
+
+    end
+
     private 
 
     def store_address(addr)
