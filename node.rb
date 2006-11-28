@@ -16,7 +16,7 @@ module Spinneret
 
       @addr_cache = {}
       @address_space = address_space
-      @link_table = [] #Array.new(log2(@address_space).ceil)
+      @link_table = Array.new(log2(@address_space).ceil) { [] }
 
       if distance_func
         @distance_func = distance_func 
