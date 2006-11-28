@@ -69,9 +69,9 @@ opts.each do | opt, arg |
   end
 end
 
-if(addr_space == 0 || (workload.nil? && topology.nil?))
-  printf("Need to specify at least --address-space, and either --workload " +
-         "and/or --topology.\n")
+if((workload.nil? && topology.nil?) || (workload.nil? && addr_space == 0))
+  printf("Need to specify and either --workload and/or --topology, and " +
+         "--topology must\nbe accomponied by --address-space.\n")
   exit(0)
 end
 
@@ -84,19 +84,20 @@ if(!topology.nil?)
   nodes.each do | n | 
     peer = node_objs[nodes[rand(nodes.length)]]
     if(!peer.nil?)
-      node_objs[n] = Node.new(n, peer).sid
+      node_objs[n] = Spinneret::Node.new(n, peer, dist_func, addr_space).sid
     else
-      node_objs[n] = Node.new(n).sid
+      node_objs[n] = Spinneret::Node.new(n, nil, dist_func, addr_space).sid
     end
   end
 end
 
 if(!workload.nil?)
   generators = {}
+  wl_settings = nil
   generators[:init] = Proc.new do | opts | 
-    Spinneret::Node.new(opts.to_i, nil, dist_func, addr_space)
+    Spinneret::Node.new(opts.to_i, nil, dist_func, wl_settings.addr_space)
   end
-  WorkloadParser.new(workload, generators, node_objs)
+  wl_settings = WorkloadParser.new(workload, generators, node_objs)
 end
 
 puts "Beginning simulation...\n"

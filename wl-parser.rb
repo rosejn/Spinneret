@@ -10,12 +10,15 @@ class WorkloadParser < GoSim::Entity
     end
 
     @obj_map = id_map
+    @settings = {}
     @file = File.new(filename, "r")
 
-    @sim.schedule_event(:parse, @sid, 0, nil)
+    #@sim.schedule_event(:parse, @sid, 0, nil)
+    handle_parse(nil)  # parse up to first time event
   end
 
-  COMMENT_RE = /#.*/
+  COMMENT_RE = /#(.*)/
+  SETTING_RE = /([\w\-\?!]+): (.*)/
   TIME_RE    = /time (\d+)/
   INST_RE    = /(\d+) (\w+)(.*)/
 
@@ -23,7 +26,9 @@ class WorkloadParser < GoSim::Entity
     while(1)
       case @file.readline
       when COMMENT_RE
-        next
+        if SETTING_RE =~ $1
+          @settings[$1] = $2
+        end
       when TIME_RE
         @sim.schedule_event(:parse, @sid, $1.to_i - @sim.time, nil)
         break
@@ -42,6 +47,10 @@ class WorkloadParser < GoSim::Entity
     end
   rescue EOFError
     printf("Workload read done...\n")
+  end
+
+  def method_missing(name)
+    return @settings[name.to_s]
   end
 
 end
