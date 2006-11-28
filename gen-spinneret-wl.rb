@@ -126,7 +126,7 @@ Settings = Struct.new("Settings", :addr_space, :join_first,
                                   :mjt, :mft, :mlt, :mrt, :mst)
 class Settings
   def to_s
-   "# Settings:\n# Addr space: #{addr_space}\n# Join first?: #{join_first}\n" +
+   "# Settings---\n# addr_space: #{addr_space}\n# join_first?: #{join_first}\n" +
    "# mjt: #{mjt}\n# mft: #{mft}\n# mft: #{mlt}\n# mrt: #{mrt}\n# mst: #{mst}\n"
   end
 end
@@ -182,8 +182,8 @@ end
 
 file = File.open(filename, "w")
 file.write(settings)
-file.write("# num nodes: #{nodes}\n")
-file.write("# length of simulation: #{length}\n")
+file.write("# num_nodes: #{nodes}\n")
+file.write("# sim_length: #{length}\n")
 
 puts settings
 
