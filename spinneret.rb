@@ -78,8 +78,8 @@ end
 node_objs = {}
 dist_func = DistanceFuncs::sym_circular(addr_space)
 if(!topology.nil?)
-  rt_tbls = LogRandRouteTableParser.new(File.new(topology, "r"), nil, 
-                                        dist_func)
+  rt_tbls = LogRandRouteTableParser.new(Zlib::GzipReader.open(topology),
+                                        nil, dist_func)
   nodes = rt_tbls.get_nodes()
   nodes.each do | n | 
     peer = node_objs[nodes[rand(nodes.length)]]
