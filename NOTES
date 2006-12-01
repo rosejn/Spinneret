@@ -1,0 +1,2 @@
+Should we return objects or an addresses with Node#closest_node, random_node
+etc...?
