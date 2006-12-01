@@ -1,5 +1,3 @@
-require 'gosim'
-
 class WorkloadParser < GoSim::Entity
   def initialize(filename, generators, id_map = {})
     super()

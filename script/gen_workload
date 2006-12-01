@@ -69,9 +69,12 @@ require 'singleton'
 require 'getoptlong'
 require 'rdoc/usage'
 
+require 'rubygems'
+require 'gosim'
+
 # Externals
 require 'gsl'
-require 'gosim'
+
 
 class WLPrinter
   include Singleton
