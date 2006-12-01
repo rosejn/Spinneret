@@ -1,6 +1,8 @@
 module Spinneret   
   # A management class sitting on top of the link table.
   class LinkTable
+    include Base
+
     DEFAULT_NUM_SLOTS = 4
     DEFAULT_ADDRESS_SPACE = 10000
 
@@ -94,6 +96,8 @@ module Spinneret
   # Just a container for keeping things like status information about a
   # specific peer in the link table.
   class Peer
+    include Base
+
     attr_reader :nid, :addr, :last_seen
     # We may also have algorithms that use things like rtt to make decisions.
     # What about a generic field that holds algorithm specific data?

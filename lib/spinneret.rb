@@ -9,6 +9,11 @@ require 'rubygems'
 require 'gosim'
 require 'zlib'
 
+# Grab the simulation time logger from GoSim
+module Base
+  include GoSim::Base
+end
+
 # Internals
 require 'spinneret/link_table'
 require 'spinneret/node'

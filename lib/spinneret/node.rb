@@ -3,6 +3,8 @@ module Spinneret
   NeighborResponse = Struct.new(:src, :addr, :neighbors)
 
   class Node < GoSim::Net::Node
+    include Base
+
     NEIGHBOR_REQUEST_SIZE = 5
     
     attr_reader  :addr, :link_table

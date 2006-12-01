@@ -1,6 +1,8 @@
 module Spinneret
 
   class Analyzer < GoSim::Entity
+    include Base
+
     def initialize nodes, output_path
       super()
       @nodes = nodes
