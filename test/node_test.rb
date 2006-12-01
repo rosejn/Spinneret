@@ -7,6 +7,9 @@ require 'rubygems'
 require 'gosim'
 
 class TestNode < Test::Unit::TestCase
+  
+  include Spinneret
+
   def setup
     @sim = GoSim::Simulation.instance
     @sim.quiet
@@ -16,8 +19,11 @@ class TestNode < Test::Unit::TestCase
     @sim.verbose
 
     nodes = []
-    Spinneret::Node.new(0) 
-    4.times {|i| Spinneret::Node.new(i+1, i) }
-    @sim.run
+    nodes[0] = Spinneret::Node.new(0) 
+    
+    4.times {|i| nodes << Spinneret::Node.new(i+1, Peer.new(nodes[i].nid, nodes[i].addr)) }
+    @sim.run(500)
+
+    nodes.each { | n | assert_equal(4, n.link_table.size) }
   end
 end
