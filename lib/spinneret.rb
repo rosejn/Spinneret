@@ -14,8 +14,35 @@ module Base
   include GoSim::Base
 end
 
+module KeywordProcessor
+  MANDATORY = :MANDATORY
+
+  def process_params(params, defaults)
+    result = defaults.dup.update(params)
+
+    # Ensure mandatory params are given.
+    unfilled = result.select { |k,v| v == MANDATORY }.map { |k,v| k.inspect }
+    unless unfilled.empty?
+      msg = "Mandatory keyword parameter(s) not given: #{unfilled.join(', ')}"
+      raise ArgumentError, msg
+    end
+
+    return result
+  end
+
+  def params_to_ivars(params, defaults)
+    params = process_params(params, defaults)
+    params.each do |k, v|
+      instance_variable_set("@" + k.to_s, v) 
+    end
+
+    params
+  end
+end
+
 # Internals
 require 'spinneret/link_table'
+require 'spinneret/maintenance/pull'
 require 'spinneret/node'
 require 'spinneret/analysis'
 require 'spinneret/distance_functions'
