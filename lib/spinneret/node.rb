@@ -43,6 +43,7 @@ module Spinneret
     end
 
     def handle_neighbor_response(pkt)
+#      log "@#{addr} Received #{pkt.neighbors.length} neighbors from #{pkt.addr}"
       pkt.neighbors.each {|n| @link_table.store_peer(n)}
     end
 
