@@ -2,28 +2,20 @@ module Spinneret
   # A management class sitting on top of the link table.
   class LinkTable
     include Base
+    include KeywordProcessor
 
-    DEFAULT_NUM_SLOTS = 4
-    DEFAULT_ADDRESS_SPACE = 10000
+    attr_reader :last_modified
 
-    def initialize(addr,
-                   num_slots = nil,
-                   address_space = nil,
-                   distance_func = nil)
-
+    def initialize(addr, args = {})
       @addr = addr
-      @num_slots = num_slots || DEFAULT_NUM_SLOTS
-      @address_space = address_space || DEFAULT_ADDRESS_SPACE
+      @sim = GoSim::Simulation.instance
+      @last_modified = 0
+
+      params_to_ivars(args, {})
+
       @table = Array.new(log2(@address_space).ceil) { [] }
 
       @addr_cache = {}
-
-      if distance_func
-        @distance_func = distance_func 
-      else
-        @distance_func = DistanceFuncs.sym_circular(@address_space)
-      end
-
     end
     
     # Get the node in the table which is closest to <dest_addr>.
@@ -81,9 +73,16 @@ module Spinneret
 
       @addr_cache[peer.addr] = true
       bin = log2(distance(@addr, peer.addr)).floor
-      @table[bin] << peer  if @table[bin].size < @num_slots
+      if @table[bin].size < @num_slots
+        @table[bin] << peer
+        @last_modified = @sim.time
+      end
     end
     alias :<< :store_peer
+
+    def bin_sizes
+      @table.map {|i| i.size}
+    end
 
     private
 

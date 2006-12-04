@@ -1,31 +1,45 @@
 module Spinneret
-  NeighborRequest = Struct.new(:src, :addr, :num)
-  NeighborResponse = Struct.new(:src, :addr, :neighbors)
 
   class Node < GoSim::Net::Node
     include Base
+    include KeywordProcessor
 
-    NEIGHBOR_REQUEST_SIZE = 5
+    DEFAULT_NUM_SLOTS = 4
+    DEFAULT_ADDRESS_SPACE = 10000
+
+    DEFAULT_MAINTENANCE = Maintenance::Pull
+
     
     attr_reader  :addr, :link_table
 
-    def initialize(addr = nil,
-                   start_peer = nil,
-                   address_space = nil,
-                   distance_func = nil)
+    # TODO: Move to keyword style hash
+    def initialize(addr, args = {})
       super()
 
-#      log "New node id #{@nid}, with addr #{addr}"
+      log "Node id: #{@nid} addr: #{addr}"
+
+      args = params_to_ivars(args, {
+        :start_peer => nil,
+        :maintenance => DEFAULT_MAINTENANCE,
+        :address_space => DEFAULT_ADDRESS_SPACE,
+        :num_slots => DEFAULT_NUM_SLOTS,
+        :distance_func => nil })
+
+      if @distance_func.nil?
+        @distance_func = DistanceFuncs.sym_circular(@address_space)
+        args[:distance_func] = @distance_func
+      end
+
+      extend(@maintenance)
 
       @addr = addr
 
       # TODO: Decide on and implement the passing through of parameters down
       # to the link table: slots, address space, distance_func...
-      @link_table = LinkTable.new(addr)
+      @link_table = LinkTable.new(addr, args)
       
-      if start_peer
-#        puts "making a node"
-        @link_table.store_peer(start_peer)
+      if @start_peer
+        @link_table.store_peer(@start_peer)
         do_maintenance
       end
       set_timeout(10, true) { do_maintenance }
@@ -35,29 +49,8 @@ module Spinneret
       log "#{nid} - got failed packet! #{pkt.inspect}"
     end
 
-    def handle_neighbor_request(pkt)
-      send_packet(:neighbor_response, pkt.src,
-                  NeighborResponse.new(@nid, @addr,
-                                       @link_table.random_nodes(pkt.num)))
-      @link_table.store_peer(Peer.new(pkt.src, pkt.addr))
-    end
-
-    def handle_neighbor_response(pkt)
-#      log "@#{addr} Received #{pkt.neighbors.length} neighbors from #{pkt.addr}"
-      pkt.neighbors.each {|n| @link_table.store_peer(n)}
-    end
-
     def handle_search(id)
 
     end
-
-    private 
-
-    def do_maintenance
-      peers = @link_table.random_nodes(NEIGHBOR_REQUEST_SIZE)
-      send_packet(:neighbor_request, peers.map { | p | p.nid },
-                  NeighborRequest.new(@nid, @addr, NEIGHBOR_REQUEST_SIZE))
-    end
-
   end
 end

@@ -13,7 +13,10 @@ class TestLinkTable < Test::Unit::TestCase
   TEST_ADDRESS_SPACE = 1000
   
   def setup
-    @table = LinkTable.new(TEST_ADDR, TEST_SLOTS, TEST_ADDRESS_SPACE)
+    @table = LinkTable.new(TEST_ADDR, {
+      :num_slots => TEST_SLOTS, 
+      :address_space => TEST_ADDRESS_SPACE,
+      :distance_func =>  DistanceFuncs.sym_circular(TEST_ADDRESS_SPACE) })
   end
 
   def test_basic
