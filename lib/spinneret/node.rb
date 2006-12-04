@@ -39,6 +39,8 @@ module Spinneret
       @link_table = LinkTable.new(nid, args)
       
       if @start_peer
+        #puts @start_peer.inspect, @nid
+
         @link_table.store_peer(@start_peer)
         do_maintenance
       end
