@@ -6,8 +6,8 @@ module Spinneret
 
     attr_reader :last_modified
 
-    def initialize(addr, args = {})
-      @addr = addr
+    def initialize(nid, args = {})
+      @nid = nid
       @sim = GoSim::Simulation.instance
       @last_modified = 0
 
@@ -15,14 +15,14 @@ module Spinneret
 
       @table = Array.new(log2(@address_space).ceil) { [] }
 
-      @addr_cache = {}
+      @nid_cache = {}
     end
     
     # Get the node in the table which is closest to <dest_addr>.
     def closest_node(dest_addr)
       @table.flatten.min do | a, b |
-        distance(dest_addr, a.addr) <=> distance(dest_addr, b.addr)     
-      end.addr
+        distance(dest_addr, a.nid) <=> distance(dest_addr, b.nid)     
+      end.nid
     end
 
     # Get a random node from the table.
@@ -61,18 +61,18 @@ module Spinneret
     end
     
     # Whether the table currently contains a specific address.
-    def has_addr?(addr)
-      @table.flatten.find {|i| i.addr == addr} != nil
+    def has_nid?(nid)
+      @table.flatten.find {|i| i.nid == nid} != nil
     end
 
     # Store an address in the table if it is new.
     # TODO: This is where policy decisions will be made about the placement
     # of nodes in the table and/or a cache etc...
     def store_peer(peer)
-      return if has_addr?(peer.addr) || peer.addr == @addr
+      return if has_nid?(peer.nid) || peer.nid == @nid
 
-      @addr_cache[peer.addr] = true
-      bin = log2(distance(@addr, peer.addr)).floor
+      @nid_cache[peer.nid] = true
+      bin = log2(distance(@nid, peer.nid)).floor
       if @table[bin].size < @num_slots
         @table[bin] << peer
         @last_modified = @sim.time
@@ -97,12 +97,12 @@ module Spinneret
   class Peer
     include Base
 
-    attr_reader :nid, :addr, :last_seen
+    attr_reader :addr, :nid, :last_seen
     # We may also have algorithms that use things like rtt to make decisions.
     # What about a generic field that holds algorithm specific data?
 
-    def initialize(nid, addr)
-      @nid, @addr = nid, addr
+    def initialize(addr, nid)
+      @addr, @nid = addr, nid
       seen()
     end
 

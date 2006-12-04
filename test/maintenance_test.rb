@@ -27,7 +27,7 @@ class TestMaintenance < Test::Unit::TestCase
     
     4.times do |i| 
       nodes << Spinneret::Node.new(i+1, {
-        :start_peer => Peer.new(nodes[i].nid, nodes[i].addr) }) 
+        :start_peer => Peer.new(nodes[i].addr, nodes[i].nid) }) 
     end
 
     @sim.run(500)

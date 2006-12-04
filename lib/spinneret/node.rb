@@ -10,13 +10,13 @@ module Spinneret
     DEFAULT_MAINTENANCE = Maintenance::Pull
 
     
-    attr_reader  :addr, :link_table
+    attr_reader  :nid, :link_table
 
     # TODO: Move to keyword style hash
-    def initialize(addr, args = {})
+    def initialize(nid, args = {})
       super()
 
-      log "Node id: #{@nid} addr: #{addr}"
+      log "Node addr: #{@addr} nid: #{nid}"
 
       args = params_to_ivars(args, {
         :start_peer => nil,
@@ -32,11 +32,11 @@ module Spinneret
 
       extend(@maintenance)
 
-      @addr = addr
+      @nid = nid
 
       # TODO: Decide on and implement the passing through of parameters down
       # to the link table: slots, address space, distance_func...
-      @link_table = LinkTable.new(addr, args)
+      @link_table = LinkTable.new(nid, args)
       
       if @start_peer
         @link_table.store_peer(@start_peer)

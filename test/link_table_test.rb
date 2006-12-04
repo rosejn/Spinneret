@@ -26,8 +26,8 @@ class TestLinkTable < Test::Unit::TestCase
     num_nodes.times {|i| @table.store_peer(Peer.new(0, 2**i)) }
     assert_equal(num_nodes, @table.size)
 
-    # has_addr?
-    assert_equal(true, @table.has_addr?(2**4))
+    # has_nid?
+    assert_equal(true, @table.has_nid?(2**4))
 
     # closest_node
     # TODO: think about closest_node's return value...
