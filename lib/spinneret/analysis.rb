@@ -17,6 +17,7 @@ module Spinneret
       @nodes = nodes
       @output_path = output_path  
       @output_path += "/"  if @output_path[-1].to_chr != "/"
+      set_timeout(10, true) { indegree_calc }
     end
 
     def handle_link_count
@@ -66,7 +67,7 @@ module Spinneret
       end
     end
 
-    def handle_indegree_calc
+    def indegree_calc
       nodes_in = Hash.new(0)
       @nodes.each do | n |
         n.link_table.each { | out_e | node_in[out_e] += 1 }
@@ -74,8 +75,11 @@ module Spinneret
 
       dist = Array.new(0, 0)
       nodes_in.each { | node, in_e | dist[in_e] += 1 }
-      File.open(outout_path + @sim.time.to_s + "_indegree_dist"
+      dist.map! { | x | (x.nil? ? 0 : x) }
+      File.open(outout_path + @sim.time.to_s + "_indegree_dist") do | f |
+        dist.each_index { | idx | f.write("#{idx} #{dist[idx]}") }
+      end
     end
-
   end
+
 end
