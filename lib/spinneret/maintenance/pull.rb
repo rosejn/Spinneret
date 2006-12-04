@@ -11,6 +11,7 @@ module Maintenance
       peers = @link_table.random_nodes(NEIGHBOR_REQUEST_SIZE)
       send_packet(:neighbor_request, peers.map { | p | p.nid },
                   NeighborRequest.new(@nid, @addr, NEIGHBOR_REQUEST_SIZE))
+      log "#{@nid} sent request packet"
     end
 
     def handle_neighbor_request(pkt)

@@ -6,7 +6,7 @@ require 'spinneret'
 require 'rubygems'
 require 'gosim'
 
-class TestNode < Test::Unit::TestCase
+class TestMaintenance < Test::Unit::TestCase
   
   include Spinneret
 

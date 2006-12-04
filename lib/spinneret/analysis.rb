@@ -10,8 +10,9 @@ module Spinneret
       super()
 
       params_to_ivars(args, {
-                     :stability_threshold = DEFAULT_STABILITY_THRESHOLD,
-                     )
+                     :stability_threshold => DEFAULT_STABILITY_THRESHOLD,
+                     :stability_handler => method(:default_stable_handler) 
+      })
 
       @nodes = nodes
       @output_path = output_path
@@ -31,9 +32,13 @@ module Spinneret
     end
 
     def handle_check_stability
-      @nodes.detect( do |n| 
+      @nodes.detect(@stability_handler) do |n| 
         @stability_threshold > (@sim.time - n.link_table.last_modified)
       end
+    end
+
+    def default_stable_handler
+      log "Network is stable..."
     end
 
     def handle_bin_distribution

@@ -16,9 +16,11 @@ module Spinneret
     def initialize(addr, args = {})
       super()
 
+      log "Node id: #{@nid} addr: #{addr}"
+
       args = params_to_ivars(args, {
         :start_peer => nil,
-        :maintenence => DEFAULT_MAINTENANCE,
+        :maintenance => DEFAULT_MAINTENANCE,
         :address_space => DEFAULT_ADDRESS_SPACE,
         :num_slots => DEFAULT_NUM_SLOTS,
         :distance_func => nil })
@@ -28,7 +30,7 @@ module Spinneret
         args[:distance_func] = @distance_func
       end
 
-      extend(DEFAULT_MAINTENANCE)
+      extend(@maintenance)
 
       @addr = addr
 
