@@ -183,7 +183,7 @@ else
 end
 
 # Set the filename if one wasn't given
-filename = File.join('workloads', "a#{settings.addr_space}-n#{nodes}-j#{settings.mjt}.wl")
+filename ||= File.join('workloads', "a#{settings.addr_space}-n#{nodes}-j#{settings.mjt}.wl")
 
 file = File.open(filename, "w")
 file.write(settings)
