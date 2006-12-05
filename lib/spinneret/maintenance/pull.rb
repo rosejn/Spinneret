@@ -8,7 +8,7 @@ module Maintenance
     NEIGHBOR_REQUEST_SIZE = 5
 
     def do_maintenance
-      peers = @link_table.random_nodes(NEIGHBOR_REQUEST_SIZE)
+      peers = @link_table.random_peers(NEIGHBOR_REQUEST_SIZE)
       send_packet(:neighbor_request, peers.map { | p | p.addr },
                   NeighborRequest.new(@addr, @nid, NEIGHBOR_REQUEST_SIZE))
     end
@@ -16,7 +16,7 @@ module Maintenance
     def handle_neighbor_request(pkt)
       send_packet(:neighbor_response, pkt.src,
                   NeighborResponse.new(@addr, @nid,
-                                       @link_table.random_nodes(pkt.num)))
+                                       @link_table.random_peers(pkt.num)))
       @link_table.store_peer(Peer.new(pkt.src, pkt.nid))
     end
 

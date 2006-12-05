@@ -4,8 +4,6 @@ module Spinneret
     include Base
     include KeywordProcessor
 
-    attr_reader :last_modified
-
     def initialize(nid, args = {})
       @nid = nid
       @sim = GoSim::Simulation.instance
@@ -19,14 +17,14 @@ module Spinneret
     end
     
     # Get the node in the table which is closest to <dest_addr>.
-    def closest_node(dest_addr)
+    def closest_peer(dest_nid)
       @table.flatten.min do | a, b |
-        distance(dest_addr, a.nid) <=> distance(dest_addr, b.nid)     
-      end.nid
+        distance(dest_nid, a.nid) <=> distance(dest_nid, b.nid)     
+      end
     end
 
     # Get a random node from the table.
-    def random_node
+    def random_peer
       @table.flatten[rand(size)]
     end
 
@@ -34,20 +32,20 @@ module Spinneret
     # as were requested and duplicates are not allowed the response will all
     # nodes. If <allow_duplicates> is set to false then the result will not
     # contain the same node twice.
-    def random_nodes(num_nodes, allow_duplicates = true)
-      return @table.flatten  if num_nodes >= size
+    def random_peers(num_peers, allow_duplicates = true)
+      return @table.flatten  if num_peers >= size
 
-      nodes = []
-      num_nodes.times do
+      peers = []
+      num_peers.times do
         if allow_duplicates
-          nodes << random_node
+          peers << random_peer
         else
-          while(nodes.include?(node = random_node)); end
-          nodes << node
+          while(peers.include?(peer = random_peer)); end
+          peers << peer
         end
       end
 
-      nodes
+      peers
     end
 
     # The total number of nodes in the table.

@@ -29,14 +29,13 @@ class TestLinkTable < Test::Unit::TestCase
     # has_nid?
     assert_equal(true, @table.has_nid?(2**4))
 
-    # closest_node
-    # TODO: think about closest_node's return value...
-    assert_equal(512, @table.closest_node(480))
-    assert_equal(4, @table.closest_node(5))
-    assert_equal(128, @table.closest_node(136))
+    # closest_peer
+    assert_equal(512, @table.closest_peer(480).nid)
+    assert_equal(4, @table.closest_peer(5).nid)
+    assert_equal(128, @table.closest_peer(136).nid)
 
-    # random_node(s)
-    assert_equal(Peer, @table.random_node.class)
-    assert_equal(5, @table.random_nodes(5).size)
+    # random_peer(s)
+    assert_equal(Peer, @table.random_peer.class)
+    assert_equal(5, @table.random_peers(5).size)
   end
 end

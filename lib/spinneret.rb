@@ -40,9 +40,14 @@ module KeywordProcessor
   end
 end
 
+# Maintenance algorithms
+require 'spinneret/maintenance/pull'
+
+# Search algorithms
+require 'spinneret/search/kwalker'
+
 # Internals
 require 'spinneret/link_table'
-require 'spinneret/maintenance/pull'
 require 'spinneret/node'
 require 'spinneret/analysis'
 require 'spinneret/distance_functions'
