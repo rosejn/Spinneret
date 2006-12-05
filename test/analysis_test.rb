@@ -35,5 +35,30 @@ class TestAnalysis < Test::Unit::TestCase
 
     nodes.each { | n | assert_equal(4, n.link_table.size) }
   end
+
+  def test_connected
+    nodes = []
+
+    nodes[0] = Spinneret::Node.new(0) 
+    4.times do |i| 
+      nodes << Spinneret::Node.new(i+1, {
+        :start_peer => Peer.new(nodes[i].addr, nodes[i].nid),
+        :maintenance => Maintenance::Pull }) 
+    end
+
+    @sim.run(500)
+
+    analyzer = Analyzer.new(nodes)
+    assert_equal(true, analyzer.is_connected?)
+    assert_equal(1, analyzer.connected_components)
+
+    nodes << Spinneret::Node.new(100) 
+    assert_equal(false, analyzer.is_connected?)
+    assert_equal(2, analyzer.connected_components)
+
+    nodes << Spinneret::Node.new(101) 
+    assert_equal(false, analyzer.is_connected?)
+    assert_equal(3, analyzer.connected_components)
+  end
 end
 

@@ -46,6 +46,14 @@ module Spinneret
       end
       set_timeout(10, true) { do_maintenance }
     end
+    
+    def to_s
+      "nid=#{@nid} addr=#{addr} peers: #{link_table.to_s}"
+    end
+
+    def inspect
+      "#<Spinneret::Node #{to_s}"
+    end
 
     def handle_failed_packet(pkt)
       log "#{nid} - got failed packet! #{pkt.inspect}"

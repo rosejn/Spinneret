@@ -15,6 +15,10 @@ module Spinneret
 
       @nid_cache = {}
     end
+
+    def peers
+      @table.flatten
+    end
     
     # Get the node in the table which is closest to <dest_addr>.
     def closest_peer(dest_nid)
@@ -65,7 +69,6 @@ module Spinneret
 
     # Store an address in the table if it is new.
     def store_peer(peer)
-      log "Store peer #{peer.nid} - #{peer.addr}"
       return if has_nid?(peer.nid) || peer.nid == @nid
 
       @nid_cache[peer.nid] = true
@@ -81,6 +84,14 @@ module Spinneret
 
     def each
       @table.flatten.each { | x | yield x }
+    end
+
+    def to_s
+      peers.map {|i| i.nid }.join(', ')
+    end
+
+    def inspect
+      "#<Spinneret::LinkTable nid=#{@nid} peers: #{to_s}"
     end
 
     private

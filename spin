@@ -109,7 +109,7 @@ if workload
 end
 
 # Add the Analysis generation
-Spinneret::Analyzer.new(nodes, "output/")
+Spinneret::Analyzer.new(nodes)
 
 puts "Beginning simulation...\n"
 if length != 0
