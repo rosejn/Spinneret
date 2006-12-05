@@ -118,13 +118,13 @@ module Spinneret
       File.open(File.join(@output_path, @sim.time.to_s + "_indegree_node"), "w") do | f |
         sorted = nodes_in.sort { | p1, p2 | p1[1] <=> p2[1] }
         sorted.each { | x | f.write("#{x[0]} #{x[1]}\n") }
-        sorted[-10..-1].each { | x | @high_indegree[x[0]] += 1 }
+        if sorted.length > 10
+          sorted[-5..-1].each { | x | @high_indegree[x[0]] += 1 }
+        end
       end
 
-      if @sim.time % 1000 == 0
-        File.open(@output_path + @sim.time.to_s + "_high_indegree", "w") do | f |
-          @high_indegree.each { | node, times | f.write("#{node} #{times}\n") }
-        end
+      File.open(@output_path + @sim.time.to_s + "_high_indegree", "w") do | f |
+        @high_indegree.each { | node, times | f.write("#{node} #{times}\n") }
       end
 
       distrib = Array.new(max + 1, 0)
@@ -136,10 +136,21 @@ module Spinneret
         distrib.each_index { | idx | f.write("#{idx} #{distrib[idx]}\n") }
       end
 
+      pts = []
+      distrib.each_index { | idx | distrib[idx].times { pts << idx } }
+      normal_dist = normal_fit(pts)
+      puts normal_dist
+
       # Make a link to the current one for live graphing...
       cur_path = File.join(@output_path, "cur_indegree_dist")
       File.delete(cur_path) if File.symlink?(cur_path)
       File.symlink(name, cur_path)
+    end
+
+    def normal_fit(data)
+      p data
+      v = GSL::Vector.alloc(data)
+      return [GSL::Stats::mean(v), GSL::Stats::sd(v)]
     end
   end
 
