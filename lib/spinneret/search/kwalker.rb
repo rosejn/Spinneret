@@ -1,0 +1,42 @@
+module Spinneret
+  module KWalker
+    KWalkerQuery = Struct.new(:src_addr, :query, :ttl)
+    KWalkerResponse = Struct.new(:src_addr, :src_id, :ttl)
+
+    KW_NUM_WALKERS = 32
+    KW_TTL         = 20
+
+    def kwalker_query(query, src_addr = @addr, 
+                      k = KW_NUM_WALKERS,
+                      ttl = KW_TTL)
+
+      if(query == @nid)
+        send_packet(:kwalker_response, src_addr, 
+                    KWalkerResponse.new(@addr, 
+                                        @nid, 
+                                        ttl - 1))
+      else 
+        
+        # First check for a direct neighbor
+        closest = @link_table.closest_peer(query)
+        if closest == query
+          dest = closest.addr
+        else # Go random 
+          dest = @link_table.random_peers(k).map {|p| p.addr }
+        end
+
+        send_packet(:kwalker_query, dest, 
+                    KWalkerQuery.new(src_addr, query, ttl - 1))
+      end
+    end
+
+    def handle_kwalker_query(pkt)
+      kwalker_query(pkt.query, pkt.src_addr, 1, pkt.ttl)
+    end
+
+    # TODO: What do we want to do with search responses?
+    def handle_kwalker_response(pkt)
+      log "KWalker got a query response..."
+    end
+  end
+end
