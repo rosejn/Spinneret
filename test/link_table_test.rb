@@ -20,6 +20,7 @@ class TestLinkTable < Test::Unit::TestCase
   end
 
   def test_basic
+    @table.verbose
     num_nodes = 10
 
     # store_addr & size

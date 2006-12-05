@@ -23,10 +23,10 @@ class TestNode < Test::Unit::TestCase
   # shell for the link table and maintenance algorithms...
   def test_simple_bootstrap
     nodes = []
-    nodes[0] = Spinneret::Node.new(0) 
+    nodes[0] = Node.new(0) 
     
     4.times do |i| 
-      nodes << Spinneret::Node.new(i+1, {
+      nodes << Node.new(i+1, {
         :start_peer => Peer.new(nodes[i].addr, nodes[i].nid) }) 
     end
 

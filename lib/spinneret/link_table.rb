@@ -64,26 +64,14 @@ module Spinneret
     end
 
     # Store an address in the table if it is new.
-    # TODO: This is where policy decisions will be made about the placement
-    # of nodes in the table and/or a cache etc...
-    def old_store_peer(peer)
-      return if has_nid?(peer.nid) || peer.nid == @nid
-
-      @nid_cache[peer.nid] = true
-      bin = log2(distance(@nid, peer.nid)).floor
-      if @table[bin].size < @num_slots
-        @table[bin] << peer
-        @last_modified = @sim.time
-      end
-    end
-
     def store_peer(peer)
+      log "Store peer #{peer.nid} - #{peer.addr}"
       return if has_nid?(peer.nid) || peer.nid == @nid
 
       @nid_cache[peer.nid] = true
       bin = log2(distance(@nid, peer.nid)).floor
-      @table[bin].shift
       @table[bin] << peer
+      @table[bin].shift if @table[bin].size > @num_slots
     end
     alias :<< :store_peer
 

@@ -1,14 +1,17 @@
 module Spinneret
-  module KWalker
-    KWalkerQuery = Struct.new(:src_addr, :query, :ttl)
-    KWalkerResponse = Struct.new(:src_addr, :src_id, :ttl)
+module Search
+  KWalkerQuery = Struct.new(:src_addr, :query, :ttl)
+  KWalkerResponse = Struct.new(:src_addr, :src_id, :ttl)
 
+  module KWalker
     KW_NUM_WALKERS = 32
     KW_TTL         = 20
 
     def kwalker_query(query, src_addr = @addr, 
                       k = KW_NUM_WALKERS,
                       ttl = KW_TTL)
+
+      log "node: #{@nid} - kwalker_query( q = #{query}, src = #{src_addr}, ttl = #{ttl})"
 
       if(query == @nid)
         send_packet(:kwalker_response, src_addr, 
@@ -19,12 +22,13 @@ module Spinneret
         
         # First check for a direct neighbor
         closest = @link_table.closest_peer(query)
-        if closest == query
+        if closest.nid == query
           dest = closest.addr
         else # Go random 
           dest = @link_table.random_peers(k).map {|p| p.addr }
         end
 
+        log "forwarding query to dest: #{dest}"
         send_packet(:kwalker_query, dest, 
                     KWalkerQuery.new(src_addr, query, ttl - 1))
       end
@@ -39,4 +43,5 @@ module Spinneret
       log "KWalker got a query response..."
     end
   end
+end
 end
