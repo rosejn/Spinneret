@@ -17,6 +17,9 @@ module Spinneret
       @nodes = nodes
       @output_path = output_path  
       @output_path += "/"  if @output_path[-1].chr != "/"
+
+      @high_indegree = Hash.new(0)
+
       set_timeout(100, true) { indegree_calc }
     end
 
@@ -75,8 +78,18 @@ module Spinneret
 
       max = nodes_in.values.max
       return  if max.nil?
+  
+      File.open(@output_path + @sim.time.to_s + "_indegree_node", "w") do | f |
+        sorted = nodes_in.sort { | p1, p2 | p1[1] <=> p2[1] }
+        sorted.each { | x | f.write("#{x[0]} #{x[1]}\n") }
+        sorted[-10..-1].each { | x | @high_indegree[x[0]] += 1 }
+      end
 
-      puts "Max: #{max}"
+      if @sim.time % 1000 == 0
+        File.open(@output_path + @sim.time.to_s + "_high_indegree", "w") do | f |
+          @high_indegree.each { | node, times | f.write("#{node} #{times}\n") }
+        end
+      end
 
       distrib = Array.new(max + 1, 0)
       nodes_in.each { | node, in_e | distrib[in_e] += 1 }
