@@ -94,25 +94,27 @@ module Spinneret
       distrib = Array.new(max + 1, 0)
       nodes_in.each { | node, in_e | distrib[in_e] += 1 }
       distrib.map! { | x | (x.nil? ? 0 : x) }
-      File.open(@output_path + @sim.time.to_s + "_indegree_dist", "w") do | f |
+
+      name = @sim.time.to_s + "_indegree_dist"
+      File.open(File.join(@output_path, name), "w") do | f |
         distrib.each_index { | idx | f.write("#{idx} #{distrib[idx]}\n") }
       end
 
-      normal_dist = normal_fit(distrib)
+      pts = []
+      distrib.each_index { | idx | distrib[idx].times { pts << idx } }
+      normal_dist = normal_fit(pts)
       puts normal_dist
+
+      # Make a link to the current one for live graphing...
+      cur_path = File.join(@output_path, "cur_indegree_dist")
+      File.delete(cur_path) if File.symlink?(cur_path)
+      File.symlink(name, cur_path)
     end
 
     def normal_fit(data)
-      mean = 0
-      length = 0.0
-      variance = 0
-      data.each { | x | if x != 0; mean += x; length += 1; end }
-      mean /= Float(data.length)
-      data.each { | x | variance += (x - mean) ** 2 }
-      variance /= Float(data.length)
-      std_dev = Math::sqrt(variance)
-
-      return [mean, std_dev]
+      p data
+      v = GSL::Vector.alloc(data)
+      return [GSL::Stats::mean(v), GSL::Stats::sd(v)]
     end
   end
 
