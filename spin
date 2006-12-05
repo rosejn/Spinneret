@@ -62,36 +62,54 @@ if((workload.nil? && topology.nil?) || (workload.nil? && addr_space == 0))
   puts "Not enough arguments:"
   puts "\tPlease specify either --workload and/or --topology"
   puts "\tNote that --topology must be accompanied by --address-space\n\n"
-  puts RDoc::usage
+  RDoc::usage
 
   exit(0)
 end
 
-node_objs = {}
-dist_func = DistanceFuncs::sym_circular(addr_space)
+node_id_map = {}
+nodes = []
 
 if topology
+  dist_func = DistanceFuncs::sym_circular(addr_space)
   rt_tbls = LogRandRouteTableParser.new(File.new(topology, "r"), nil, 
                                         dist_func)
   nodes = rt_tbls.get_nodes()
   nodes.each do | n | 
-    peer = node_objs[nodes[rand(nodes.length)]]
+    peer = node_id_map[nodes[rand(nodes.length)]]
     if(!peer.nil?)
-      node_objs[n] = Spinneret::Node.new(n, peer, dist_func, addr_space).sid
+      n = Spinneret::Node.new(n, peer, dist_func, addr_space)
     else
-      node_objs[n] = Spinneret::Node.new(n, nil, dist_func, addr_space).sid
+      n = Spinneret::Node.new(n, nil, dist_func, addr_space)
     end
+    node_id_map[n] = n.sid
+    nodes << n
   end
 end
 
 if workload
   generators = {}
   wl_settings = nil
+  dist_func = nil
   generators[:init] = Proc.new do | opts | 
-    Spinneret::Node.new(opts.to_i, nil, dist_func, wl_settings.addr_space)
+    nid = opts.to_i
+    rand_node = nodes[rand(nodes.length)]
+    peer = nil
+    if !rand_node.nil?
+      peer = Spinneret::Peer.new(rand_node.addr, rand_node.nid) 
+    end
+    n = Spinneret::Node.new(nid, {:start_peer => peer,
+                                  :distance_func => dist_func,
+                                  :address_space => wl_settings.addr_space.to_i})
+    nodes << n
+    n
   end
-  wl_settings = WorkloadParser.new(workload, generators, node_objs)
+  wl_settings = WorkloadParser.new(workload, generators, node_id_map)
+  dist_func = DistanceFuncs::sym_circular(wl_settings.addr_space.to_i)
 end
+
+# Add the Analysis generation
+Spinneret::Analyzer.new(nodes, "output/")
 
 puts "Beginning simulation...\n"
 if length != 0

@@ -66,7 +66,7 @@ module Spinneret
     # Store an address in the table if it is new.
     # TODO: This is where policy decisions will be made about the placement
     # of nodes in the table and/or a cache etc...
-    def store_peer(peer)
+    def old_store_peer(peer)
       return if has_nid?(peer.nid) || peer.nid == @nid
 
       @nid_cache[peer.nid] = true
@@ -76,10 +76,23 @@ module Spinneret
         @last_modified = @sim.time
       end
     end
+
+    def store_peer(peer)
+      return if has_nid?(peer.nid) || peer.nid == @nid
+
+      @nid_cache[peer.nid] = true
+      bin = log2(distance(@nid, peer.nid)).floor
+      @table[bin].shift
+      @table[bin] << peer
+    end
     alias :<< :store_peer
 
     def bin_sizes
       @table.map {|i| i.size}
+    end
+
+    def each
+      @table.flatten.each { | x | yield x }
     end
 
     private
@@ -107,5 +120,6 @@ module Spinneret
     def seen
       @last_seen = GoSim::Simulation::instance.time
     end
+
   end
 end
