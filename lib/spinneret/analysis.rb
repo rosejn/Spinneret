@@ -94,9 +94,16 @@ module Spinneret
       distrib = Array.new(max + 1, 0)
       nodes_in.each { | node, in_e | distrib[in_e] += 1 }
       distrib.map! { | x | (x.nil? ? 0 : x) }
-      File.open(@output_path + @sim.time.to_s + "_indegree_dist", "w") do | f |
+
+      name = @sim.time.to_s + "_indegree_dist"
+      File.open(File.join(@output_path, name), "w") do | f |
         distrib.each_index { | idx | f.write("#{idx} #{distrib[idx]}\n") }
       end
+
+      # Make a link to the current one for live graphing...
+      cur_path = File.join(@output_path, "cur_indegree_dist")
+      File.delete(cur_path) if File.symlink?(cur_path)
+      File.symlink(name, cur_path)
     end
   end
 
