@@ -9,7 +9,7 @@ module Spinneret
 
     attr_reader :graph
 
-    def initialize(nodes, addr_space, output_path, args = {})
+    def initialize(nodes, addr_space, args = {})
       super()
 
       @addr_space = addr_space
@@ -124,7 +124,7 @@ module Spinneret
       end
 
       bin_size, min, bins = dist.bin
-      File.open(@output_path + @sim.time.to_s + "_bins_chi_dist", "w") do | f |
+      File.open(File.join(@output_path, @sim.time.to_s + "_bins_chi_dist"), "w") do | f |
         bins.each_index do | idx | 
           f.write("#{min + (idx + 0.5) * bin_size} #{bins[idx]}\n")
         end
