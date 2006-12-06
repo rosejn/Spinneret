@@ -105,11 +105,12 @@ if workload
     n
   end
   wl_settings = WorkloadParser.new(workload, generators, node_id_map)
-  dist_func = DistanceFuncs::sym_circular(wl_settings.addr_space.to_i)
+  addr_space = wl_settings.addr_space.to_i
+  dist_func = DistanceFuncs::sym_circular(addr_space)
 end
 
 # Add the Analysis generation
-Spinneret::Analyzer.new(nodes)
+Spinneret::Analyzer.new(nodes, addr_space, "output/")
 
 puts "Beginning simulation...\n"
 if length != 0

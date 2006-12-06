@@ -9,9 +9,10 @@ module Spinneret
 
     attr_reader :graph
 
-    def initialize(nodes, args = {})
+    def initialize(nodes, addr_space, output_path, args = {})
       super()
 
+      @addr_space = addr_space
       params_to_ivars(args, {
                      :output_path => DEFAULT_OUTPUT_PATH,
                      :stability_threshold => DEFAULT_STABILITY_THRESHOLD,
@@ -22,7 +23,7 @@ module Spinneret
 
       @high_indegree = Hash.new(0)
 
-      #set_timeout(100, true) { indegree_calc }
+      set_timeout(100, true) { indegree_calc; outdegree_calc }
 
       setup_rgl_graph
       set_timeout(100, true) { is_connected? }
@@ -104,11 +105,46 @@ module Spinneret
       observed.each_with_index do |o, i| 
         sum += (o - expected[i])**2 / expected[i]
       end
+
+      return sum
+    end
+
+    def outdegree_calc
+      # The bin size needs to be parameterized correctly
+      ideal_binning = calc_ideal_binning(@nodes.length, @addr_space, 4)
+      dist = []
+      @nodes.each do | n |
+        bins_size = Array.new(Math.log2(@addr_space).ceil, 0.0)
+        i = 0
+        n.link_table.each_bin do | bin |
+          bins_size[i] = bin.size.to_f
+          i += 1
+        end
+        dist << chi_squared_distance(bins_size, ideal_binning)
+      end
+
+      bin_size, min, bins = dist.bin
+      File.open(@output_path + @sim.time.to_s + "_bins_chi_dist", "w") do | f |
+        bins.each_index do | idx | 
+          f.write("#{min + (idx + 0.5) * bin_size} #{bins[idx]}\n")
+        end
+      end
+    end
+      
+    def calc_ideal_binning(num_nodes, addr_space, bin_size)
+      density = num_nodes.to_f/addr_space.to_f
+      table = Array.new(Math.log2(addr_space).ceil)
+      table.each_index do | bin |
+        table[bin] = density * (2**(bin+1) - 2**bin)
+        table[bin] = bin_size  if table[bin] > bin_size
+      end
+
+      return table
     end
 
     def indegree_calc
       nodes_in = Hash.new(0)
-      @nodes.each do | n|
+      @nodes.each do | n |
         n.link_table.each { | out_e | nodes_in[out_e.nid] += 1 }
       end
 
@@ -123,23 +159,28 @@ module Spinneret
         end
       end
 
-      File.open(@output_path + @sim.time.to_s + "_high_indegree", "w") do | f |
+      File.open(File.join(@output_path, @sim.time.to_s + "_high_indegree"), "w") do | f |
         @high_indegree.each { | node, times | f.write("#{node} #{times}\n") }
       end
 
       distrib = Array.new(max + 1, 0)
-      nodes_in.each { | node, in_e | distrib[in_e] += 1 }
+      total_in = 0
+      nodes_in.each { | node, in_e | distrib[in_e] += 1; total_in += 1 }
       distrib.map! { | x | (x.nil? ? 0 : x) }
 
       name = @sim.time.to_s + "_indegree_dist"
       File.open(File.join(@output_path, name), "w") do | f |
-        distrib.each_index { | idx | f.write("#{idx} #{distrib[idx]}\n") }
+        distrib.each_index do | idx | 
+          f.write("#{idx} #{distrib[idx]/Float(total_in)}\n") 
+        end
       end
 
       pts = []
       distrib.each_index { | idx | distrib[idx].times { pts << idx } }
       normal_dist = normal_fit(pts)
-      puts normal_dist
+      File.open(File.join(@output_path, "indegree_normal_mean"), "a") do | f |
+        f.write("#{@sim.time} #{normal_dist[0]}\n")
+      end
 
       # Make a link to the current one for live graphing...
       cur_path = File.join(@output_path, "cur_indegree_dist")
@@ -148,7 +189,6 @@ module Spinneret
     end
 
     def normal_fit(data)
-      p data
       v = GSL::Vector.alloc(data)
       return [GSL::Stats::mean(v), GSL::Stats::sd(v)]
     end

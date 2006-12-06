@@ -48,6 +48,7 @@ require 'spinneret/search/kwalker'
 require 'spinneret/search/dht'
 
 # Internals
+require 'spinneret/math_ext'
 require 'spinneret/link_table'
 require 'spinneret/node'
 require 'spinneret/analysis'

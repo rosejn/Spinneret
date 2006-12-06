@@ -1,25 +1,3 @@
-# set terminal png transparent nocrop enhanced font arial 8 size 512,384 
-# set output 'random.4.png'
-set grid nopolar
-set grid xtics nomxtics ytics nomytics noztics nomztics \
- nox2tics nomx2tics noy2tics nomy2tics nocbtics nomcbtics
-set grid layerdefault   linetype 0 linewidth 1.000,  linetype 0 linewidth 1.000
-set view 68, 28, 1, 1
-set samples 200, 200
-set isosamples 30, 30
-unset clabel
-set hidden3d offset 1 trianglepattern 3 undefined 1 altdiagonal bentover
-set cntrparam levels discrete 0.1
-set style function dots
-set ticslevel 0
-set ztics border in scale 1,0.5 nomirror norotate  offset character 0, 0, 0 0.00000,0.05
-set title "Histogram of 5000 random samples from a univariate\nGaussian PDF with unit variance and zero mean"  offset character 0, 0, 0 font "" norotate
-set urange [ -3.00000 : 3.00000 ] noreverse nowriteback
-set vrange [ -3.00000 : 3.00000 ] noreverse nowriteback
-set xrange [ -3.00000 : 3.00000 ] noreverse nowriteback
-set yrange [ 0.00000 : 0.450000 ] noreverse nowriteback
-set zrange [ -0.200000 : 0.200000 ] noreverse nowriteback
-tstring(n) = sprintf("Histogram of %d random samples from a univariate\nGaussian PDF with unit variance and zero mean", n)
 isint(x)=(int(x)==x)
 Binv(p,q)=exp(lgamma(p+q)-lgamma(p)-lgamma(q))
 arcsin(x,r)=r<=0?1/0:abs(x)>r?0.0:invpi/sqrt(r*r-x*x)
@@ -77,7 +55,6 @@ ctriangular(x,m,g)=g<=0?1/0:  x<m-g?0.0:x>=m+g?1.0:0.5+real(x-m)/g-(x-m)*abs(x-m
 cuniform(x,a,b)=x<(a<b?a:b)?0.0:x>=(a>b?a:b)?1.0:real(x-a)/(b-a)
 cweibull(x,a,lambda)=a<=0||lambda<=0?1/0:x<0?0.0:1.0-exp(-(lambda*x)**a)
 bin(x) = (1.0/scale)*floor(x*scale)
-nsamp = 5000
 fourinvsqrtpi = 2.25675833419103
 invpi = 0.318309886183791
 invsqrt2pi = 0.398942280401433
@@ -85,8 +62,3 @@ log2 = 0.693147180559945
 sqrt2 = 1.4142135623731
 sqrt2invpi = 0.797884560802865
 twopi = 6.28318530717959
-binwidth = 20
-xlow = -3.0
-xhigh = 3.0
-scale = 3.33333333333333
-plot "random.tmp" using (bin($1)):2 smooth frequency with steps                 title "scaled bin frequency",                 normal(x,0,1) with lines title "Gaussian p.d.f."
