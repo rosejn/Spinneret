@@ -34,6 +34,9 @@ class TestLinkTable < Test::Unit::TestCase
     assert_equal(4, @table.closest_peer(5).nid)
     assert_equal(128, @table.closest_peer(136).nid)
 
+    # closest_peers
+    assert_equal([8, 16, 32], @table.closest_peers(24, 3).map{|p| p.nid }.sort)
+
     # random_peer(s)
     assert_equal(Peer, @table.random_peer.class)
     assert_equal(5, @table.random_peers(5).size)

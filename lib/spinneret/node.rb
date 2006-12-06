@@ -8,6 +8,7 @@ module Spinneret
     DEFAULT_ADDRESS_SPACE = 10000
 
     DEFAULT_MAINTENANCE = Maintenance::Pull
+    MAINTENANCE_PERIOD  = 10
 
     
     attr_reader  :nid, :link_table
@@ -44,7 +45,16 @@ module Spinneret
         @link_table.store_peer(@start_peer)
         do_maintenance
       end
-      set_timeout(10, true) { do_maintenance }
+
+      start_maintenance
+    end
+
+    def stop_maintenance
+      @maintenance_timeout.cancel
+    end
+
+    def start_maintenance
+      @maintenance_timeout = set_timeout(MAINTENANCE_PERIOD, true) { do_maintenance }
     end
     
     def to_s

@@ -27,6 +27,12 @@ module Spinneret
       end
     end
 
+    def closest_peers(dest_nid, n)
+      @table.flatten.sort do |a,b| 
+        distance(dest_nid, a.nid) <=> distance(dest_nid, b.nid)     
+      end[0, n]
+    end
+
     # Get a random node from the table.
     def random_peer
       @table.flatten[rand(size)]

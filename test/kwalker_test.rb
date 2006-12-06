@@ -9,7 +9,7 @@ require 'gosim'
 class KWalkerNode < Spinneret::Node
   include Spinneret::Search::KWalker
   
-  attr_reader :got_response
+  attr_reader :got_response, :packet_counter
 
   # TODO: What do we want to do with search responses?
   def handle_kwalker_response(pkt)
@@ -20,6 +20,12 @@ class KWalkerNode < Spinneret::Node
 
   def schedule_search(query_id, time)
     set_timeout(time) { kwalker_query(query_id) }
+  end
+
+  def send_packet(*args)
+    @packet_counter ||= 0
+    @packet_counter += 1
+    super(*args)
   end
 end
 
@@ -56,5 +62,10 @@ class TestKWalker < Test::Unit::TestCase
     @sim.run(100)
 
     3.times { assert_equal(1, node_a.got_response.shift) }
+
+    # Test that the ttl expiration works (don't send more packets)
+    count = node_a.packet_counter
+    node_a.kwalker_query(123, 123, 123, 0)
+    assert_equal(count, node_a.packet_counter)
   end
 end

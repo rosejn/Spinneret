@@ -45,6 +45,7 @@ require 'spinneret/maintenance/pull'
 
 # Search algorithms
 require 'spinneret/search/kwalker'
+require 'spinneret/search/dht'
 
 # Internals
 require 'spinneret/link_table'

@@ -18,6 +18,9 @@ module Search
                     KWalkerResponse.new(@addr, 
                                         @nid, 
                                         ttl - 1))
+      elsif ttl == 0
+       return
+
       else 
         
         # First check for a direct neighbor
