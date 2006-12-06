@@ -26,6 +26,14 @@
 #    Temporary argument until the framework reads the number out of the
 #    workload file.  Must be the same as the workload, or your distance
 #    function may break.
+#
+# -m type, --maintenance type
+#    Selects a maintenance type.  Current options are:
+#       #{maintenance_types}
+#       pull
+#       push
+#       opportunistic
+#    Defaults to pull.
 
 require 'rdoc/usage'
 
@@ -33,15 +41,22 @@ require 'lib/spinneret'
 require 'util/workload_parser'
 require 'util/graph-rep'
 
+def maintenance_types
+
+
+end
+
 opts = GetoptLong.new(
         ['--help',               '-h', GetoptLong::NO_ARGUMENT],
         ['--workload',           '-w', GetoptLong::REQUIRED_ARGUMENT],
         ['--topology',           '-t', GetoptLong::REQUIRED_ARGUMENT],
         ['--max-length',         '-x', GetoptLong::REQUIRED_ARGUMENT],
-        ['--address-space',      '-a', GetoptLong::REQUIRED_ARGUMENT] )
+        ['--address-space',      '-a', GetoptLong::REQUIRED_ARGUMENT],
+        ['--maintenance',        '-m', GetoptLong::REQUIRED_ARGUMENT] )
 
 addr_space = length = 0
 workload = topology = nil
+maintenance = "pull"
 
 opts.each do | opt, arg |
   case opt
@@ -55,6 +70,8 @@ opts.each do | opt, arg |
     length = arg.to_i
   when '--address-space'
     addr_space = arg.to_i
+  when '--maintenance'
+    maintenance = arg
   end
 end
 
@@ -69,6 +86,13 @@ end
 
 node_id_map = {}
 nodes = []
+
+# make sure the maintenance type is valid
+if !Spineret::Maintenance.const_defined? maintenance.capitalize.to_sym
+  puts "Invalid maintenance type #{maintenance}.\n"
+  exit(1)
+end
+
 
 if topology
   dist_func = DistanceFuncs::sym_circular(addr_space)

@@ -42,6 +42,8 @@ end
 
 # Maintenance algorithms
 require 'spinneret/maintenance/pull'
+require 'spinneret/maintenance/push'
+require 'spinneret/maintenance/opportunistic'
 
 # Search algorithms
 require 'spinneret/search/kwalker'

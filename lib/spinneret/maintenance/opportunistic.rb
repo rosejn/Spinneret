@@ -1,10 +1,9 @@
 module Spinneret
 module Maintenance
-
-  OpHeader = Struct.new(:src, :nid, :neighbors, :pid, :pkt)
-
   module Opportunistic
     OP_WRAP_SIZE = 5
+
+    OpHeader = Struct.new(:src, :nid, :neighbors, :ptype, :pkt)
 
     def do_maintenance
     end
@@ -18,7 +17,7 @@ module Maintenance
       header.neighbors.each {|n| @link_table.store_peer(n)}
 
       # Now call the wrapped handler
-      send(("handle_" + header.pid).to_sym, header.pkt)
+      send(("handle_" + header.ptype).to_sym, header.pkt)
     end
   end
 end

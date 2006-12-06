@@ -1,10 +1,9 @@
 module Spinneret
 module Maintenance
-
-  NeighborRequest = Struct.new(:src, :nid, :num)
-  NeighborResponse = Struct.new(:src, :nid, :neighbors)
-
   module Pull
+    NeighborRequest = Struct.new(:src, :nid, :num)
+    NeighborResponse = Struct.new(:src, :nid, :neighbors)
+
     NEIGHBOR_REQUEST_SIZE = 5
 
     def do_maintenance

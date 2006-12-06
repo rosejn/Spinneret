@@ -1,9 +1,8 @@
 module Spinneret
 module Maintenance
-
-  NeighborPush = Struct.new(:src, :nid, :neighbors)
-
   module Push
+    NeighborPush = Struct.new(:src, :nid, :neighbors)
+
     NEIGHBOR_PUSH_SIZE = 5
 
     def do_maintenance
