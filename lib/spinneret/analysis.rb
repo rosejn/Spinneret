@@ -9,11 +9,11 @@ module Spinneret
 
     attr_reader :graph
 
-    def initialize(nodes, addr_space, args = {})
+    def initialize(nodes, args = {})
       super()
 
-      @addr_space = addr_space
       params_to_ivars(args, {
+                     :address_space => Node::DEFAULT_ADDRESS_SPACE,
                      :output_path => DEFAULT_OUTPUT_PATH,
                      :stability_threshold => DEFAULT_STABILITY_THRESHOLD,
                      :stability_handler => method(:default_stable_handler) 
@@ -111,10 +111,10 @@ module Spinneret
 
     def outdegree_calc
       # The bin size needs to be parameterized correctly
-      ideal_binning = calc_ideal_binning(@nodes.length, @addr_space, 4)
+      ideal_binning = calc_ideal_binning(@nodes.length, @address_space, 4)
       dist = []
       @nodes.each do | n |
-        bins_size = Array.new(Math.log2(@addr_space).ceil, 0.0)
+        bins_size = Array.new(Math.log2(@address_space).ceil, 0.0)
         i = 0
         n.link_table.each_bin do | bin |
           bins_size[i] = bin.size.to_f
