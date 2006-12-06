@@ -47,6 +47,7 @@ require 'spinneret/maintenance/pull'
 require 'spinneret/search/kwalker'
 
 # Internals
+require 'spinneret/math_ext'
 require 'spinneret/link_table'
 require 'spinneret/node'
 require 'spinneret/analysis'

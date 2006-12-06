@@ -11,7 +11,7 @@ module Spinneret
 
       params_to_ivars(args, {})
 
-      @table = Array.new(log2(@address_space).ceil) { [] }
+      @table = Array.new(Math::log2(@address_space).ceil) { [] }
 
       @nid_cache = {}
     end
@@ -69,7 +69,7 @@ module Spinneret
       return if has_nid?(peer.nid) || peer.nid == @nid
 
       @nid_cache[peer.nid] = true
-      bin = log2(distance(@nid, peer.nid)).floor
+      bin = Math::log2(distance(@nid, peer.nid)).floor
       @table[bin] << peer
       @table[bin].shift if @table[bin].size > @num_slots
     end
@@ -83,11 +83,8 @@ module Spinneret
       @table.flatten.each { | x | yield x }
     end
 
-    private
-
-    # Log base 2
-    def log2(num)
-      Math.log(num) / Math.log(2)
+    def each_bin
+      @table.each { | x | yield x }
     end
   end
 
