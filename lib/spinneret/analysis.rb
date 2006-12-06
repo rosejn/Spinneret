@@ -5,23 +5,59 @@ module Spinneret
     include KeywordProcessor
 
     DEFAULT_STABILITY_THRESHOLD = 10
+    DEFAULT_OUTPUT_PATH = 'output'
+
+    attr_reader :graph
 
     def initialize(nodes, addr_space, output_path, args = {})
       super()
 
       @addr_space = addr_space
       params_to_ivars(args, {
+                     :output_path => DEFAULT_OUTPUT_PATH,
                      :stability_threshold => DEFAULT_STABILITY_THRESHOLD,
                      :stability_handler => method(:default_stable_handler) 
       })
 
       @nodes = nodes
-      @output_path = output_path  
-      @output_path += "/"  if @output_path[-1].chr != "/"
 
       @high_indegree = Hash.new(0)
 
       set_timeout(100, true) { indegree_calc; outdegree_calc }
+
+      setup_rgl_graph
+      set_timeout(100, true) { is_connected? }
+    end
+
+    def setup_rgl_graph
+      require 'rgl/base'
+      require 'rgl/implicit'
+      require 'rgl/connected_components'
+
+      @node_hash = {}
+
+      @graph = RGL::ImplicitGraph.new do |g|
+          g.vertex_iterator { |block|
+            @nodes.each {|n| block.call(n) }
+          }
+
+          g.adjacent_iterator { |node, block|
+            node.link_table.peers.each do |peer|
+              block.call(@node_hash[peer.nid])
+            end
+          }
+
+          g.directed = true
+      end
+    end
+
+    def is_connected?
+      connected_components == 1
+    end
+
+    def connected_components
+      @nodes.each {|n| @node_hash[n.nid] = n }
+      @graph.strongly_connected_components.num_comp
     end
 
     def handle_link_count
@@ -115,7 +151,7 @@ module Spinneret
       max = nodes_in.values.max
       return  if max.nil?
   
-      File.open(@output_path + @sim.time.to_s + "_indegree_node", "w") do | f |
+      File.open(File.join(@output_path, @sim.time.to_s + "_indegree_node"), "w") do | f |
         sorted = nodes_in.sort { | p1, p2 | p1[1] <=> p2[1] }
         sorted.each { | x | f.write("#{x[0]} #{x[1]}\n") }
         if sorted.length > 10
@@ -123,7 +159,7 @@ module Spinneret
         end
       end
 
-      File.open(@output_path + @sim.time.to_s + "_high_indegree", "w") do | f |
+      File.open(File.join(@output_path, @sim.time.to_s + "_high_indegree"), "w") do | f |
         @high_indegree.each { | node, times | f.write("#{node} #{times}\n") }
       end
 
@@ -134,13 +170,15 @@ module Spinneret
 
       name = @sim.time.to_s + "_indegree_dist"
       File.open(File.join(@output_path, name), "w") do | f |
-        distrib.each_index { | idx | f.write("#{idx} #{distrib[idx]/Float(total_in)}\n") }
+        distrib.each_index do | idx | 
+          f.write("#{idx} #{distrib[idx]/Float(total_in)}\n") 
+        end
       end
 
       pts = []
       distrib.each_index { | idx | distrib[idx].times { pts << idx } }
       normal_dist = normal_fit(pts)
-      File.open(@output_path + "indegree_normal_mean", "a") do | f |
+      File.open(File.join(@output_path, "indegree_normal_mean"), "a") do | f |
         f.write("#{@sim.time} #{normal_dist[0]}\n")
       end
 

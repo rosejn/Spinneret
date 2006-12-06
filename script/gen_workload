@@ -166,22 +166,24 @@ opts.each do | opt, arg |
   end
 end
 
-if(settings.addr_space == 0 || settings.mjt == 0 || filename.nil?)
-  printf("Need to specify at least --address-space, --mean-join-time, " +
-         "and --filename.\n")
+if(settings.addr_space == 0 || settings.mjt == 0)
+  printf("Need to specify at least --address-space, --mean-join-time \n")
   exit(0)
 end
 
 if(settings.join_first && nodes == 0)
-  printf("Must specify --num-nodes when using the --all-joins-first option.\n")
+  printf("Must specify --num-nodes when using the --all-joins-first option \n")
   exit(0)
 end
 
 if(length == 0)
-  printf("WARN: generating an inifinte trace.\n")
+  printf("WARN: generating an infinite trace.\n")
 else
   Killer.new(length)
 end
+
+# Set the filename if one wasn't given
+filename ||= File.join('workloads', "a#{settings.addr_space}-n#{nodes}-j#{settings.mjt}.wl")
 
 file = File.open(filename, "w")
 file.write(settings)
