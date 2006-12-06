@@ -4,12 +4,12 @@ module Maintenance
     NeighborRequest = Struct.new(:src, :nid, :num)
     NeighborResponse = Struct.new(:src, :nid, :neighbors)
 
-    NEIGHBOR_REQUEST_SIZE = 5
+    NUM_NEIGHBOR_REQUESTS = 1
 
     def do_maintenance
-      peers = @link_table.random_peers(NEIGHBOR_REQUEST_SIZE)
+      peers = @link_table.random_peers(NUM_NEIGHBOR_REQUESTS)
       send_packet(:neighbor_request, peers.map { | p | p.addr },
-                  NeighborRequest.new(@addr, @nid, NEIGHBOR_REQUEST_SIZE))
+                  NeighborRequest.new(@addr, @nid, @maintenance_size))
     end
 
     def handle_neighbor_request(pkt)

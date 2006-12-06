@@ -7,6 +7,10 @@ module Search
     KW_NUM_WALKERS = 32
     KW_TTL         = 20
 
+    def handle_search_kwalk(dest_addr)
+      kwalker_query(dest_addr.to_i)
+    end
+
     def kwalker_query(query, src_addr = @addr, 
                       k = KW_NUM_WALKERS,
                       ttl = KW_TTL)
@@ -25,6 +29,7 @@ module Search
         
         # First check for a direct neighbor
         closest = @link_table.closest_peer(query)
+        return if closest.nil?
         if closest.nid == query
           dest = closest.addr
         else # Go random 

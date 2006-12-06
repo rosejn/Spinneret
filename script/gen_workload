@@ -44,7 +44,17 @@
 #
 # -s secs, --mean-search-time secs:
 #    Time between searching for each node, where 0 is no search.  0 is the 
-#    default. 
+#    default.
+#
+# -t types, --search-types types:
+#    Specifies the search types.  Each type is a pair, name:pct, where name
+#    specifies the type and pct the percent of the time it occurs.  Multiple
+#    types can be given if they are seperated with commas:
+#        dht:0.2,kwalk:0.8
+#    would create a workoad with 20% DHT searches, and 80% random k-walker
+#    searches.  Note that the sum of the probabilities must be <= to 1.0.
+#    Defaults to
+#        dht:0.5,kwalk:0.5
 
 ######
 # The basic FSM for this generator is as follows:
@@ -75,6 +85,7 @@ require 'gosim'
 # Externals
 require 'gsl'
 
+DEFAULT_SEARCH_TYPE = "dht:0.5,kwalk:0.5"
 
 class WLPrinter
   include Singleton
@@ -112,6 +123,40 @@ class Killer < GoSim::Entity
   end
 end
 
+class SearchType
+  attr_reader :name, :prob
+
+  def initialize(name, prob)
+    @name, @prob = name, prob.to_f
+  end
+end
+
+def parse_search_types(types_str)
+  types = types_str.split(',').map { | t | SearchType.new(*t.split(':')) }
+  tot_prob = 0.0
+  types.each { | t | tot_prob += t.prob }
+  if tot_prob > 1.0
+    puts "Total search probability is more than 1.0.\n"
+    exit(2)
+  end
+
+  return types
+end
+
+def choose_search_method(types)
+  tot_prob = 0.0
+  types.each { | type | tot_prob += type.prob }
+
+  types.each do | type |  
+    if rand() < type.prob / tot_prob
+      return type
+    end
+    tot_prob -= type.prob
+  end
+
+  nil
+end
+
 opts = GetoptLong.new(
         ['--help',               '-h', GetoptLong::NO_ARGUMENT],
         ['--filename',           '-o', GetoptLong::REQUIRED_ARGUMENT],
@@ -123,18 +168,20 @@ opts = GetoptLong.new(
         ['--mean-failure-time',  '-x', GetoptLong::REQUIRED_ARGUMENT],
         ['--mean-leave-time',    '-q', GetoptLong::REQUIRED_ARGUMENT],
         ['--mean-rejoin-time',   '-r', GetoptLong::REQUIRED_ARGUMENT],
-        ['--mean-search-time',   '-s', GetoptLong::REQUIRED_ARGUMENT] )
+        ['--mean-search-time',   '-s', GetoptLong::REQUIRED_ARGUMENT],
+        ['--search-types',       '-t', GetoptLong::REQUIRED_ARGUMENT])
 
 Settings = Struct.new("Settings", :addr_space, :join_first, 
-                                  :mjt, :mft, :mlt, :mrt, :mst)
+                                  :mjt, :mft, :mlt, :mrt, :mst, :search_types)
 class Settings
   def to_s
    "# Settings---\n# addr_space: #{addr_space}\n# join_first?: #{join_first}\n" +
-   "# mjt: #{mjt}\n# mft: #{mft}\n# mft: #{mlt}\n# mrt: #{mrt}\n# mst: #{mst}\n"
+   "# mjt: #{mjt}\n# mft: #{mft}\n# mft: #{mlt}\n# mrt: #{mrt}\n" + 
+   "# mst: #{mst}\n# search-types: #{search_types}\n"
   end
 end
 
-settings = Settings.new(0, false, 0, 0, 0, 0, 0)
+settings = Settings.new(0, false, 0, 0, 0, 0, 0, DEFAULT_SEARCH_TYPE)
 
 nodes = 0
 filename = nil
@@ -163,6 +210,8 @@ opts.each do | opt, arg |
     settings.mrt = arg.to_f
   when '--mean-search-time'
     settings.mst = arg.to_f
+  when '--search-types'
+    settings.search_types = arg
   end
 end
 
@@ -191,6 +240,8 @@ file.write("# num_nodes: #{nodes}\n")
 file.write("# sim_length: #{length}\n")
 
 puts settings
+
+settings.search_types = parse_search_types(settings.search_types)
 
 WLPrinter.instance.init(GoSim::Simulation.instance, file)
 
@@ -273,8 +324,9 @@ class NodeObj < GoSim::Entity
   end
 
   def handle_send(e)
-    if(!@left)
-      @wl.printf("%d search %d\n", @id, rand(@settings.addr_space))
+    type = choose_search_method(@settings.search_types)
+    if(!@left && !type.nil?)
+      @wl.printf("%d search_%s %d\n", @id, type.name, rand(@settings.addr_space))
     end
     @sim.schedule_event(:send, @sid, 
                         $R.poisson(@settings.mst).round, nil)
@@ -303,6 +355,8 @@ class NodeObj < GoSim::Entity
     @sim.schedule_event(:failure, @sid, 
                         $R.poisson(@settings.mft).round, nil)
   end
+
+
 end
 
 NodeFactory.new(nodes, settings)

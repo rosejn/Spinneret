@@ -10,6 +10,10 @@ module Search
   DHT_BURST_CHANCE = 0.5
 
   module DHT
+    def handle_search_dht(dest_addr)
+      dht_query(dest_addr.to_i) 
+    end
+
     # Do a logarithmic query where at each hop we jump to the closest node
     # possible in the current link table.
     def dht_query(query, src_addr = @addr, ttl = DHT_TTL)
@@ -40,12 +44,12 @@ module Search
       log "node: #{@nid} - dht_query( q = #{query})"
 
       unless us_or_dead?(query, src_addr, ttl)
-        peers = @link_table.closest_nodes(query, DHT_BURST_SIZE)
+        peers = @link_table.closest_peers(query, DHT_BURST_SIZE)
+        return if peers.empty?
 
         # If one of our immediate neighbors is the target go straight there.
         if peers.first.nid == query
           dest = peers.first.addr
-          
         # Otherwise we follow the burst chance
         else
           dest = peers.select { rand <= DHT_BURST_CHANCE }.map {|p| p.addr }
@@ -53,7 +57,7 @@ module Search
 
         log "dht burst query: #{query} to dest: #{peers.map {|p| p.nid }}"
         send_packet(:dht_burst_query, dest,
-                    DHTBurstQuery(src_addr, query, ttl - 1))
+                    DHTBurstQuery.new(src_addr, query, ttl - 1))
       end
     end
 
@@ -77,7 +81,7 @@ module Search
       dht_query(pkt.query, pkt.src_addr, pkt.ttl)
     end
 
-    def handle_dht_burst(pkt)
+    def handle_dht_burst_query(pkt)
       dht_burst_query(pkt.query, pkt.src_addr, pkt.ttl)
     end
 

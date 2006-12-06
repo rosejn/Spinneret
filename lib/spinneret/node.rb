@@ -8,6 +8,7 @@ module Spinneret
     DEFAULT_ADDRESS_SPACE = 10000
 
     DEFAULT_MAINTENANCE = Maintenance::Pull
+    DEFAULT_MAINTENANCE_SIZE = 5
     MAINTENANCE_PERIOD  = 10
 
     
@@ -22,6 +23,7 @@ module Spinneret
       args = params_to_ivars(args, {
         :start_peer => nil,
         :maintenance => DEFAULT_MAINTENANCE,
+        :maintenance_size => DEFAULT_MAINTENANCE_SIZE,
         :address_space => DEFAULT_ADDRESS_SPACE,
         :num_slots => DEFAULT_NUM_SLOTS,
         :distance_func => nil })
@@ -32,6 +34,8 @@ module Spinneret
       end
 
       extend(@maintenance)
+      extend(Search::DHT)
+      extend(Search::KWalker)
 
       @nid = nid
 
