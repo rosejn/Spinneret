@@ -31,7 +31,7 @@ class TestAnalysis < Test::Unit::TestCase
 
     @sim.run(500)
 
-    analyzer = Analyzer.new(nodes)
+    analyzer = Analyzer.new(nodes, Spinneret::Node::DEFAULT_ADDRESS_SPACE)
     assert_equal(true, analyzer.is_connected?)
     assert_equal(1, analyzer.connected_components)
 
