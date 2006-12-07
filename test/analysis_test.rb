@@ -11,8 +11,9 @@ class TestAnalysis < Test::Unit::TestCase
   include Spinneret
 
   def setup
-    @sim = GoSim::Simulation.instance
+    @sim = GoSim::Simulation::instance
     @sim.quiet
+    GoSim::Net::Topology::instance.setup(100)
   end
 
   def teardown
@@ -31,7 +32,7 @@ class TestAnalysis < Test::Unit::TestCase
 
     @sim.run(500)
 
-    analyzer = Analyzer.new(nodes)
+    analyzer = Spinneret::Analyzer::instance.setup(nodes)
     assert_equal(true, analyzer.is_connected?)
     assert_equal(1, analyzer.connected_components)
 

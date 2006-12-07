@@ -3,31 +3,66 @@ module Spinneret
   class Analyzer < GoSim::Entity
     include Base
     include KeywordProcessor
+    include Singleton
 
+    DEFAULT_MEASUREMENT_PERIOD = 10000
     DEFAULT_STABILITY_THRESHOLD = 10
     DEFAULT_OUTPUT_PATH = 'output'
 
     attr_reader :graph
+    attr_accessor :successes, :trials
 
-    def initialize(nodes, args = {})
+    def initialize()
       super()
 
+      #Register as a observer, in order to get reset messages
+      @sim.add_observer(self)
+    end
+
+    def setup(nodes, args = {})
       params_to_ivars(args, {
                      :address_space => Node::DEFAULT_ADDRESS_SPACE,
                      :output_path => DEFAULT_OUTPUT_PATH,
+                     :measurement_period => DEFAULT_MEASUREMENT_PERIOD,
                      :stability_threshold => DEFAULT_STABILITY_THRESHOLD,
                      :stability_handler => method(:default_stable_handler) 
       })
 
       @nodes = nodes
 
-      @high_indegree = Hash.new(0)
+      internal_init
 
-      set_timeout(100, true) { indegree_calc; outdegree_calc }
-
-      setup_rgl_graph
-      set_timeout(100, true) { is_connected? }
+      return self
     end
+
+    def run_phase
+      analize_search; indegree_calc; outdegree_calc; is_connected?
+
+      @successes = 0
+      @trials = 0
+    end
+
+    #What happens to @nodes here?  For now the reference better remain the
+    #same, which isn't an issue, as this is only used in unit testing...anyway,
+    #added @nodes to attr_writer
+    def update
+      log "Resetting Analyzer"
+      reset
+      internal_init
+      log "Analyzer now has sid #{sid}"
+    end
+
+    private
+
+    def internal_init
+      @high_indegree = Hash.new(0)
+      @successes = 0
+      @trials = 0
+      setup_rgl_graph
+      set_timeout(@measurement_period, true) { run_phase }
+    end
+
+    public
 
     def setup_rgl_graph
       require 'rgl/base'
@@ -97,7 +132,12 @@ module Spinneret
       File.open(File.join(output_path, @sim.time, '_link_count')) do |f|
         links.each {|k,v| f << "#{k} #{v}" }
       end
+    end
 
+    def analize_search
+      File.open(File.join(@output_path, "search_success_pct"), "a") do | f |
+        f.write("#{@sim.time} #{@successes} #{@trials-@successes} #{@trials}\n")
+      end
     end
 
     def chi_squared_distance(observed, expected)

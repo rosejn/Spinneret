@@ -9,8 +9,7 @@ module Spinneret
 
     DEFAULT_MAINTENANCE = Maintenance::Pull
     DEFAULT_MAINTENANCE_SIZE = 5
-    MAINTENANCE_PERIOD  = 10
-
+    MAINTENANCE_PERIOD  = 1000
     
     attr_reader  :nid, :link_table
 

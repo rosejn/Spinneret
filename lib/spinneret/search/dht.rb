@@ -11,6 +11,7 @@ module Search
 
   module DHT
     def handle_search_dht(dest_addr)
+      Analyzer::instance.trials += 1
       dht_query(dest_addr.to_i) 
     end
 
@@ -65,6 +66,7 @@ module Search
       if(query == @nid)
         send_packet(:dht_response, src_addr, 
                     DHTResponse.new(@addr, @nid, ttl))
+        Analyzer::instance.successes += 1
         true
       elsif ttl == 0
         true

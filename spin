@@ -104,6 +104,8 @@ else
   maintenance = Spinneret::Maintenance.const_get(maintenance)
 end
 
+GoSim::Net::Topology::instance.setup(100)  # Mean latency 
+
 #if topology
 #  dist_func = DistanceFuncs::sym_circular(addr_space)
 #  rt_tbls = LogRandRouteTableParser.new(File.new(topology, "r"), nil, 
@@ -146,7 +148,7 @@ if workload
 end
 
 # Add the Analysis generation
-Spinneret::Analyzer.new(nodes, :address_space => addr_space)
+Spinneret::Analyzer::instance.setup(nodes, {:address_space => addr_space})
 
 puts "Beginning simulation...\n"
 if length != 0

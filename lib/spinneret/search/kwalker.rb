@@ -8,6 +8,7 @@ module Search
     KW_TTL         = 20
 
     def handle_search_kwalk(dest_addr)
+      Analyzer::instance.trials += 1
       kwalker_query(dest_addr.to_i)
     end
 
@@ -18,15 +19,14 @@ module Search
       log "node: #{@nid} - kwalker_query( q = #{query}, src = #{src_addr}, ttl = #{ttl})"
 
       if(query == @nid)
+        Analyzer::instance.successes += 1
         send_packet(:kwalker_response, src_addr, 
                     KWalkerResponse.new(@addr, 
                                         @nid, 
                                         ttl - 1))
       elsif ttl == 0
-       return
-
+        return
       else 
-        
         # First check for a direct neighbor
         closest = @link_table.closest_peer(query)
         return if closest.nil?

@@ -29,6 +29,7 @@ class DHTNode < Spinneret::Node
   end
 end
 
+
 class TestDHT < Test::Unit::TestCase
   
   include Spinneret
@@ -36,6 +37,9 @@ class TestDHT < Test::Unit::TestCase
   def setup
     @sim = GoSim::Simulation.instance
     @sim.quiet
+    @nodes = []
+    Spinneret::Analyzer::instance.setup(@nodes)
+    GoSim::Net::Topology::instance.setup(5)
   end
 
   def teardown
