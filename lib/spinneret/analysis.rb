@@ -17,6 +17,9 @@ module Spinneret
 
       #Register as a observer, in order to get reset messages
       @sim.add_observer(self)
+
+      @successes = 0
+      @trials = 0
     end
 
     def setup(nodes, args = {})
@@ -31,6 +34,9 @@ module Spinneret
       @nodes = nodes
 
       internal_init
+
+      @successes = 0
+      @trials = 0
 
       return self
     end

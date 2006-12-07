@@ -8,12 +8,10 @@ module Maintenance
 
     def send_packet(id, receivers, pkt)
       peers = @link_table.random_peers(@maintenance_size)
-#      puts "#{@addr} sending\n"
       super(:op_header, receivers, OpHeader.new(@addr, @nid, peers, id, pkt))
     end
 
     def handle_op_header(header)
-#      puts "recv\n"
       header.neighbors.each {|n| @link_table.store_peer(n)}
 
       # Now call the wrapped handler

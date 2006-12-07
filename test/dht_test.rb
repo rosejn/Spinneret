@@ -63,7 +63,6 @@ class TestDHT < Test::Unit::TestCase
 
     @nodes.each {|n| n.stop_maintenance }
     @sim.run(120000)
-    puts "Sim time is now #{@sim.time}"
 
     assert_not_nil(@nodes[0].got_response.nil?) 
     assert_equal(queries.sort, @nodes[0].got_response.sort) 

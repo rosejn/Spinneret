@@ -36,6 +36,8 @@ class TestKWalker < Test::Unit::TestCase
   def setup
     @sim = GoSim::Simulation.instance
     @sim.quiet
+    @nodes = []
+    Spinneret::Analyzer::instance.setup(@nodes)
   end
 
   def teardown
@@ -47,6 +49,8 @@ class TestKWalker < Test::Unit::TestCase
     node_b = KWalkerNode.new(1, :start_peer => node_a)
     node_c = KWalkerNode.new(2, :start_peer => node_b)
     node_d = KWalkerNode.new(3, :start_peer => node_c)
+
+    @nodes << node_a << node_b << node_c << node_d
 
     # Verify that responses come back correctly
     @sim.schedule_event(:kwalker_query, node_b.addr, 1, 
