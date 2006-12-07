@@ -82,6 +82,8 @@ require 'rdoc/usage'
 require 'rubygems'
 require 'gosim'
 
+require 'lib/spinneret/math_ext'
+
 # Externals
 require 'gsl'
 
@@ -294,7 +296,7 @@ class NodeFactory < GoSim::Entity
   private
 
   def spawn_nodes
-    NodeList.instance.nodes.each { | n | NodeObj.new(n, @settings) }
+    NodeList::instance.nodes.each { | n | NodeObj.new(n, @settings) }
   end
 end
 
@@ -326,7 +328,8 @@ class NodeObj < GoSim::Entity
   def handle_send(e)
     type = choose_search_method(@settings.search_types)
     if(!@left && !type.nil?)
-      @wl.printf("%d search_%s %d\n", @id, type.name, rand(@settings.addr_space))
+      @wl.printf("%d search_%s %d\n", @id, type.name, 
+                 NodeList::instance.nodes.rand)
     end
     @sim.schedule_event(:send, @sid, 
                         $R.poisson(@settings.mst).round, nil)
