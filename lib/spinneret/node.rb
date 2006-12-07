@@ -4,6 +4,9 @@ module Spinneret
     include Base
     include KeywordProcessor
 
+    include Search::DHT
+    include Search::KWalker
+
     DEFAULT_NUM_SLOTS = 4
     DEFAULT_ADDRESS_SPACE = 10000
 
@@ -33,8 +36,6 @@ module Spinneret
       end
 
       extend(@maintenance)
-      extend(Search::DHT)
-      extend(Search::KWalker)
 
       @nid = nid
 

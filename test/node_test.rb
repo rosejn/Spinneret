@@ -30,7 +30,7 @@ class TestNode < Test::Unit::TestCase
         :start_peer => Peer.new(nodes[i].addr, nodes[i].nid) }) 
     end
 
-    @sim.run(500)
+    @sim.run(50000)
 
     nodes.each { | n | assert_equal(4, n.link_table.size) }
   end

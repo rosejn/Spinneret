@@ -18,7 +18,7 @@ module Search
     # Do a logarithmic query where at each hop we jump to the closest node
     # possible in the current link table.
     def dht_query(query, src_addr = @addr, ttl = DHT_TTL)
-      #log "node: #{@nid} - dht_query( q = #{query})"
+      log "node: #{@nid} - dht_query( q = #{query})"
 
       unless us_or_dead?(query, src_addr, ttl)
         # Find closest neighbor and figure out whether we burst or jump.

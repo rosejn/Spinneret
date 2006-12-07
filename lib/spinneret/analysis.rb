@@ -163,6 +163,8 @@ module Spinneret
         dist << chi_squared_distance(bins_size, ideal_binning)
       end
 
+      return if dist.empty?
+
       bin_size, min, bins = dist.bin
       File.open(File.join(@output_path, @sim.time.to_s + "_bins_chi_dist"), "w") do | f |
         bins.each_index do | idx | 

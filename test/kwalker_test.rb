@@ -59,7 +59,7 @@ class TestKWalker < Test::Unit::TestCase
     # Verify the non-neighbor "random" case
     @sim.schedule_event(:kwalker_query, node_d.addr, 1, 
                         Search::KWalkerQuery.new(node_a.addr, 1, 10))
-    @sim.run(100)
+    @sim.run(10000)
 
     3.times { assert_equal(1, node_a.got_response.shift) }
 
