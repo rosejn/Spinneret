@@ -41,4 +41,22 @@ class TestLinkTable < Test::Unit::TestCase
     assert_equal(Peer, @table.random_peer.class)
     assert_equal(5, @table.random_peers(5).size)
   end
+
+  # Do a more targetted test to verify the trimming strategy.
+  def test_trim
+    nids = [2, 5, 20, 30, 31, 38, 44, 75, 76, 90]
+    @table.max_peers = nids.size
+
+    nids.each {|nid| @table.store_peer(Peer.new(0, nid)) }
+    assert_equal(nids.size, @table.size)
+
+    # Test boundaries and middle
+    insertions = [1, 25, 91]
+    removals = [76, 31, 90]
+    insertions.each_with_index do |nid, i| 
+      @table.store_peer(Peer.new(0, nid)) 
+      assert_equal(false, @table.has_nid?(removals[i]))
+    end
+
+  end
 end

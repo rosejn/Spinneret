@@ -42,7 +42,10 @@ module Spinneret
     end
 
     def run_phase
-      analize_search; indegree_calc; outdegree_calc; is_connected?
+      analize_search
+      indegree_calc
+      #outdegree_calc
+      is_connected?
 
       @successes = 0
       @trials = 0
@@ -123,7 +126,7 @@ module Spinneret
     def default_stable_handler
       log "Network is stable..."
     end
-
+=begin
     def handle_bin_distribution
       raise "Must specify an ideal_distribution to do the bin distribution analysis." unless @ideal_distribution 
 
@@ -139,7 +142,7 @@ module Spinneret
         links.each {|k,v| f << "#{k} #{v}" }
       end
     end
-
+=end
     def analize_search
       File.open(File.join(@output_path, "search_success_pct"), "a") do | f |
         f.write("#{@sim.time} #{@successes} #{@trials-@successes} #{@trials}\n")
@@ -155,6 +158,7 @@ module Spinneret
       return sum
     end
 
+=begin
     def outdegree_calc
       # The bin size needs to be parameterized correctly
       ideal_binning = calc_ideal_binning(@nodes.length, @address_space, 4)
@@ -189,7 +193,7 @@ module Spinneret
 
       return table
     end
-
+=end
     def indegree_calc
       nodes_in = Hash.new(0)
       @nodes.each do | n |

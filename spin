@@ -43,6 +43,7 @@ require 'util/graph-rep'
 
 opts = GetoptLong.new(
         ['--help',               '-h', GetoptLong::NO_ARGUMENT],
+        ['--verbose',            '-v', GetoptLong::NO_ARGUMENT],
         ['--workload',           '-w', GetoptLong::REQUIRED_ARGUMENT],
         ['--topology',           '-t', GetoptLong::REQUIRED_ARGUMENT],
         ['--max-length',         '-x', GetoptLong::REQUIRED_ARGUMENT],
@@ -59,6 +60,8 @@ opts.each do | opt, arg |
   case opt
   when '--help'
     RDoc::usage
+  when '--verbose'
+    GoSim::Simulation.instance.verbose
   when '--workload'
     workload = arg
   when '--topology'
