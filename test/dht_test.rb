@@ -47,7 +47,9 @@ class TestDHT < Test::Unit::TestCase
 
     # Create a 100 node network and let it stabilize, then run test queries.
     nodes << DHTNode.new(0)
-    100.times { |i| nodes << DHTNode.new(i+1, :start_peer => nodes[i]) }
+    100.times do |i| 
+      nodes << DHTNode.new(i+1, :start_peer => Peer.new(nodes[i].addr, nodes[i].nid))
+    end
 
     @sim.run(10)
 

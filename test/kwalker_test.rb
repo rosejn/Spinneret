@@ -44,9 +44,9 @@ class TestKWalker < Test::Unit::TestCase
 
   def test_kwalker
     node_a = KWalkerNode.new(0)
-    node_b = KWalkerNode.new(1, :start_peer => node_a)
-    node_c = KWalkerNode.new(2, :start_peer => node_b)
-    node_d = KWalkerNode.new(3, :start_peer => node_c)
+    node_b = KWalkerNode.new(1, :start_peer => Peer.new(node_a.addr, node_a.nid))
+    node_c = KWalkerNode.new(2, :start_peer => Peer.new(node_b.addr, node_b.nid))
+    node_d = KWalkerNode.new(3, :start_peer => Peer.new(node_c.addr, node_c.nid))
 
     # Verify that responses come back correctly
     @sim.schedule_event(:kwalker_query, node_b.addr, 1, 

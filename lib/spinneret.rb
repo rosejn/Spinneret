@@ -4,7 +4,7 @@ $LOAD_PATH.unshift(File.expand_path(File.dirname(__FILE__)))
 require 'benchmark'    # Checkin out
 #require 'profile'     # Speedin' up
 
-# Externals
+# Libraries that should be installed.
 require 'rubygems'
 require 'gosim'
 require 'zlib'
