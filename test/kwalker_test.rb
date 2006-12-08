@@ -7,8 +7,6 @@ require 'rubygems'
 require 'gosim'
 
 class KWalkerNode < Spinneret::Node
-  include Spinneret::Search::KWalker
-  
   attr_reader :got_response, :packet_counter
 
   # TODO: What do we want to do with search responses?
@@ -18,8 +16,8 @@ class KWalkerNode < Spinneret::Node
     @got_response << pkt.src_id
   end
 
-  def schedule_search(query_id, time)
-    set_timeout(time) { kwalker_query(query_id) }
+  def schedule_search(src_id, query_id, time)
+    set_timeout(time) { handle_search_kwalk(query_id, src_id, 1, 10) }
   end
 
   def send_packet(*args)
@@ -49,23 +47,21 @@ class TestKWalker < Test::Unit::TestCase
     node_d = KWalkerNode.new(3, :start_peer => node_c)
 
     # Verify that responses come back correctly
-    @sim.schedule_event(:kwalker_query, node_b.addr, 1, 
-                        Search::KWalkerQuery.new(node_a.addr, 1, 10))
+    node_b.schedule_search(node_a.addr, node_b.nid, 1)
 
     # Verify the direct neighbor lookup
-    @sim.schedule_event(:kwalker_query, node_c.addr, 1, 
-                        Search::KWalkerQuery.new(node_a.addr, 1, 10))
+    node_c.schedule_search(node_a.addr, node_b.nid, 1)
 
     # Verify the non-neighbor "random" case
-    @sim.schedule_event(:kwalker_query, node_d.addr, 1, 
-                        Search::KWalkerQuery.new(node_a.addr, 1, 10))
-    @sim.run(10000)
+    node_d.schedule_search(node_a.addr, node_b.nid, 1)
+    @sim.run(20000)
 
-    3.times { assert_equal(1, node_a.got_response.shift) }
+    assert_equal(1, node_a.got_response.uniq[0])
+#    3.times { assert_equal(1, node_a.got_response.shift) }
 
     # Test that the ttl expiration works (don't send more packets)
     count = node_a.packet_counter
-    node_a.kwalker_query(123, 123, 123, 0)
+    node_a.kwalker_query(nil, 123, 123, 123, 0)
     assert_equal(count, node_a.packet_counter)
   end
 end

@@ -46,6 +46,7 @@ require 'spinneret/maintenance/push'
 require 'spinneret/maintenance/opportunistic'
 
 # Search algorithms
+require 'spinneret/search/search_base'
 require 'spinneret/search/kwalker'
 require 'spinneret/search/dht'
 
