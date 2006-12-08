@@ -1,0 +1,53 @@
+#!/usr/bin/env ruby
+require 'lib/spinneret'
+
+DEFAULT_PROCESSES = 1
+
+if ARGV.size == 1
+  num_processes = Integer(ARGV[0])
+else
+  num_processes = DEFAULT_PROCESSES
+end
+
+# Simulation Parameters
+maintenance_rate = [1000, 10000, 30000, 60000]
+maintenance_amount = [1, 3, 5, 10, 20]
+link_table_size = [10, 25, 50, 100] 
+
+m_algs = Spinneret::Maintenance.constants
+
+# Simulation Parameters
+maintenance_rate = [1000, 10000, 30000, 60000]
+maintenance_amount = [1, 3, 5, 10, 20]
+link_table_size = [10, 25, 50, 100] 
+
+jobs = []
+
+# Bootstrap Simulations
+Dir.glob("workloads/bootstrap_*") do |workload|
+  maintenance_rate.each do |m_rate|
+    maintenance_amount.each do |m_amount|
+      link_table_size.each do |table_size|
+        jobs << "./spin -w #{workload} -s #{m_amount} -t #{table_size} -r #{m_rate}" 
+      end
+    end
+  end
+end
+
+num_children = 0
+
+puts "Executing #{jobs.size} simulation trials"
+
+jobs.each do |job|
+  puts "Children: #{num_children}  procs: #{num_processes}"
+  if num_children == num_processes
+    Process.wait
+    num_children -= 1
+  end
+
+  num_children += 1
+  fork do
+#    puts "#{job}"
+    `#{job}`
+  end
+end

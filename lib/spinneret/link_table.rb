@@ -115,7 +115,6 @@ module Spinneret
     def trim
       sorted_peers = @nid_peers.values.sort {|a,b| a.distance <=> b.distance }
       #sorted_peers.each {|p| printf "%.2f, ", 2**p.distance }
-      #puts
 
       # First find the closest pair
       i_min = 0

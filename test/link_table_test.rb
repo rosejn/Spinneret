@@ -55,8 +55,29 @@ class TestLinkTable < Test::Unit::TestCase
     removals = [76, 31, 90]
     insertions.each_with_index do |nid, i| 
       @table.store_peer(Peer.new(0, nid)) 
+      puts @table.peers.map {|p| p.nid}.sort.join(', ')
       assert_equal(false, @table.has_nid?(removals[i]))
     end
-
   end
+  
+=begin
+  # Do a more targetted test to verify the trimming strategy.
+  def test_distribution
+    @table = LinkTable.new(0, {
+      :num_slots => TEST_SLOTS, 
+      :address_space => TEST_ADDRESS_SPACE,
+      :distance_func =>  DistanceFuncs.sym_circular(1024) })
+    nids = (1..1023).to_a
+    @table.max_peers = 25
+
+    fill_table nids
+  end
+
+  def fill_table(nids)
+    nids = nids.randomize
+    nids.each {|nid| @table.store_peer(Peer.new(0, nid)) }
+    @table.peers.map {|p| p.distance}.sort.each {|d| printf "%.2f ", d}
+    puts @table.peers.sort {|a, b| a.distance <=> b.distance }.map {|p| p.nid}.join(', ') 
+  end
+=end
 end

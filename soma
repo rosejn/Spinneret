@@ -1,0 +1,20 @@
+#!/usr/bin/env ruby
+
+# Workload parameters
+node_sizes = [100, 1000, 10000]
+join_rates = [1, 100, 1000, 10000, 120000]
+
+address_space = 100000
+
+MAGIC_CONSTANT = 1000
+
+def sim_length(size, rate)
+  size * rate * MAGIC_CONSTANT
+end
+
+# Bootstrap tests
+node_sizes.each do |size|
+  join_rates.each do |join_rate|
+    `script/gen_workload -n #{size} -j #{join_rate}  -a #{address_space} -l #{sim_length(size, join_rate)} -o workloads/bootstrap_n#{size}_j#{join_rate}.wl`
+  end
+end
