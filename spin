@@ -157,9 +157,10 @@ end
 Spinneret::Analyzer::instance.setup(nodes, {:address_space => addr_space})
 
 puts "Beginning simulation...\n"
-if(length != 0 || wl_settings.sim_length != 0)
-  wl_length = wl_settings.sim_length.to_i
-  GoSim::Simulation.run((length > wl_length ?  length : wl_length)) 
+if(length != 0)
+  GoSim::Simulation.run(length)
+elsif(wl_settings.sim_length != 0)
+  GoSim::Simulation.run(wl_settings.sim_length.to_i)
 else
   GoSim::Simulation.run() 
 end
