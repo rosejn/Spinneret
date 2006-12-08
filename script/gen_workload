@@ -93,9 +93,12 @@ require 'lib/spinneret/math_ext'
 
 # Externals
 require 'gsl'
+require 'zlib'
 
 DEFAULT_SEARCH_TYPE = "dht:0.5,kwalk:0.5"
 DEFAULT_STATIC_FAILURE = "0:0.0"
+
+# These methods can take a filename
 
 class WLPrinter
   include Singleton
@@ -277,7 +280,8 @@ end
 # Set the filename if one wasn't given
 filename ||= File.join('workloads', "a#{settings.addr_space}-n#{nodes}-j#{settings.mjt}.wl")
 
-file = File.open(filename, "w")
+file = Zlib::GzipWriter.open(filename)
+#file = File.open(filename, "w")
 file.write(settings)
 file.write("# num_nodes: #{nodes}\n")
 file.write("# sim_length: #{length}\n")
@@ -414,3 +418,4 @@ end
 
 NodeFactory.new(nodes, settings)
 GoSim::Simulation.run(length)
+WLPrinter.instance.flush()

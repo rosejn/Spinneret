@@ -1,5 +1,13 @@
 #!/usr/bin/env ruby
 
+DEFAULT_PROCESSES = 1
+
+if ARGV.size == 1
+  num_processes = Integer(ARGV[0])
+else
+  num_processes = DEFAULT_PROCESSES
+end
+
 # Workload parameters
 node_sizes = [100, 1000, 10000]
 join_rates = [1, 100, 1000, 10000, 120000]
@@ -13,8 +21,27 @@ def sim_length(size, rate)
 end
 
 # Bootstrap tests
+workloads = []
 node_sizes.each do |size|
   join_rates.each do |join_rate|
-    `script/gen_workload -n #{size} -j #{join_rate}  -a #{address_space} -l #{sim_length(size, join_rate)} -o workloads/bootstrap_n#{size}_j#{join_rate}.wl`
+    workloads << "script/gen_workload -n #{size} -j #{join_rate}  -a #{address_space} -l #{sim_length(size, join_rate)} -o workloads/bootstrap_n#{size}_j#{join_rate}.wl"
+  end
+end
+
+puts "Generating #{workloads.size} workloads"
+
+num_children = 0
+
+workloads.each do |job|
+  puts "Children: #{num_children}  procs: #{num_processes}"
+  if num_children == num_processes
+    Process.wait
+    num_children -= 1
+  end
+
+  num_children += 1
+  fork do
+    puts "#{job}"
+    `#{job}`
   end
 end
