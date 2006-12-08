@@ -7,12 +7,12 @@ module Search
   DHT_TTL          = 20
   DHT_BURST_TTL    = 4
   DHT_BURST_SIZE   = 4
-  DHT_BURST_CHANCE = 0.6
+  DHT_BURST_CHANCE = 0.7
+  DHT_QUERY_TIMEOUT = 30000
 
   module DHT
     def handle_search_dht(dest_addr)
       new_uid = SearchBase::get_new_uid()
-      Analyzer::instance::add_search_trial(new_uid)
       dht_query(new_uid, dest_addr.to_i) 
     end
 
@@ -20,6 +20,18 @@ module Search
     # possible in the current link table.
     def dht_query(uid, query, src_addr = @addr, ttl = DHT_TTL)
       log "node: #{@nid} - dht_query( q = #{query})"
+
+      # Are we a local query?
+      if(src_addr == @addr)
+        @local_queries ||= []
+        @local_queries[uid] = false
+        set_timeout(DHT_QUERY_TIMEOUT) {
+          if @local_queries[uid] == false
+            Analyzer::instance::failed_dht_search(uid)
+          end
+          @local_queries.delete(uid)
+        }
+      end
 
       unless us_or_dead?(uid, query, src_addr, ttl)
         # Find closest neighbor and figure out whether we burst or jump.
@@ -78,7 +90,7 @@ module Search
         log "#{@nid} - query: #{query} successful!"
         send_packet(:dht_response, src_addr, 
                     DHTResponse.new(uid, @addr, @nid, ttl))
-        Analyzer::instance::successful_search_trial(uid)
+        log "DHT Search successfull for #{@nid} (#{uid})"
         true
       elsif ttl == 0
         log "#{@nid} - query: #{query} ttl reached 0!"
@@ -103,6 +115,10 @@ module Search
     # TODO: What do we want to do with search responses?
     def handle_dht_response(pkt)
       log "DHT got a query response..."
+      if @local_queries[pkt.uid] == false
+        Analyzer::instance::successful_dht_search(pkt.uid)
+      end
+      @local_queries[pkt.uid] = true
     end
   end
 end

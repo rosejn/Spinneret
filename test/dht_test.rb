@@ -54,14 +54,14 @@ class TestDHT < Test::Unit::TestCase
       @nodes << DHTNode.new(i+1, {:start_peer => peer })
     end
 
-    @sim.run(80000)
+    @sim.run(60000)
 
     # Verify that responses come back correctly
     queries = [1, 17, 23, 33, 46, 57, 60, 78, 80, 92]
     queries.each {|q| @nodes[0].schedule_search(q, 1) }
 
     @nodes.each {|n| n.stop_maintenance }
-    @sim.verbose
+#    @sim.verbose
     @sim.run(120000)
 
     assert_not_nil(@nodes[0].responses.nil?) 

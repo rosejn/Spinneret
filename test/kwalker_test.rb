@@ -65,7 +65,7 @@ class TestKWalker < Test::Unit::TestCase
 
     # Test that the ttl expiration works (don't send more packets)
     count = node_a.packet_counter
-    node_a.kwalker_query(nil, 123, 123, 123, 0)
+    node_a.kwalker_query(123, 123, 123, 123, 0)
     assert_equal(count, node_a.packet_counter)
   end
 end
