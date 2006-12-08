@@ -34,6 +34,8 @@ class TestKWalker < Test::Unit::TestCase
   def setup
     @sim = GoSim::Simulation.instance
     @sim.quiet
+    @nodes = []
+    Spinneret::Analyzer::instance.setup(@nodes)
   end
 
   def teardown
@@ -42,9 +44,11 @@ class TestKWalker < Test::Unit::TestCase
 
   def test_kwalker
     node_a = KWalkerNode.new(0)
-    node_b = KWalkerNode.new(1, :start_peer => node_a)
-    node_c = KWalkerNode.new(2, :start_peer => node_b)
-    node_d = KWalkerNode.new(3, :start_peer => node_c)
+    node_b = KWalkerNode.new(1, :start_peer => Peer.new(node_a.addr, node_a.nid))
+    node_c = KWalkerNode.new(2, :start_peer => Peer.new(node_b.addr, node_b.nid))
+    node_d = KWalkerNode.new(3, :start_peer => Peer.new(node_c.addr, node_c.nid))
+
+    @nodes << node_a << node_b << node_c << node_d
 
     # Verify that responses come back correctly
     node_b.schedule_search(node_a.addr, node_b.nid, 1)
@@ -61,7 +65,7 @@ class TestKWalker < Test::Unit::TestCase
 
     # Test that the ttl expiration works (don't send more packets)
     count = node_a.packet_counter
-    node_a.kwalker_query(nil, 123, 123, 123, 0)
+    node_a.kwalker_query(123, 123, 123, 123, 0)
     assert_equal(count, node_a.packet_counter)
   end
 end

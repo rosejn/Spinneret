@@ -4,7 +4,7 @@ $LOAD_PATH.unshift(File.expand_path(File.dirname(__FILE__)))
 require 'benchmark'    # Checkin out
 #require 'profile'     # Speedin' up
 
-# Externals
+# Libraries that should be installed.
 require 'rubygems'
 require 'gosim'
 require 'zlib'
@@ -43,6 +43,7 @@ end
 # Maintenance algorithms
 require 'spinneret/maintenance/pull'
 require 'spinneret/maintenance/push'
+require 'spinneret/maintenance/push_pull'
 require 'spinneret/maintenance/opportunistic'
 
 # Search algorithms

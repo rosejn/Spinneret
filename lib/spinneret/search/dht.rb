@@ -7,7 +7,7 @@ module Search
   DHT_TTL          = 20
   DHT_BURST_TTL    = 4
   DHT_BURST_SIZE   = 4
-  DHT_BURST_CHANCE = 0.5
+  DHT_BURST_CHANCE = 0.7
   DHT_QUERY_TIMEOUT = 30000
 
   module DHT
@@ -41,7 +41,7 @@ module Search
 
         if closer?(query, closest) # Jump
           dest = closest.addr
-          #log "dht query: #{query} to dest: #{closest.nid}"
+          log "#{@nid} - dht query: #{query} to dest: #{closest.nid}"
           send_packet(:dht_query, dest, 
                       DHTQuery.new(uid, src_addr, query, ttl))
          
@@ -60,28 +60,40 @@ module Search
       unless us_or_dead?(uid, query, src_addr, ttl)
         peers = @link_table.closest_peers(query, DHT_BURST_SIZE)
         return if peers.empty?
-
+       
         # If one of our immediate neighbors is the target go straight there.
-        if peers.first.nid == query
-          dest = peers.first.addr
+        if @link_table.has_nid?(query)
+          dest = [@link_table.get_peer(query).addr]
+
+          log "#{@nid} - dht direct burst query: #{query} to dest: #{query}"
+          send_packet(:dht_burst_query, dest,
+                      DHTBurstQuery.new(uid, src_addr, query, ttl - 1))
+
         # Otherwise we follow the burst chance
         else
-          dest = peers.select { rand <= DHT_BURST_CHANCE }.map {|p| p.addr }
-        end
+          peers = @link_table.closest_peers(query, DHT_BURST_SIZE)
+          return if peers.empty?
 
-        log "dht burst query: #{query} to dest: #{dest}}"
-        send_packet(:dht_burst_query, dest,
-                    DHTBurstQuery.new(uid, src_addr, query, ttl - 1))
+          peers = peers.select { rand <= DHT_BURST_CHANCE }
+          return if peers.empty?
+
+          dest = peers.map {|p| p.addr }
+          log "#{@nid} - dht burst query: #{query} to dest: #{peers.map {|p| p.nid }.join(', ')}"
+          send_packet(:dht_burst_query, dest,
+                      DHTBurstQuery.new(uid, src_addr, query, ttl - 1))
+        end
       end
     end
 
     def us_or_dead?(uid, query, src_addr, ttl)
       if(query == @nid)
+        log "#{@nid} - query: #{query} successful!"
         send_packet(:dht_response, src_addr, 
                     DHTResponse.new(uid, @addr, @nid, ttl))
         log "DHT Search successfull for #{@nid} (#{uid})"
         true
       elsif ttl == 0
+        log "#{@nid} - query: #{query} ttl reached 0!"
         true
       else
         false

@@ -16,6 +16,7 @@ module Spinneret
 
       #Register as a observer, in order to get reset messages
       @sim.add_observer(self)
+      @trials = {}
     end
 
     def setup(nodes, args = {})
@@ -29,13 +30,19 @@ module Spinneret
 
       @nodes = nodes
 
+      @trials = {}
       internal_init
 
       return self
     end
 
     def run_phase
-      analize_search; indegree_calc; outdegree_calc; is_connected?
+      analize_search
+      indegree_calc
+      #outdegree_calc
+      #is_connected?
+
+      @trials = {}
       @successful_dht_searches = 0
       @failed_dht_searches = 0
       @successful_kwalk_searches = 0
@@ -125,22 +132,6 @@ module Spinneret
       log "Network is stable..."
     end
 
-    def handle_bin_distribution
-      raise "Must specify an ideal_distribution to do the bin distribution analysis." unless @ideal_distribution 
-
-      distances = {}
-
-      @nodes.each do |n| 
-        n.link_table.bin_sizes
-        l = n.size
-        links.has_key?(l) ? links[l] += 1 : links[l] = 1
-      end
-
-      File.open(File.join(output_path, @sim.time, '_link_count')) do |f|
-        links.each {|k,v| f << "#{k} #{v}" }
-      end
-    end
-
     def analize_search
       File.open(File.join(@output_path, "search_success_pct"), "a") do | f |
         f.write("#{@sim.time} #{@successful_dht_searches} " +
@@ -149,6 +140,7 @@ module Spinneret
       end
     end
 
+=begin
     def outdegree_calc
       # The bin size needs to be parameterized correctly
       ideal_binning = calc_ideal_binning(@nodes.length, @address_space, 4)
@@ -172,7 +164,8 @@ module Spinneret
         end
       end
     end
-      
+=end
+
     def indegree_calc
       nodes_in = Hash.new(0)
       @nodes.each do | n |

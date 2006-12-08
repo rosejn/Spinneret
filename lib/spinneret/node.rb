@@ -10,7 +10,9 @@ module Spinneret
     DEFAULT_NUM_SLOTS = 4
     DEFAULT_ADDRESS_SPACE = 10000
 
-    DEFAULT_MAINTENANCE = Maintenance::Pull
+    #DEFAULT_MAINTENANCE = Maintenance::Pull
+    #DEFAULT_MAINTENANCE = Maintenance::Push
+    DEFAULT_MAINTENANCE = Maintenance::PushPull
     DEFAULT_MAINTENANCE_SIZE = 5
     MAINTENANCE_PERIOD  = 1000
     
@@ -44,8 +46,6 @@ module Spinneret
       @link_table = LinkTable.new(nid, args)
       
       if @start_peer
-        #puts @start_peer.inspect, @nid
-
         @link_table.store_peer(@start_peer)
         do_maintenance
       end

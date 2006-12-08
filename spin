@@ -58,14 +58,13 @@ addr_space = length = 0
 workload = topology = nil
 maintenance = "pull"
 maint_size = Spinneret::Node::DEFAULT_MAINTENANCE_SIZE
-verbose = false
 
 opts.each do | opt, arg |
   case opt
   when '--help'
     RDoc::usage
   when '--verbose'
-    verbose = true
+    GoSim::Simulation.instance.verbose
   when '--workload'
     workload = arg
   when '--topology'
@@ -158,7 +157,6 @@ end
 Spinneret::Analyzer::instance.setup(nodes, {:address_space => addr_space})
 
 puts "Beginning simulation...\n"
-GoSim::Simulation::instance.verbose  if verbose == true
 if length != 0
   GoSim::Simulation.run(length) 
 else

@@ -23,11 +23,11 @@ class TestAnalysis < Test::Unit::TestCase
   def test_connected
     nodes = []
 
-    nodes[0] = Spinneret::Node.new(0) 
+    nodes[0] = Spinneret::Node.new(0, :maintenance => Maintenance::Pull) 
     4.times do |i| 
-      nodes << Spinneret::Node.new(i+1, {
+      nodes << Spinneret::Node.new(i+1,
         :start_peer => Peer.new(nodes[i].addr, nodes[i].nid),
-        :maintenance => Maintenance::Pull }) 
+        :maintenance => Maintenance::Pull) 
     end
 
     @sim.run(500)
