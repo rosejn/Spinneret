@@ -50,8 +50,9 @@ num_children = 0
 
 puts "Executing #{jobs.size} simulation trials"
 
-jobs.each do |job|
-  puts "Children: #{num_children}  procs: #{num_processes}"
+jobs.each_with_index do |job,idx|
+#  puts "Children: #{num_children}  procs: #{num_processes}"
+  puts "Currently spawning job #{idx}"
   if num_children == num_processes
     Process.wait
     num_children -= 1
