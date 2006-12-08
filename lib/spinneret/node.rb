@@ -14,7 +14,8 @@ module Spinneret
     #DEFAULT_MAINTENANCE = Maintenance::Push
     DEFAULT_MAINTENANCE = Maintenance::PushPull
     DEFAULT_MAINTENANCE_SIZE = 5
-    MAINTENANCE_PERIOD  = 1000
+    DEFAULT_MAINTENANCE_PERIOD  = 1000
+    DEFAULT_TABLE_SIZE = LinkTable::DEFAULT_MAX_PEERS
     
     attr_reader  :nid, :link_table
 
@@ -28,6 +29,8 @@ module Spinneret
         :start_peer => nil,
         :maintenance => DEFAULT_MAINTENANCE,
         :maintenance_size => DEFAULT_MAINTENANCE_SIZE,
+        :maintenance_rate => DEFAULT_MAINTENANCE_PERIOD,
+        :max_peers => DEFAULT_TABLE_SIZE,
         :address_space => DEFAULT_ADDRESS_SPACE,
         :num_slots => DEFAULT_NUM_SLOTS,
         :distance_func => nil })
@@ -54,11 +57,11 @@ module Spinneret
     end
 
     def stop_maintenance
-      @maintenance_timeout.cancel
+      @maint_timeout.cancel
     end
 
     def start_maintenance
-      @maintenance_timeout = set_timeout(MAINTENANCE_PERIOD, true) { do_maintenance }
+      @maint_timeout = set_timeout(@maintenance_rate, true) { do_maintenance }
     end
     
     def to_s

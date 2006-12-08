@@ -18,7 +18,7 @@
 #    Set the input workload.  Workloads are generated with 
 #    script/gen_workload.
 #
-# -t filename, --topology filename
+# -t filename, --topology filename  (NOT IMPLEMENTED)
 #    Set the input topology.  Only required if the workload does not have node
 #    joins.  Useful for non-bootstrap testing.
 #
@@ -45,19 +45,23 @@ require 'util/workload_parser'
 require 'util/graph-rep'
 
 opts = GetoptLong.new(
-        ['--help',               '-h', GetoptLong::NO_ARGUMENT],
-        ['--verbose',            '-v', GetoptLong::NO_ARGUMENT],
-        ['--workload',           '-w', GetoptLong::REQUIRED_ARGUMENT],
-        ['--topology',           '-t', GetoptLong::REQUIRED_ARGUMENT],
-        ['--max-length',         '-l', GetoptLong::REQUIRED_ARGUMENT],
-        ['--address-space',      '-a', GetoptLong::REQUIRED_ARGUMENT],
-        ['--maintenance',        '-m', GetoptLong::REQUIRED_ARGUMENT],
-        ['--maintenance-size',   '-s', GetoptLong::REQUIRED_ARGUMENT] )
+        ['--help',                   '-h', GetoptLong::NO_ARGUMENT],
+        ['--verbose',                '-v', GetoptLong::NO_ARGUMENT],
+        ['--workload',               '-w', GetoptLong::REQUIRED_ARGUMENT],
+#        ['--topology',               '-t', GetoptLong::REQUIRED_ARGUMENT],
+        ['--max-length',             '-l', GetoptLong::REQUIRED_ARGUMENT],
+        ['--address-space',          '-a', GetoptLong::REQUIRED_ARGUMENT],
+        ['--maintenance',            '-m', GetoptLong::REQUIRED_ARGUMENT],
+        ['--maintenance-size',       '-s', GetoptLong::REQUIRED_ARGUMENT],
+        ['--maintenance-table-size', '-t', GetoptLong::REQUIRED_ARGUMENT],
+        ['--maintenance-rate',       '-r', GetoptLong::REQUIRED_ARGUMENT] )
 
 addr_space = length = 0
 workload = topology = nil
 maintenance = "pull"
 maint_size = Spinneret::Node::DEFAULT_MAINTENANCE_SIZE
+maint_tbl_size = Spinneret::Node::DEFAULT_TABLE_SIZE
+maint_rate = Spinneret::Node::DEFAULT_MAINTENANCE_PERIOD
 
 opts.each do | opt, arg |
   case opt
@@ -77,6 +81,10 @@ opts.each do | opt, arg |
     maintenance = arg
   when '--maintenance-size'
     maint_size = arg.to_i
+  when '--maintenance-table-size'
+    maint_tbl_size = arg.to_i
+  when '--maintenance-rate'
+    maint_rate = arg.to_i
   end
 end
 
@@ -142,6 +150,8 @@ if workload
     end
     n = Spinneret::Node.new(nid, {:maintenance => maintenance,
                                   :maintenance_size => maint_size,
+                                  :maintenance_rate => maint_rate,
+                                  :max_peers => maint_tbl_size,
                                   :start_peer => peer,
                                   :distance_func => dist_func,
                                   :address_space => wl_settings.addr_space.to_i})
