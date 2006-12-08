@@ -7,7 +7,7 @@ module Search
   DHT_TTL          = 20
   DHT_BURST_TTL    = 4
   DHT_BURST_SIZE   = 4
-  DHT_BURST_CHANCE = 0.4
+  DHT_BURST_CHANCE = 0.6
 
   module DHT
     def handle_search_dht(dest_addr)

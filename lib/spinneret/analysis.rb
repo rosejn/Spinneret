@@ -45,7 +45,7 @@ module Spinneret
       analize_search
       indegree_calc
       #outdegree_calc
-      is_connected?
+      #is_connected?
 
       @successes = 0
       @trials = 0

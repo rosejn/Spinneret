@@ -43,6 +43,7 @@ end
 # Maintenance algorithms
 require 'spinneret/maintenance/pull'
 require 'spinneret/maintenance/push'
+require 'spinneret/maintenance/push_pull'
 require 'spinneret/maintenance/opportunistic'
 
 # Search algorithms

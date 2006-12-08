@@ -10,7 +10,9 @@ module Spinneret
     DEFAULT_NUM_SLOTS = 4
     DEFAULT_ADDRESS_SPACE = 10000
 
-    DEFAULT_MAINTENANCE = Maintenance::Pull
+    #DEFAULT_MAINTENANCE = Maintenance::Pull
+    #DEFAULT_MAINTENANCE = Maintenance::Push
+    DEFAULT_MAINTENANCE = Maintenance::PushPull
     DEFAULT_MAINTENANCE_SIZE = 5
     MAINTENANCE_PERIOD  = 1000
     

@@ -54,7 +54,7 @@ class TestDHT < Test::Unit::TestCase
       @nodes << DHTNode.new(i+1, {:start_peer => peer })
     end
 
-    @sim.run(40000)
+    @sim.run(80000)
 
     # Verify that responses come back correctly
     queries = [1, 17, 23, 33, 46, 57, 60, 78, 80, 92]
