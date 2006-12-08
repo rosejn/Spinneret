@@ -24,7 +24,7 @@ end
 workloads = []
 node_sizes.each do |size|
   join_rates.each do |join_rate|
-    workloads << "script/gen_workload -n #{size} -j #{join_rate}  -a #{address_space} -l #{sim_length(size, join_rate)} -o workloads/bootstrap_n#{size}_j#{join_rate}.wl"
+    workloads << "script/gen_workload -n #{size} -j #{join_rate}  -a #{address_space} -l #{sim_length(size, join_rate)} -o workloads/bootstrap_n#{size}_j#{join_rate}.wlgz"
   end
 end
 

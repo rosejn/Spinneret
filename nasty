@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+require 'fileutils'
 require 'lib/spinneret'
 
 DEFAULT_PROCESSES = 1
@@ -23,12 +24,23 @@ link_table_size = [10, 25, 50, 100]
 
 jobs = []
 
+def clear_and_make(dir)
+  `rm -fr #{dir}`
+  FileUtils.mkdir_p(dir)
+end
+
+# Create directory for this run
+bs_dir = File.join("data", "bootstrap")
+clear_and_make(bs_dir)
+
 # Bootstrap Simulations
 Dir.glob("workloads/bootstrap_*") do |workload|
   maintenance_rate.each do |m_rate|
     maintenance_amount.each do |m_amount|
       link_table_size.each do |table_size|
-        jobs << "./spin -w #{workload} -s #{m_amount} -t #{table_size} -r #{m_rate}" 
+        job_dir = File.join(bs_dir, workload, m_rate.to_s, m_amount.to_s, table_size.to_s)
+        clear_and_make(job_dir)
+        jobs << "./spin -w #{workload} -s #{m_amount} -t #{table_size} -r #{m_rate} -d #{job_dir}" 
       end
     end
   end

@@ -12,7 +12,7 @@ class WorkloadParser < GoSim::Entity
     @obj_map = id_map
     @settings = {}
     #@file = File.new(filename, "r")
-    @file = Zlib::GzipReader.new(filename)
+    @file = Zlib::GzipReader.open(filename)
 
     #@sim.schedule_event(:parse, @sid, 0, nil)
     handle_parse(nil)  # parse up to first time event

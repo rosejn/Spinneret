@@ -14,6 +14,9 @@
 # -v, --verbose
 #    Be verbose with simulation details.  This is slow, and is off by default.
 #
+# -d directory, --output-dir directory
+#     Put the results of a run into the specified directory.
+#
 # -w filename, --workload filename
 #    Set the input workload.  Workloads are generated with 
 #    script/gen_workload.
@@ -53,6 +56,7 @@ require 'util/graph-rep'
 opts = GetoptLong.new(
         ['--help',                   '-h', GetoptLong::NO_ARGUMENT],
         ['--verbose',                '-v', GetoptLong::NO_ARGUMENT],
+        ['--output-dir',             '-d', GetoptLong::REQUIRED_ARGUMENT],
         ['--workload',               '-w', GetoptLong::REQUIRED_ARGUMENT],
         ['--topology',               '-q', GetoptLong::REQUIRED_ARGUMENT],
         ['--max-length',             '-l', GetoptLong::REQUIRED_ARGUMENT],
@@ -62,6 +66,7 @@ opts = GetoptLong.new(
         ['--maintenance-table-size', '-t', GetoptLong::REQUIRED_ARGUMENT],
         ['--maintenance-rate',       '-r', GetoptLong::REQUIRED_ARGUMENT] )
 
+output_dir = "./"
 addr_space = length = 0
 workload = topology = nil
 maintenance = "pull"
@@ -75,6 +80,8 @@ opts.each do | opt, arg |
     RDoc::usage
   when '--verbose'
     GoSim::Simulation.instance.verbose
+  when '--output-dir'
+    output_dir = arg
   when '--workload'
     workload = arg
   when '--topology'
@@ -170,7 +177,9 @@ if workload
 end
 
 # Add the Analysis generation
-Spinneret::Analyzer::instance.setup(nodes, {:address_space => addr_space})
+Spinneret::Analyzer::instance.setup(nodes, 
+                                    :address_space => addr_space,
+                                    :output_path => output_dir)
 
 puts "Beginning simulation...\n"
 if(length != 0)
