@@ -18,7 +18,7 @@
 #    Set the input workload.  Workloads are generated with 
 #    script/gen_workload.
 #
-# -t filename, --topology filename  (NOT IMPLEMENTED)
+# -q filename, --topology filename  (NOT IMPLEMENTED)
 #    Set the input topology.  Only required if the workload does not have node
 #    joins.  Useful for non-bootstrap testing.
 #
@@ -37,6 +37,12 @@
 # -s num, --maintenance-size num
 #    The number of peers the given maintenance protocol should use during
 #    exchange.  This may not map well onto all protocols.  Defaults to 5.
+#
+# -t num, --maintenance-table-size num
+#    The size of the link table.  Defaults to LinkTable::MAX_PEERS.
+#
+# -r num, --maintenance-rate num
+#    The rate of maintenance.  Defaults to Node::DEFAULT_MAINTENANCE_PERIOD
 
 require 'rdoc/usage'
 
@@ -48,7 +54,7 @@ opts = GetoptLong.new(
         ['--help',                   '-h', GetoptLong::NO_ARGUMENT],
         ['--verbose',                '-v', GetoptLong::NO_ARGUMENT],
         ['--workload',               '-w', GetoptLong::REQUIRED_ARGUMENT],
-#        ['--topology',               '-t', GetoptLong::REQUIRED_ARGUMENT],
+        ['--topology',               '-q', GetoptLong::REQUIRED_ARGUMENT],
         ['--max-length',             '-l', GetoptLong::REQUIRED_ARGUMENT],
         ['--address-space',          '-a', GetoptLong::REQUIRED_ARGUMENT],
         ['--maintenance',            '-m', GetoptLong::REQUIRED_ARGUMENT],
