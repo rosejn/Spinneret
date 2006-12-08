@@ -22,7 +22,7 @@
 #    Set the input topology.  Only required if the workload does not have node
 #    joins.  Useful for non-bootstrap testing.
 #
-# -x num, --max-length num
+# -l num, --max-length num
 #    The maximum amount of time to allow the simulation to run
 #
 # -a num, --address-space num
@@ -49,7 +49,7 @@ opts = GetoptLong.new(
         ['--verbose',            '-v', GetoptLong::NO_ARGUMENT],
         ['--workload',           '-w', GetoptLong::REQUIRED_ARGUMENT],
         ['--topology',           '-t', GetoptLong::REQUIRED_ARGUMENT],
-        ['--max-length',         '-x', GetoptLong::REQUIRED_ARGUMENT],
+        ['--max-length',         '-l', GetoptLong::REQUIRED_ARGUMENT],
         ['--address-space',      '-a', GetoptLong::REQUIRED_ARGUMENT],
         ['--maintenance',        '-m', GetoptLong::REQUIRED_ARGUMENT],
         ['--maintenance-size',   '-s', GetoptLong::REQUIRED_ARGUMENT] )
@@ -157,8 +157,10 @@ end
 Spinneret::Analyzer::instance.setup(nodes, {:address_space => addr_space})
 
 puts "Beginning simulation...\n"
-if length != 0
-  GoSim::Simulation.run(length) 
+if(length != 0)
+  GoSim::Simulation.run(length)
+elsif(wl_settings.sim_length != 0)
+  GoSim::Simulation.run(wl_settings.sim_length.to_i)
 else
   GoSim::Simulation.run() 
 end
