@@ -22,6 +22,13 @@ class Array
   def rand
     return self[Kernel::rand(self.length)]
   end
+
+  def randomize
+    tmp = []
+    copy = self.dup
+    self.size.times {|i| tmp << copy.delete(copy.rand)}
+    tmp
+  end
 end
 
 def calc_ideal_binning(num_nodes, addr_space, bin_size)
