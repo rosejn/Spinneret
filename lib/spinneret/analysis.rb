@@ -9,7 +9,7 @@ module Spinneret
     DEFAULT_STABILITY_THRESHOLD = 10
     DEFAULT_OUTPUT_PATH = 'output'
 
-    attr_reader :graph
+    attr_reader :graph, :measurement_period
 
     def initialize()
       super()
@@ -55,6 +55,9 @@ module Spinneret
     private
 
     def internal_init
+      # temp
+      @uids = Hash.new(0)
+
       @high_indegree = Hash.new(0)
       @trials = {}
       @successful_dht_searches = 0
@@ -219,18 +222,26 @@ module Spinneret
     end
 
     def successful_dht_search(uid)
+      puts "Recved uid #{uid} again"  if @uids[uid] == true
+      @uids[uid] = true
       @successful_dht_searches += 1
     end
 
     def failed_dht_search(uid)
+      puts "Recved uid #{uid} again"  if @uids[uid] == true
+      @uids[uid] = true
       @failed_dht_searches += 1
     end
 
     def successful_kwalk_search(uid)
+      puts "Recved uid #{uid} again"  if @uids[uid] == true
+      @uids[uid] = true
       @successful_kwalk_searches += 1
     end
 
     def failed_kwalk_search(uid)
+      puts "Recved uid #{uid} again"  if @uids[uid] == true
+      @uids[uid] = true
       @failed_kwalk_searches += 1
     end
 

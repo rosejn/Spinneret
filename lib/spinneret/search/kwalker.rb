@@ -16,18 +16,20 @@ module Search
 
     def kwalker_query(uid, query, src_addr = @addr, 
                       k = KW_NUM_WALKERS,
-                      ttl = KW_TTL)
+                      ttl = KW_TTL, orig = true)
 
       log "node: #{@nid} - kwalker_query( q = #{query}, src = #{src_addr}, ttl = #{ttl})"
 
-      if(src_addr == @addr)
+      if(orig == true)
         @local_queries ||= []
         @local_queries[uid] = false
         set_timeout(KW_QUERY_TIMEOUT) {
           if @local_queries[uid] == false
             Analyzer::instance::failed_kwalk_search(uid)
           end
-          @local_queries.delete(uid)
+          set_timeout(Analyzer::instance::measurement_period * 2) {
+            @local_queries.delete(uid)
+          }
         }
       end
 
@@ -53,7 +55,7 @@ module Search
     end
 
     def handle_kwalker_query(pkt)
-      kwalker_query(pkt.uid, pkt.query, pkt.src_addr, 1, pkt.ttl)
+      kwalker_query(pkt.uid, pkt.query, pkt.src_addr, 1, pkt.ttl, false)
     end
 
     # TODO: What do we want to do with search responses?
