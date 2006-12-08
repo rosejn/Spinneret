@@ -1,29 +1,29 @@
 module Spinneret
 module Search
-  KWalkerQuery = Struct.new(:src_addr, :query, :ttl)
-  KWalkerResponse = Struct.new(:src_addr, :src_id, :ttl)
+  KWalkerQuery = SearchBase.new(:src_addr, :query, :ttl)
+  KWalkerResponse = SearchBase.new(:src_addr, :src_id, :ttl)
 
   module KWalker
     KW_NUM_WALKERS = 32
     KW_TTL         = 20
 
-    def handle_search_kwalk(dest_addr)
-      Analyzer::instance.trials += 1
-      kwalker_query(dest_addr.to_i)
+    def handle_search_kwalk(dest_addr, src_addr = @addr, 
+                            k = KW_NUM_WALKERS, ttl = KW_TTL)
+      new_uid = SearchBase::get_new_uid()
+      Analyzer::instance::add_search_trial(new_uid)
+      kwalker_query(new_uid, dest_addr.to_i, src_addr, k, ttl)
     end
 
-    def kwalker_query(query, src_addr = @addr, 
+    def kwalker_query(uid, query, src_addr = @addr, 
                       k = KW_NUM_WALKERS,
                       ttl = KW_TTL)
 
       log "node: #{@nid} - kwalker_query( q = #{query}, src = #{src_addr}, ttl = #{ttl})"
 
       if(query == @nid)
-        Analyzer::instance.successes += 1
+        Analyzer::instance::successful_search_trial(uid)
         send_packet(:kwalker_response, src_addr, 
-                    KWalkerResponse.new(@addr, 
-                                        @nid, 
-                                        ttl - 1))
+                    KWalkerResponse.new(uid, @addr, @nid, ttl - 1))
       elsif ttl == 0
         return
       else 
@@ -38,12 +38,12 @@ module Search
 
         log "forwarding query to dest: #{dest}"
         send_packet(:kwalker_query, dest, 
-                    KWalkerQuery.new(src_addr, query, ttl - 1))
+                    KWalkerQuery.new(uid, src_addr, query, ttl - 1))
       end
     end
 
     def handle_kwalker_query(pkt)
-      kwalker_query(pkt.query, pkt.src_addr, 1, pkt.ttl)
+      kwalker_query(pkt.uid, pkt.query, pkt.src_addr, 1, pkt.ttl)
     end
 
     # TODO: What do we want to do with search responses?

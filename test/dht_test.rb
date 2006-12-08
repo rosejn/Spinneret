@@ -18,7 +18,7 @@ class DHTNode < Spinneret::Node
 
   def schedule_search(query_id, time)
     log "node: #{nid} querying for #{query_id}"
-    set_timeout(time) { dht_query(query_id) }
+    set_timeout(time) { handle_search_dht(query_id) }
   end
 
   def send_packet(*args)
@@ -69,7 +69,7 @@ class TestDHT < Test::Unit::TestCase
     
     # Test that the ttl expiration works (don't send more packets)
     count = @nodes[92].packet_counter
-    @nodes[92].dht_query(123, 123, 0)
+    @nodes[92].dht_query(nil, 123, 123, 0)
     assert_equal(count, @nodes[92].packet_counter)
   end
 end

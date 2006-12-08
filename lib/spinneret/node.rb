@@ -72,9 +72,5 @@ module Spinneret
     def handle_failed_packet(pkt)
       log "#{nid} - got failed packet! #{pkt.inspect}"
     end
-
-    def handle_search(id)
-
-    end
   end
 end

@@ -10,16 +10,13 @@ module Spinneret
     DEFAULT_OUTPUT_PATH = 'output'
 
     attr_reader :graph
-    attr_accessor :successes, :trials
 
     def initialize()
       super()
 
       #Register as a observer, in order to get reset messages
       @sim.add_observer(self)
-
-      @successes = 0
-      @trials = 0
+      @trials = {}
     end
 
     def setup(nodes, args = {})
@@ -33,10 +30,8 @@ module Spinneret
 
       @nodes = nodes
 
+      @trials = {}
       internal_init
-
-      @successes = 0
-      @trials = 0
 
       return self
     end
@@ -47,8 +42,7 @@ module Spinneret
       #outdegree_calc
       #is_connected?
 
-      @successes = 0
-      @trials = 0
+      @trials = {}
     end
 
     #What happens to @nodes here?  For now the reference better remain the
@@ -65,13 +59,11 @@ module Spinneret
 
     def internal_init
       @high_indegree = Hash.new(0)
-      @successes = 0
-      @trials = 0
+      @trials = {}
       setup_rgl_graph
       set_timeout(@measurement_period, true) { run_phase }
     end
 
-    public
 
     def setup_rgl_graph
       require 'rgl/base'
@@ -94,6 +86,8 @@ module Spinneret
           g.directed = true
       end
     end
+
+    public
 
     def is_connected?
       connected_components == 1
@@ -126,36 +120,16 @@ module Spinneret
     def default_stable_handler
       log "Network is stable..."
     end
-=begin
-    def handle_bin_distribution
-      raise "Must specify an ideal_distribution to do the bin distribution analysis." unless @ideal_distribution 
 
-      distances = {}
-
-      @nodes.each do |n| 
-        n.link_table.bin_sizes
-        l = n.size
-        links.has_key?(l) ? links[l] += 1 : links[l] = 1
-      end
-
-      File.open(File.join(output_path, @sim.time, '_link_count')) do |f|
-        links.each {|k,v| f << "#{k} #{v}" }
-      end
-    end
-=end
     def analize_search
       File.open(File.join(@output_path, "search_success_pct"), "a") do | f |
-        f.write("#{@sim.time} #{@successes} #{@trials-@successes} #{@trials}\n")
+        num_successes = num_trials = 0
+        @trials.each_value do | v |
+          num_trials += 1
+          num_successes += 1  if v
+        end
+        f.write("#{@sim.time} #{num_successes} #{num_trials-num_successes} #{num_trials}\n")
       end
-    end
-
-    def chi_squared_distance(observed, expected)
-      sum = 0
-      observed.each_with_index do |o, i| 
-        sum += (o - expected[i])**2 / expected[i]
-      end
-
-      return sum
     end
 
 =begin
@@ -182,18 +156,8 @@ module Spinneret
         end
       end
     end
-      
-    def calc_ideal_binning(num_nodes, addr_space, bin_size)
-      density = num_nodes.to_f/addr_space.to_f
-      table = Array.new(Math.log2(addr_space).ceil)
-      table.each_index do | bin |
-        table[bin] = density * (2**(bin+1) - 2**bin)
-        table[bin] = bin_size  if table[bin] > bin_size
-      end
-
-      return table
-    end
 =end
+
     def indegree_calc
       nodes_in = Hash.new(0)
       @nodes.each do | n |
@@ -230,8 +194,10 @@ module Spinneret
       pts = []
       distrib.each_index { | idx | distrib[idx].times { pts << idx } }
       normal_dist = normal_fit(pts)
+      binning = calc_ideal_binning(@nodes.length, @address_space, 4)
+      sum_out = binning.inject { | sum, n | sum + n } 
       File.open(File.join(@output_path, "indegree_normal_mean"), "a") do | f |
-        f.write("#{@sim.time} #{normal_dist[0]}\n")
+        f.write("#{@sim.time} #{normal_dist[0]} #{normal_dist[1]} #{sum_out}\n")
       end
 
       # Make a link to the current one for live graphing...
@@ -240,10 +206,14 @@ module Spinneret
       File.symlink(name, cur_path)
     end
 
-    def normal_fit(data)
-      v = GSL::Vector.alloc(data)
-      return [GSL::Stats::mean(v), GSL::Stats::sd(v)]
+    def add_search_trial(uid)
+      @trials[uid] = 0
     end
+
+    def successful_search_trial(uid)
+      @trials[uid] += 1
+    end
+
   end
 
 end
