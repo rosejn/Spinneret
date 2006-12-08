@@ -4,13 +4,13 @@ module Search
   KWalkerResponse = SearchBase.new(:src_addr, :src_id, :ttl)
 
   module KWalker
-    KW_NUM_WALKERS = 32
-    KW_TTL         = 20
+    KW_NUM_WALKERS   = 32
+    KW_TTL           = 20
+    KW_QUERY_TIMEOUT = 30000
 
     def handle_search_kwalk(dest_addr, src_addr = @addr, 
                             k = KW_NUM_WALKERS, ttl = KW_TTL)
       new_uid = SearchBase::get_new_uid()
-      Analyzer::instance::add_search_trial(new_uid)
       kwalker_query(new_uid, dest_addr.to_i, src_addr, k, ttl)
     end
 
@@ -20,8 +20,18 @@ module Search
 
       log "node: #{@nid} - kwalker_query( q = #{query}, src = #{src_addr}, ttl = #{ttl})"
 
+      if(src_addr == @addr)
+        @local_queries ||= []
+        @local_queries[uid] = false
+        set_timeout(KW_QUERY_TIMEOUT) {
+          if @local_queries[uid] == false
+            Analyzer::instance::failed_kwalk_search(uid)
+          end
+          @local_queries.delete(uid)
+        }
+      end
+
       if(query == @nid)
-        Analyzer::instance::successful_search_trial(uid)
         send_packet(:kwalker_response, src_addr, 
                     KWalkerResponse.new(uid, @addr, @nid, ttl - 1))
       elsif ttl == 0
@@ -49,6 +59,10 @@ module Search
     # TODO: What do we want to do with search responses?
     def handle_kwalker_response(pkt)
       log "KWalker got a query response..."
+      if @local_queries[pkt.uid] == false
+        Analyzer::instance::successful_kwalk_search(pkt.uid)
+      end
+      @local_queries[pkt.uid] = true
     end
   end
 end

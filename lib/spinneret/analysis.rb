@@ -36,7 +36,10 @@ module Spinneret
 
     def run_phase
       analize_search; indegree_calc; outdegree_calc; is_connected?
-      @trials = {}
+      @successful_dht_searches = 0
+      @failed_dht_searches = 0
+      @successful_kwalk_searches = 0
+      @failed_kwalk_searches = 0
     end
 
     #What happens to @nodes here?  For now the reference better remain the
@@ -54,6 +57,10 @@ module Spinneret
     def internal_init
       @high_indegree = Hash.new(0)
       @trials = {}
+      @successful_dht_searches = 0
+      @failed_dht_searches = 0
+      @successful_kwalk_searches = 0
+      @failed_kwalk_searches = 0
       setup_rgl_graph
       set_timeout(@measurement_period, true) { run_phase }
     end
@@ -133,12 +140,9 @@ module Spinneret
 
     def analize_search
       File.open(File.join(@output_path, "search_success_pct"), "a") do | f |
-        num_successes = num_trials = 0
-        @trials.each_value do | v |
-          num_trials += 1
-          num_successes += 1  if v
-        end
-        f.write("#{@sim.time} #{num_successes} #{num_trials-num_successes} #{num_trials}\n")
+        f.write("#{@sim.time} #{@successful_dht_searches} " +
+                "#{@failed_dht_searches} #{@successful_kwalk_searches} " +
+                "#{@failed_kwalk_searches}\n")
       end
     end
 
@@ -214,12 +218,20 @@ module Spinneret
       File.symlink(name, cur_path)
     end
 
-    def add_search_trial(uid)
-      @trials[uid] = 0
+    def successful_dht_search(uid)
+      @successful_dht_searches += 1
     end
 
-    def successful_search_trial(uid)
-      @trials[uid] += 1
+    def failed_dht_search(uid)
+      @failed_dht_searches += 1
+    end
+
+    def successful_kwalk_search(uid)
+      @successful_kwalk_searches += 1
+    end
+
+    def failed_kwalk_search(uid)
+      @failed_kwalk_searches += 1
     end
 
   end
