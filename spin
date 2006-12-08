@@ -11,6 +11,9 @@
 # -h, --help:
 #    Show this help
 #
+# -v, --verbose
+#    Be verbose with simulation details.  This is slow, and is off by default.
+#
 # -w filename, --workload filename
 #    Set the input workload.  Workloads are generated with 
 #    script/gen_workload.
@@ -43,6 +46,7 @@ require 'util/graph-rep'
 
 opts = GetoptLong.new(
         ['--help',               '-h', GetoptLong::NO_ARGUMENT],
+        ['--verbose',            '-v', GetoptLong::NO_ARGUMENT],
         ['--workload',           '-w', GetoptLong::REQUIRED_ARGUMENT],
         ['--topology',           '-t', GetoptLong::REQUIRED_ARGUMENT],
         ['--max-length',         '-x', GetoptLong::REQUIRED_ARGUMENT],
@@ -54,11 +58,14 @@ addr_space = length = 0
 workload = topology = nil
 maintenance = "pull"
 maint_size = Spinneret::Node::DEFAULT_MAINTENANCE_SIZE
+verbose = false
 
 opts.each do | opt, arg |
   case opt
   when '--help'
     RDoc::usage
+  when '--verbose'
+    verbose = true
   when '--workload'
     workload = arg
   when '--topology'
@@ -151,6 +158,7 @@ end
 Spinneret::Analyzer::instance.setup(nodes, {:address_space => addr_space})
 
 puts "Beginning simulation...\n"
+GoSim::Simulation::instance.verbose  if verbose == true
 if length != 0
   GoSim::Simulation.run(length) 
 else

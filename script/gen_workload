@@ -23,7 +23,7 @@
 # -n num, --num-nodes num:
 #    Number of nodes in network
 #
-# -f, --all-joins-first:
+# -z, --all-joins-first:
 #    All nodes join the network first
 #
 # -j secs, --mean-join-time secs:
@@ -55,6 +55,13 @@
 #    searches.  Note that the sum of the probabilities must be <= to 1.0.
 #    Defaults to
 #        dht:0.5,kwalk:0.5
+#
+# -f time:pct, --static-failure time:pct
+#    Create a static failire in the network of pct percent nodes at time.  For
+#    example:
+#        -f 60000:0.5
+#    would create a static failure of 50% of all nodes at time 60000 (60
+#    seconds).  Defaults to 0:0.0
 
 ######
 # The basic FSM for this generator is as follows:
@@ -88,6 +95,7 @@ require 'lib/spinneret/math_ext'
 require 'gsl'
 
 DEFAULT_SEARCH_TYPE = "dht:0.5,kwalk:0.5"
+DEFAULT_STATIC_FAILURE = "0:0.0"
 
 class WLPrinter
   include Singleton
@@ -122,6 +130,28 @@ class Killer < GoSim::Entity
   def handle_die(e)
     WLPrinter.instance.flush()
     exit(0)
+  end
+end
+
+class StaticFailureHandler < GoSim::Entity
+  def initialize(time, pct)
+    super()
+
+    set_timeout(time) {
+      nodes = NodeList::instance.nodes
+
+      num_fail = (nodes.length * pct).to_i
+      while(num_fail > 0)
+        n = nodes.rand
+
+        #if we aren't alive, then find one that is
+        next if n.left == true
+
+        #else kill the node
+        @sim.schedule_event(:failure, n.sid, 0, false)
+        num_fail -= 1
+      end
+    }
   end
 end
 
@@ -165,25 +195,29 @@ opts = GetoptLong.new(
         ['--sim-max-length',     '-l', GetoptLong::REQUIRED_ARGUMENT],
         ['--address-space',      '-a', GetoptLong::REQUIRED_ARGUMENT],
         ['--num-nodes',          '-n', GetoptLong::REQUIRED_ARGUMENT],
-        ['--all-joins-first',    '-f', GetoptLong::NO_ARGUMENT],
+        ['--all-joins-first',    '-z', GetoptLong::NO_ARGUMENT],
         ['--mean-join-time',     '-j', GetoptLong::REQUIRED_ARGUMENT],
         ['--mean-failure-time',  '-x', GetoptLong::REQUIRED_ARGUMENT],
         ['--mean-leave-time',    '-q', GetoptLong::REQUIRED_ARGUMENT],
         ['--mean-rejoin-time',   '-r', GetoptLong::REQUIRED_ARGUMENT],
         ['--mean-search-time',   '-s', GetoptLong::REQUIRED_ARGUMENT],
-        ['--search-types',       '-t', GetoptLong::REQUIRED_ARGUMENT])
+        ['--search-types',       '-t', GetoptLong::REQUIRED_ARGUMENT],
+        ['--static-failure',     '-f', GetoptLong::REQUIRED_ARGUMENT] )
 
 Settings = Struct.new("Settings", :addr_space, :join_first, 
-                                  :mjt, :mft, :mlt, :mrt, :mst, :search_types)
+                                  :mjt, :mft, :mlt, :mrt, :mst, 
+                                  :search_types, :static_failure)
 class Settings
   def to_s
    "# Settings---\n# addr_space: #{addr_space}\n# join_first?: #{join_first}\n" +
    "# mjt: #{mjt}\n# mft: #{mft}\n# mft: #{mlt}\n# mrt: #{mrt}\n" + 
-   "# mst: #{mst}\n# search-types: #{search_types}\n"
+   "# mst: #{mst}\n# search-types: #{search_types}\n" +
+   "# static-failure: #{static_failure}\n"
   end
 end
 
-settings = Settings.new(0, false, 0, 0, 0, 0, 0, DEFAULT_SEARCH_TYPE)
+settings = Settings.new(0, false, 0, 0, 0, 0, 0, 
+                        DEFAULT_SEARCH_TYPE, DEFAULT_STATIC_FAILURE)
 
 nodes = 0
 filename = nil
@@ -214,6 +248,8 @@ opts.each do | opt, arg |
     settings.mst = arg.to_f
   when '--search-types'
     settings.search_types = arg
+  when '--static-failure'
+    settings.static_failure = arg
   end
 end
 
@@ -231,6 +267,11 @@ if(length == 0)
   printf("WARN: generating an infinite trace.\n")
 else
   Killer.new(length)
+end
+
+if(settings.static_failure != DEFAULT_STATIC_FAILURE)
+  time, pct = settings.static_failure.split(":")
+  StaticFailureHandler.new(time.to_i, pct.to_f)
 end
 
 # Set the filename if one wasn't given
@@ -254,6 +295,13 @@ class NodeList
   include Singleton
 
   attr_accessor :nodes
+
+  def random_live_node
+    n = nil
+    while((n = @nodes.rand).left == true)
+    end
+    return n
+  end
 end
 
 class NodeFactory < GoSim::Entity
@@ -265,6 +313,7 @@ class NodeFactory < GoSim::Entity
 
     NodeList.instance.nodes = []
     @wl = WLPrinter.instance
+    @node_ids = []
 
     @sim.schedule_event(:node_gen, @sid, 
                         $R.poisson(@settings.mjt).round, nil)
@@ -278,11 +327,11 @@ class NodeFactory < GoSim::Entity
       exit(1)
     end
 
-    while(nodes.include?(node_id = rand(@settings.addr_space)))  
+    while(@node_ids.include?(node_id = rand(@settings.addr_space)))  
     end
     @wl.printf("%d init %d\n", node_id, node_id)
-    NodeObj.new(node_id, @settings)  if !@settings.join_first
-    nodes << node_id
+    nodes << NodeObj.new(node_id, @settings)  if !@settings.join_first
+    @node_ids << node_id
 
     @num_nodes -= 1
     if(@num_nodes != 0)
@@ -296,11 +345,14 @@ class NodeFactory < GoSim::Entity
   private
 
   def spawn_nodes
-    NodeList::instance.nodes.each { | n | NodeObj.new(n, @settings) }
+    nodes = NodeList.instance.nodes
+    @node_ids.each { | n | nodes << NodeObj.new(n, @settings) }
   end
 end
 
 class NodeObj < GoSim::Entity
+  attr_accessor :left, :id
+
   def initialize(id, settings)
     super()
 
@@ -329,7 +381,7 @@ class NodeObj < GoSim::Entity
     type = choose_search_method(@settings.search_types)
     if(!@left && !type.nil?)
       @wl.printf("%d search_%s %d\n", @id, type.name, 
-                 NodeList::instance.nodes.rand)
+                 NodeList::instance.random_live_node.id)
     end
     @sim.schedule_event(:send, @sid, 
                         $R.poisson(@settings.mst).round, nil)
@@ -340,7 +392,7 @@ class NodeObj < GoSim::Entity
 
     @wl.printf("%d failure\n", @id)
     @left = true
-    if @settings.mrt != 0
+    if @settings.mrt != 0 && e.nil?
       @sim.schedule_event(:recover, @sid, 
                           $R.poisson(@settings.mrt).round, nil)
     end
@@ -349,7 +401,7 @@ class NodeObj < GoSim::Entity
   def handle_leave(e)
     @wl.printf("%d leave\n", @id)
     @left = true
-    NodeList.instance.nodes.delete(@id)
+    NodeList.instance.nodes.delete(self)
   end
   
   def handle_recover(e)
@@ -358,8 +410,6 @@ class NodeObj < GoSim::Entity
     @sim.schedule_event(:failure, @sid, 
                         $R.poisson(@settings.mft).round, nil)
   end
-
-
 end
 
 NodeFactory.new(nodes, settings)
