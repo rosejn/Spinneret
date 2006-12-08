@@ -72,5 +72,9 @@ module Spinneret
     def handle_failed_packet(pkt)
       log "#{nid} - got failed packet! #{pkt.inspect}"
     end
+
+    def handle_failure(e)
+      @alive = false
+    end
   end
 end

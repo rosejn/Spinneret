@@ -265,8 +265,8 @@ end
 
 if(length == 0)
   printf("WARN: generating an infinite trace.\n")
-else
-  Killer.new(length)
+#else
+#  Killer.new(length)
 end
 
 if(settings.static_failure != DEFAULT_STATIC_FAILURE)
@@ -413,4 +413,4 @@ class NodeObj < GoSim::Entity
 end
 
 NodeFactory.new(nodes, settings)
-GoSim::Simulation.run()
+GoSim::Simulation.run(length)
