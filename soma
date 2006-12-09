@@ -10,14 +10,16 @@ end
 
 # Workload parameters
 node_sizes = [100, 1000, 10000]
-join_rates = [1, 100, 1000, 10000, 120000]
+join_rates = [1, 100, 1000, 10000]
 
 address_space = 100000
 
-MAGIC_CONSTANT = 1000
+MAGIC_CONSTANT = 100
 
 def sim_length(size, rate)
-  size * rate * MAGIC_CONSTANT
+  length = size * rate * MAGIC_CONSTANT
+  length = 200000 if length < 200000
+  return length
 end
 
 # Bootstrap tests

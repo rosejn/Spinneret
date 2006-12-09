@@ -1,0 +1,49 @@
+#!/usr/bin/env ruby
+require 'fileutils'
+require 'lib/spinneret'
+
+
+m_algs = Spinneret::Maintenance.constants
+m_algs.delete("Opportunistic")
+maintenance_rate = [1000, 10000, 30000]
+maintenance_amount = [3, 5, 10, 20]
+link_table_size = [25, 50] 
+node_size = 100
+join_rates = [1, 100]
+basedir = "data/bootstrap/workloads"
+# Lets compare algorithms
+all_plots = []
+`rm graphs/*`
+maintenance_rate.each do | m_rate |
+  maintenance_amount.each do | amnt |
+    link_table_size.each do | size |
+      join_rates.each do | j_rate |
+        workload = "bootstrap_n#{node_size}_j#{j_rate}.wlgz"
+        plot = []
+        m_algs.each do | alg |
+          dir = File.join(basedir, workload, m_rate.to_s, amnt.to_s, size.to_s, alg)
+          plot << "\'#{dir}/indegree_normal_mean\' using 1:2 with lines"
+        end
+        plot = "plot " + plot.join(", ")
+        all_plots << "set output \"graphs/indegree_converge_n#{node_size}_mr#{m_rate}_ms#{amnt}_tbl#{size}_jr#{j_rate}.eps\"\n" + plot
+      end
+    end
+  end
+end
+
+header = """set term postscript eps \"Times-Roman\" 15
+set size 0.6,0.6
+set xlabel \"Seconds\"
+set ylabel \"Avg. Node In-degree\" 1
+"""
+
+all_plots.each do | plot |
+  IO.popen('gnuplot', "w") do | io |
+    io << header
+    io << plot
+  end
+end
+
+
+# Run convergence graphs
+

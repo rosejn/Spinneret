@@ -1,0 +1,19 @@
+#!/usr/bin/env ruby
+
+require 'zlib'
+
+file = Zlib::GzipReader.open(ARGV[0])
+COMMENT_RE = /#(.*)/
+SETTING_RE = /([\w\-\?!]+): (.*)/
+
+while(1)
+	case file.readline
+	when COMMENT_RE
+		if SETTING_RE =~ $1
+			printf("%s: %s\n", $1, $2)
+		end
+	else
+		break
+	end
+end
+
