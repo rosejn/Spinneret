@@ -119,14 +119,24 @@ node_id_map = {}
 nodes = []
 
 # make sure the maintenance type is valid
-maintenance = maintenance.to_sym
-if !Spinneret::Maintenance.const_defined?(maintenance)
-  if maintenance != :Help
-    puts "Invalid maintenance type \'#{maintenance.to_s}\'."
-  end
+def maintenance_help
   puts "Valid maintenance types are:"
   Spinneret::Maintenance.constants.each { |cls| puts "  #{cls.to_s}" }
   puts "Note that capitalization *is* important."
+end
+
+if maintenance == "help"
+  maintenance_help(); 
+  exit(0) 
+end
+
+# Upcap the first character, but do not lower case the others like .capitalize
+# would
+maintenance = maintenance[0].chr.upcase + maintenance[1..-1]
+maintenance = maintenance.to_sym
+if !Spinneret::Maintenance.const_defined?(maintenance)
+  puts "Invalid maintenance type \'#{maintenance.to_s}\'."
+  maintenance_help()
   exit(1)
 else
   maintenance = Spinneret::Maintenance.const_get(maintenance)
