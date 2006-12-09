@@ -19,6 +19,7 @@ MAGIC_CONSTANT = 10
 def sim_length(size, rate)
   length = size * rate * MAGIC_CONSTANT
   length = 20000 if length < 20000
+  return length
 end
 
 # Bootstrap tests
