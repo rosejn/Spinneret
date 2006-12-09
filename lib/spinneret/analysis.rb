@@ -37,8 +37,10 @@ module Spinneret
     end
 
     def run_phase
-      analize_search
+      analyze_search
       indegree_calc
+      sum_of_squares_stats
+      table_sizes
       #outdegree_calc
       #is_connected?
 
@@ -117,7 +119,7 @@ module Spinneret
         links.has_key?(l) ? links[l] += 1 : links[l] = 1
       end
 
-      File.open(File.join(output_path, @sim.time, '_link_count')) do |f|
+      write_data_file("link_count") do |f|
         links.each {|k,v| f << "#{k} #{v}" }
       end
     end
@@ -132,39 +134,42 @@ module Spinneret
       log "Network is stable..."
     end
 
-    def analize_search
-      File.open(File.join(@output_path, "search_success_pct"), "a") do | f |
+    def analyze_search
+      append_data_file("search_success_pct") do |f|
         f.write("#{@sim.time} #{@successful_dht_searches} " +
                 "#{@failed_dht_searches} #{@successful_kwalk_searches} " +
                 "#{@failed_kwalk_searches}\n")
       end
     end
 
-=begin
-    def outdegree_calc
-      # The bin size needs to be parameterized correctly
-      ideal_binning = calc_ideal_binning(@nodes.length, @address_space, 4)
-      dist = []
-      @nodes.each do | n |
-        bins_size = Array.new(Math.log2(@address_space).ceil, 0.0)
-        i = 0
-        n.link_table.each_bin do | bin |
-          bins_size[i] = bin.size.to_f
-          i += 1
-        end
-        dist << chi_squared_distance(bins_size, ideal_binning)
-      end
+    def sums_of_squares
+      x, y = @nodes.map do |node|
+        node.link_table.sum_of_squares
+      end.histogram
 
-      return if dist.empty?
-
-      bin_size, min, bins = dist.bin
-      File.open(File.join(@output_path, @sim.time.to_s + "_bins_chi_dist"), "w") do | f |
-        bins.each_index do | idx | 
-          f.write("#{min + (idx + 0.5) * bin_size} #{bins[idx]}\n")
-        end
+      write_data_file("sums_of_squares") do |f|
+        x.each_with_index {|val, index| f << "#{val} #{y[index]}\n" }
       end
     end
-=end
+
+    def sum_of_squares_stats
+      mean, std = @nodes.map do |node|
+        node.link_table.sum_of_squares
+      end.normal_fit
+
+      append_data_file("sum_of_squares_mean") do |f|
+        f.write("#{@sim.time} #{mean} #{std}\n")
+      end
+    end
+
+    def table_sizes
+      table_sizes = Array.new(@nodes.first.link_table.max_peers + 1, 0)
+      @nodes.each {|n| table_sizes[n.link_table.size] += 1 }
+
+      write_data_file("table_sizes") do |f|
+        table_sizes.each_with_index {|count, index| f << "#{index} #{count}\n" } 
+      end
+    end
 
     def indegree_calc
       nodes_in = Hash.new(0)
@@ -175,7 +180,7 @@ module Spinneret
       max = nodes_in.values.max
       return  if max.nil?
   
-      File.open(File.join(@output_path, @sim.time.to_s + "_indegree_node"), "w") do | f |
+      write_data_file("indegree_node") do |f|
         sorted = nodes_in.sort { | p1, p2 | p1[1] <=> p2[1] }
         sorted.each { | x | f.write("#{x[0]} #{x[1]}\n") }
         if sorted.length > 10
@@ -183,7 +188,7 @@ module Spinneret
         end
       end
 
-      File.open(File.join(@output_path, @sim.time.to_s + "_high_indegree"), "w") do | f |
+      write_data_file("high_indegree") do |f|
         @high_indegree.each { | node, times | f.write("#{node} #{times}\n") }
       end
 
@@ -192,8 +197,7 @@ module Spinneret
       nodes_in.each { | node, in_e | distrib[in_e] += 1; total_in += 1 }
       distrib.map! { | x | (x.nil? ? 0 : x) }
 
-      name = @sim.time.to_s + "_indegree_dist"
-      File.open(File.join(@output_path, name), "w") do | f |
+      write_data_file("indegree_dist") do |f|
         distrib.each_index do | idx | 
           f.write("#{idx} #{distrib[idx]/Float(total_in)}\n") 
         end
@@ -201,17 +205,16 @@ module Spinneret
 
       pts = []
       distrib.each_index { | idx | distrib[idx].times { pts << idx } }
-      normal_dist = normal_fit(pts)
-      binning = calc_ideal_binning(@nodes.length, @address_space, 4)
-      sum_out = binning.inject { | sum, n | sum + n } 
-      File.open(File.join(@output_path, "indegree_normal_mean"), "a") do | f |
-        f.write("#{@sim.time} #{normal_dist[0]} #{normal_dist[1]} #{sum_out}\n")
+      normal_dist = pts.normal_fit
+
+      append_data_file("indegree_normal_mean") do |f|
+        f.write("#{@sim.time} #{normal_dist[0]} #{normal_dist[1]}\n")
       end
 
       # Make a link to the current one for live graphing...
       cur_path = File.join(@output_path, "cur_indegree_dist")
       File.delete(cur_path) if File.symlink?(cur_path)
-      File.symlink(name, cur_path)
+      File.symlink(datafile_path("indegree_dist"), cur_path)
     end
 
     def successful_dht_search(uid)
@@ -238,6 +241,20 @@ module Spinneret
       @failed_kwalk_searches += 1
     end
 
-  end
+    def datafile_path(category)
+      File.join(@output_path, @sim.time.to_s + '_' + category)
+    end
 
+    def write_data_file(category, &block)
+      File.open(datafile_path(category), "w") do | f |
+        yield(f)
+      end
+    end
+
+    def append_data_file(filename, &block)
+      File.open(File.join(@output_path, filename), "a") do | f |
+        yield(f)
+      end
+    end
+  end
 end

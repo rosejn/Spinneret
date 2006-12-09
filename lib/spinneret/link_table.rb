@@ -6,7 +6,7 @@ module Spinneret
     include KeywordProcessor
 
     DEFAULT_MAX_PEERS = 25
-    attr_accessor :max_peers
+    attr_accessor :max_peers, :address_space, :distance_func
 
     def initialize(nid, args = {})
       @nid = nid
@@ -18,12 +18,16 @@ module Spinneret
       })
 
       @nid_peers = {}
+
+      compute_ideal_table
     end
 
+    # Array of peers
     def peers
       @nid_peers.values
     end
 
+    # Array of node ids
     def nids
       @nid_peers.keys
     end
@@ -43,17 +47,33 @@ module Spinneret
       @nid_peers.has_key?(peer.nid)
     end
 
+    # Get a peer by node id
     def get_peer(nid)
       @nid_peers[nid]
     end
+    
+    # Peer iterator
+    def each
+      @nid_peers.each { |nid, peer| yield peer }
+    end
 
-    # Get the node in the table which is closest to <dest_addr>.
+    # String representation (list of node ids)
+    def to_s
+      @nid_peers.map {|nid, peer| nid }.join(', ')
+    end
+
+    def inspect
+      "#<Spinneret::LinkTable nid=#{@nid} peers: #{to_s}"
+    end
+
+    # Get the node in the table which is closest to <dest_nid>.
     def closest_peer(dest_nid)
       peers.min do | a, b |
         distance(dest_nid, a.nid) <=> distance(dest_nid, b.nid)     
       end
     end
 
+    # Get the <n> closest peers to <dest_nid>
     def closest_peers(dest_nid, n)
       peers.sort do |a,b| 
         distance(dest_nid, a.nid) <=> distance(dest_nid, b.nid)     
@@ -101,7 +121,14 @@ module Spinneret
           @nid_peers[peer.nid].last_seen = peer.last_seen
         end
       else
-        peer.distance = Math::log2(distance(@nid, peer.nid))
+        begin
+          peer.distance = Math::log2(distance(@nid, peer.nid))
+        rescue Exception => e
+          puts "Exception occured finding distance of peer #{peer.nid}"
+          puts "dist: #{distance(@nid, peer.nid)} #{@nid} #{peer.nid}"
+          raise e
+        end
+
         @nid_peers[peer.nid] = peer
 
         trim if @nid_peers.size > @max_peers
@@ -113,8 +140,7 @@ module Spinneret
     # The nodes on the extreme ends always stay, and the node closest to its
     # two neighbors in the middle is booted.
     def trim
-      sorted_peers = @nid_peers.values.sort {|a,b| a.distance <=> b.distance }
-      #sorted_peers.each {|p| printf "%.2f, ", 2**p.distance }
+      sorted_peers = peers_by_distance
 
       # First find the closest pair
       i_min = 0
@@ -153,18 +179,41 @@ module Spinneret
       end
     end
 
-    # Peer iterator
-    def each
-      @nid_peers.each { |nid, peer| yield peer }
+    # Array of peers sorted by distance from me.
+    def peers_by_distance
+      @nid_peers.values.sort {|a,b| a.distance <=> b.distance }
     end
 
-    def to_s
-      @nid_peers.map {|nid, peer| nid }.join(', ')
+    # Find the optimal table of log-distances for the current address space and
+    # table size (max_peers).
+    def compute_ideal_table
+      slope = Math::log2(@address_space) / @max_peers
+      @ideal_table = Array.new(@max_peers)
+      @max_peers.times {|i| @ideal_table[i] = i * slope}
     end
 
-    def inspect
-      "#<Spinneret::LinkTable nid=#{@nid} peers: #{to_s}"
+    # Find the sum of squares of our current distances to the ideal table
+    def sum_of_squares
+      d = 0
+      pbd = peers_by_distance
+      @max_peers.times do |index|
+        if pbd[index]
+          d += (@ideal_table[index] - pbd[index].distance) ** 2
+        else
+          d += @ideal_table[index] ** 2
+        end
+      end
+      d / @max_peers
     end
+
+=begin
+    def peers_by_distance_from_ideal
+      from_ideal = []
+      peers_by_distance.each_with_index do |peer, index|
+
+      end
+    end
+=end
 
   end
 
@@ -174,7 +223,7 @@ module Spinneret
     include Base
 
     attr_reader :addr, :nid
-    attr_accessor :distance, :last_seen
+    attr_accessor :distance, :last_seen, :distance_from_ideal
 
     # We may also have algorithms that use things like rtt to make decisions.
     # What about a generic field that holds algorithm specific data?

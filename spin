@@ -66,7 +66,7 @@ opts = GetoptLong.new(
         ['--maintenance-table-size', '-t', GetoptLong::REQUIRED_ARGUMENT],
         ['--maintenance-rate',       '-r', GetoptLong::REQUIRED_ARGUMENT] )
 
-output_dir = "./"
+output_dir = "./output"
 addr_space = length = 0
 workload = topology = nil
 maintenance = "pull"
