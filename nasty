@@ -62,7 +62,7 @@ jobs.each_with_index do |job,idx|
   fork do
     #puts "#{job[0]}"
     `#{job[0]}`
-    if !Dir.entries(job[1]).length > 2
+    if !(Dir.entries(job[1]).length > 2)
       puts "Job failed to output anything.\n#{job[0]}\n"
     end
   end
