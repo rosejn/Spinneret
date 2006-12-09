@@ -39,7 +39,7 @@ Dir.glob("workloads/bootstrap_*") do |workload|
         link_table_size.each do |table_size|
           job_dir = File.join(bs_dir, workload, m_rate.to_s, m_amount.to_s, table_size.to_s, alg)
           clear_and_make(job_dir)
-          jobs << "./spin -w #{workload} -s #{m_amount} -t #{table_size} -m #{alg} -r #{m_rate} -d #{job_dir}" 
+          jobs << ["./spin -w #{workload} -s #{m_amount} -t #{table_size} -m #{alg} -r #{m_rate} -d #{job_dir}", job_dir]
         end
       end
     end
@@ -60,7 +60,10 @@ jobs.each_with_index do |job,idx|
 
   num_children += 1
   fork do
-    puts "#{job}"
-    `#{job}`
+    #puts "#{job[0]}"
+    `#{job[0]}`
+    if !Dir.entries(job[1]).length > 2
+      puts "Job failed to output anything.\n#{job[0]}\n"
+    end
   end
 end
