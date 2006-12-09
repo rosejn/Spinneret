@@ -18,7 +18,7 @@ MAGIC_CONSTANT = 100
 
 def sim_length(size, rate)
   length = size * rate * MAGIC_CONSTANT
-  length = 20000 if length < 20000
+  length = 200000 if length < 200000
   return length
 end
 
