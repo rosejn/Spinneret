@@ -27,7 +27,7 @@ def clear_and_make(dir)
 end
 
 # Create directory for this run
-bs_dir = File.join("data", "bootstrap_limited")
+bs_dir = File.join("data", "bootstrap")
 clear_and_make(bs_dir)
 
 # Bootstrap Simulations
@@ -60,7 +60,7 @@ jobs.each_with_index do |job,idx|
 
   num_children += 1
   fork do
-#    puts "#{job}"
+    puts "#{job}"
     `#{job}`
   end
 end
