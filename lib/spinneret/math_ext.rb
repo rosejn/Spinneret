@@ -5,9 +5,8 @@ module Math
 end
 
 class Array
-  def bin
+  def histogram
     num_bins = Math.sqrt(self.length).ceil
-    p num_bins
     bins = Array.new(num_bins, 0)
 
     min = self.min
@@ -16,7 +15,11 @@ class Array
     
     self.each { |v| bins[(v - min) / bin_size] += 1 }
 
-    return [bin_size, min, bins]
+    x = []
+    start = min + bin_size / 2
+    bins.size.times {|i| x[i] = start + i * bin_size }
+
+    return [x, bins]
   end
 
   def rand
@@ -28,6 +31,11 @@ class Array
     copy = self.dup
     self.size.times {|i| tmp << copy.delete(copy.rand)}
     tmp
+  end
+
+  def normal_fit
+    v = GSL::Vector.alloc(self)
+    return [GSL::Stats::mean(v), GSL::Stats::sd(v)]
   end
 end
 
@@ -51,7 +59,3 @@ def chi_squared_distance(observed, expected)
   return sum
 end
 
-def normal_fit(data)
-  v = GSL::Vector.alloc(data)
-  return [GSL::Stats::mean(v), GSL::Stats::sd(v)]
-end

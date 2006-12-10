@@ -55,9 +55,27 @@ class TestLinkTable < Test::Unit::TestCase
     removals = [76, 31, 90]
     insertions.each_with_index do |nid, i| 
       @table.store_peer(Peer.new(0, nid)) 
-      puts @table.peers.map {|p| p.nid}.sort.join(', ')
       assert_equal(false, @table.has_nid?(removals[i]))
     end
+  end
+
+  def test_ideal_stats
+    nids = [1,2,4,8,16,32,64,128,256,512, 1024, 2048]
+    @table.distance_func = DistanceFuncs.sym_circular(nids.last * 2)
+    @table.address_space = nids.last * 2
+    @table.max_peers = nids.size
+    @table.compute_ideal_table
+
+    begin
+      nids.each {|nid| @table.store_peer(Peer.new(0, nid)) }
+    rescue Exception => e
+      puts e
+      puts e.backtrace
+    end
+
+    # The rounding errors makes a perfect 10 item table have an SOS of
+    # 0.00386808, so just make sure we are better than that.
+    assert_equal(0, @table.sum_of_squares)
   end
   
 =begin
