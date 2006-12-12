@@ -1,0 +1,87 @@
+#!/usr/bin/env ruby
+
+# == Synopsis
+#
+# rjserve: Run a generic job server
+#
+# == Usage
+#
+# rjserve [-n threads]
+#
+# -n number, --num-threads number
+#     Number of threads to run processing inserted jobs.  Defualts to 1.
+
+require 'rdoc/usage'
+require 'drb'
+require 'thread'
+
+opts = GetoptLong.new(['--num-threads', '-n', GetoptLong::REQUIRED_ARGUMENT])
+
+num_threads = 1
+opts.each do | opt, arg |
+  case opt
+  when '--num-threads'
+    num_threads = arg.to_i    
+  else
+    RDoc::usage
+  end
+end
+
+class RJobServer
+  HEAD = :head
+  TAIL = :tail
+
+  def initialize
+    @queue = []
+    @queue_mutex = Mutex.new
+  end
+
+  def add_job(job, position = TAIL)
+    @queue_mutex.synchronize do
+      case position
+      when HEAD
+        @queue.insert(0, job)
+      when TAIL
+        @queue << job
+      end
+    end
+  end
+
+  def next
+    job = nil
+    @queue_mutex.synchronize do
+      job = @queue.shift
+    end
+    return job
+  end
+
+end
+
+server = RJobServer.new
+DRb.start_service('druby://localhost:7005', server)
+
+num_children = 0
+i = 0
+while(1)
+  puts "Currently spawning job #{i}"
+  if num_children == num_threads
+    Process.wait
+    num_children -= 1
+  end
+  
+  job = nil
+  while(job.nil?)
+    job = server.next
+    sleep 0.01
+  end
+
+  num_children += 1
+  i += 1
+  fork do
+    puts "Running #{job}."
+    job.run
+  end
+end
+
+# replace with main loop
+DRb.thread.join # Don't exit just yet!

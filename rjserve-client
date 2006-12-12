@@ -1,0 +1,26 @@
+#!/usr/bin/env ruby
+
+# == Synopsis
+#
+# rjserve-client: Add a job to a rjserve instance
+#
+# == Usage
+#
+# rjserve-client -a address [-g generator] [-p position]
+#
+# -a ip:port, --server-address ip:port
+#     Specify the IP and port number of the rjserve process.  The IP can be
+#     numerical or a symbolic domain name, and the port can be left out if the
+#     server uses the default, 7005.
+#
+# -g class_name, --generator class_name
+#     The generator class that will create the job.  Defualts to ShellExecute,
+#     which taks the -c flag to specify the command to run.  Any module should
+#     take the -h option, which will force it to print it's help documentation.
+#     Use the classname of ListGenerators to output the list of all known
+#     generators.
+#
+# -p position, --queue-position position
+#     The position in which the job should be inserted.  Only two values are
+#     currently allowed: head and tail.  Defaults to tail.
+

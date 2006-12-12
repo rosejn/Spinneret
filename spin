@@ -6,7 +6,7 @@
 #
 # == Usage
 #
-# spin [-w workload] [-t topology] [-a addr_space]
+# spin [-w workload] 
 #
 # -h, --help:
 #    Show this help
