@@ -15,6 +15,10 @@ require 'rdoc/usage'
 require 'drb'
 require 'thread'
 
+require 'job_types'
+
+SERVER_ADDR = "localhost:7005"
+
 opts = GetoptLong.new(['--num-threads', '-n', GetoptLong::REQUIRED_ARGUMENT])
 
 num_threads = 1
@@ -24,6 +28,7 @@ opts.each do | opt, arg |
     num_threads = arg.to_i    
   else
     RDoc::usage
+    exit(0)
   end
 end
 
@@ -57,13 +62,14 @@ class RJobServer
 
 end
 
+printf("Ruby job starting up on %s...", SERVER_ADDR)
 server = RJobServer.new
-DRb.start_service('druby://localhost:7005', server)
+DRb.start_service("druby://#{SERVER_ADDR}", server)
+printf("done.  Waiting for jobs.\n")
 
 num_children = 0
 i = 0
 while(1)
-  puts "Currently spawning job #{i}"
   if num_children == num_threads
     Process.wait
     num_children -= 1
@@ -75,6 +81,7 @@ while(1)
     sleep 0.01
   end
 
+  puts "Currently spawning job #{i}"
   num_children += 1
   i += 1
   fork do

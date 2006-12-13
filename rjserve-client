@@ -13,14 +13,69 @@
 #     numerical or a symbolic domain name, and the port can be left out if the
 #     server uses the default, 7005.
 #
-# -g class_name, --generator class_name
-#     The generator class that will create the job.  Defualts to ShellExecute,
-#     which taks the -c flag to specify the command to run.  Any module should
-#     take the -h option, which will force it to print it's help documentation.
-#     Use the classname of ListGenerators to output the list of all known
-#     generators.
+# -j class_name, --job-type class_name
+#     The job class that will represent the job.  Defualts to ShellExecute,
+#     which taks the -jc flag to specify the command to run.  Any module should
+#     take the -jh option, which will force it to print it's help documentation.
+#     Note that this option must be specified before any argument options so that
+#     rjserve-client knows which job type to pass them to.
 #
 # -p position, --queue-position position
 #     The position in which the job should be inserted.  Only two values are
 #     currently allowed: head and tail.  Defaults to tail.
 
+require 'rdoc/usage'
+require 'drb'
+
+require 'job_types'
+
+opts = GetoptLong.new(['--server-address', '-a', GetoptLong::REQUIRED_ARGUMENT],
+                      ['--job-type',       '-j', GetoptLong::REQUIRED_ARGUMENT],
+                      ['--queue-position', '-p', GetoptLong::REQUIRED_ARGUMENT],
+                      ['--help',           '-h', GetoptLong::NO_ARGUMENT]
+                     )
+
+def find_class(mod, name)
+  sym = (name[0].chr.upcase + name[1..-1]).to_sym
+  return nil if !mod.const_defined?(sym)
+  return mod.const_get(maintenance)
+end
+
+address = nil
+job = RJServe::Jobs::ShellExecute.new()
+queue_pos = :tail
+opts.each do | opt, arg |
+  case opt
+  when '--server-address'
+    address = arg
+  when '--job-type'
+    job = find_class(RJServe::Jobs, opt)
+    if job.nil?
+      puts "Valid generator types are:"
+      RJServe::Jobs.constants.each { |cls| puts "  #{cls.to_s}" }
+      puts "Note that capitalization *is* important."
+      exit(1)
+    else
+      job = job.new()
+    end
+  when '--queue-position'
+    queue_pos = (arg == "head" ? :head : :tail)
+  when '--help'
+    RDoc::usage
+    exit(0)
+  else
+    puts opt
+    job.parse_opt(opt, arg)
+  end
+end
+
+
+
+if address.nil? || !job.runnable?
+  puts "Must provide at least the address and a complete job."
+  exit(0)
+end
+
+Rb.start_service
+job_queue = DRbObject.new(nil, "druby://#{address}")
+job_queue.add_job(job, queue_pos)

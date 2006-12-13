@@ -132,8 +132,7 @@ end
 
 # Upcap the first character, but do not lower case the others like .capitalize
 # would
-maintenance = maintenance[0].chr.upcase + maintenance[1..-1]
-maintenance = maintenance.to_sym
+maintenance = (maintenance[0].chr.upcase + maintenance[1..-1]).to_sym
 if !Spinneret::Maintenance.const_defined?(maintenance)
   puts "Invalid maintenance type \'#{maintenance.to_s}\'."
   maintenance_help()
