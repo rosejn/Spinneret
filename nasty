@@ -1,13 +1,15 @@
 #!/usr/bin/env ruby
 require 'fileutils'
 require 'lib/spinneret'
+require 'drb'
+require 'job_types'
 
 DEFAULT_PROCESSES = 1
 
 if ARGV.size == 1
-  num_processes = Integer(ARGV[0])
+  address = ARGV[0]
 else
-  num_processes = DEFAULT_PROCESSES
+  address = "localhost:7005"
 end
 
 # Simulation Parameters
@@ -21,17 +23,35 @@ link_table_size = [10, 25, 50, 100]
 
 jobs = []
 
+#Connect to the job server object
+DRb.start_service
+$job_queue = DRbObject.new(nil, "druby://#{address}")
+
+def create_job(exec)
+  job = RJServe::Jobs::ShellExecute.new()
+  job.parse_opt('-jc', exec)
+  $job_queue.add_job(job)
+end
+
 def clear_and_make(dir)
-  `rm -fr #{dir}`
-  FileUtils.mkdir_p(dir)
+  create_job("rm -rf #{dir} && mkdir -p #{dir}")
 end
 
 # Create directory for this run
 bs_dir = File.join("data", "bootstrap")
 clear_and_make(bs_dir)
 
+SYNC_ROUNDS = 200
+
 # Bootstrap Simulations
 Dir.glob("workloads/bootstrap_*") do |workload|
+  if workload =~ /\w+_n(\d+)_j(\d+)\.wlgz/
+    nodes, join_time = $1.to_i, $2.to_i
+  else
+    puts "invlaid workload #{workload}"
+    next
+  end
+
   m_algs.each do | alg |
     next if alg == "Opportunistic"
     maintenance_rate.each do |m_rate|
@@ -39,31 +59,11 @@ Dir.glob("workloads/bootstrap_*") do |workload|
         link_table_size.each do |table_size|
           job_dir = File.join(bs_dir, workload, m_rate.to_s, m_amount.to_s, table_size.to_s, alg)
           clear_and_make(job_dir)
-          jobs << ["./spin -w #{workload} -s #{m_amount} -t #{table_size} -m #{alg} -r #{m_rate} -d #{job_dir}", job_dir]
+          time = nodes * join_time + (SYNC_ROUNDS * m_rate) / m_amount + table_size * SYNC_ROUNDS
+          create_job("spin -w #{workload} -s #{m_amount} -t #{table_size} -m #{alg} -r #{m_rate} -d #{job_dir} -l #{time}")
         end
       end
     end
   end
 end
 
-num_children = 0
-
-puts "Executing #{jobs.size} simulation trials"
-
-jobs.each_with_index do |job,idx|
-#  puts "Children: #{num_children}  procs: #{num_processes}"
-  puts "Currently spawning job #{idx}"
-  if num_children == num_processes
-    Process.wait
-    num_children -= 1
-  end
-
-  num_children += 1
-  fork do
-    #puts "#{job[0]}"
-    `#{job[0]}`
-    if !(Dir.entries(job[1]).length > 2)
-      puts "Job failed to output anything.\n#{job[0]}\n"
-    end
-  end
-end

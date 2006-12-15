@@ -10,7 +10,7 @@ end
 
 # Workload parameters
 node_sizes = [100, 1000, 10000]
-join_rates = [1, 100, 1000, 10000]
+join_rates = [1, 100, 1000]
 
 address_space = 100000
 

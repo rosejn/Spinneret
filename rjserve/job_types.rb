@@ -27,6 +27,10 @@ module Jobs
     def runnable?
       return !@command.nil?
     end
+
+    def to_s
+      return "SE: #{@command}"
+    end
   end
 
 end

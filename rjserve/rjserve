@@ -82,6 +82,8 @@ while(1)
   end
 
   puts "Currently spawning job #{i}"
+  sleep 1.0  # make sure the previous command has started to allow for 
+             # command chains.  bad solution to a shity problem.
   num_children += 1
   i += 1
   fork do
