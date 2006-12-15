@@ -14,11 +14,12 @@ join_rates = [1, 100, 1000, 10000]
 
 address_space = 100000
 
-MAGIC_CONSTANT = 10
+MAGIC_CONSTANT = 2
+SLOW_RATE = 60000 * 100
 
 def sim_length(size, rate)
   length = size * rate
-  length += length * MAGIC_CONSTANT + 400000
+  length += SLOW_RATE + (length * MAGIC_CONSTANT)
   return length
 end
 
