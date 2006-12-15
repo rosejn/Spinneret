@@ -12,7 +12,7 @@ end
 node_sizes = [100, 1000, 10000]
 join_rates = [1, 100, 1000]
 
-address_space = 100000
+address_space = 2**31
 
 MAGIC_CONSTANT = 2
 SLOW_RATE = 60000 * 100

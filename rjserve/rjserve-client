@@ -35,7 +35,9 @@ require 'job_types'
 opts = GetoptLong.new(['--server-address', '-a', GetoptLong::REQUIRED_ARGUMENT],
                       ['--job-type',       '-j', GetoptLong::REQUIRED_ARGUMENT],
                       ['--queue-position', '-p', GetoptLong::REQUIRED_ARGUMENT],
-                      ['--queue-position', '-p', GetoptLong::REQUIRED_ARGUMENT],
+                      ['--list-jobs',      '-l', GetoptLong::NO_ARGUMENT],
+                      ['--remove-jobs',    '-r', GetoptLong::REQUIRED_ARGUMENT],
+                      ['--kill-queue',     '-x', GetoptLong::NO_ARGUMENT],
                       ['--help',           '-h', GetoptLong::NO_ARGUMENT]
                      )
 
@@ -45,7 +47,9 @@ def find_class(mod, name)
   return mod.const_get(maintenance)
 end
 
-address = nil
+address = ":7005"
+list = kill = false
+delete = []
 job = RJServe::Jobs::ShellExecute.new()
 queue_pos = :tail
 opts.each do | opt, arg |
@@ -53,7 +57,7 @@ opts.each do | opt, arg |
   when '--server-address'
     address = arg
   when '--job-type'
-    job = find_class(RJServe::Jobs, opt)
+    job = find_class(RJServe::Jobs, arg)
     if job.nil?
       puts "Valid generator types are:"
       RJServe::Jobs.constants.each { |cls| puts "  #{cls.to_s}" }
@@ -64,6 +68,12 @@ opts.each do | opt, arg |
     end
   when '--queue-position'
     queue_pos = (arg == "head" ? :head : :tail)
+  when '--list-jobs'
+    list = true
+  when '--remove-jobs'
+    delete = arg.split('-').map { | x | x.to_i }
+  when '--kill-queue'
+    kill = true
   when '--help'
     RDoc::usage
     exit(0)
@@ -75,11 +85,31 @@ while !ARGV.empty?
   job.parse_opt(opt, arg)
 end
 
-if address.nil? || !job.runnable?
+if (!job.runnable?) && (!list && delete.empty? && !kill)
   puts "Must provide at least the address and a complete job."
   exit(0)
 end
 
 DRb.start_service
 job_queue = DRbObject.new(nil, "druby://#{address}")
-job_queue.add_job(job, queue_pos)
+
+if list
+  job_queue.get_queue.each { | e | printf("%d: %s\n", e[1], e[0]) }
+end
+
+if !delete.empty?
+  if delete.length == 2
+    range = (delete[0]..delete[1])
+  else
+    range = delete[0]
+  end
+  job_queue.clear_entries(range)
+end
+
+if kill
+  job_queue.clear_queue()
+end
+
+if job.runnable?
+  job_queue.add_job(job, queue_pos)
+end

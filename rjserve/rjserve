@@ -43,17 +43,19 @@ class RJobServer
   def initialize
     @queue = []
     @queue_mutex = Mutex.new
+    @uid = 0
   end
 
   def add_job(job, position = TAIL)
     @queue_mutex.synchronize do
       case position
       when HEAD
-        @queue.insert(0, job)
+        @queue.insert(0, [job, @uid])
       when TAIL
-        @queue << job
+        @queue << [job, @uid]
       end
     end
+    @uid += 1
   end
 
   def next
@@ -65,7 +67,26 @@ class RJobServer
   end
 
   def get_queue
-    return @queue.map { | entry | entry.to_s }
+    return @queue.map { | entry | [entry[0].to_s, entry[1]] }
+  end
+
+  def clear_queue
+    @queue_mutex.synchronize do
+      @queue.clear
+    end
+  end
+
+  def clear_entries(uid)
+    if uid.respond_to? :each
+      uid.each { | x | clear_entries(x) }
+    end
+
+    @queue_mutex.synchronize do
+      entry = @queue.find { | e | e[1] == uid }
+      if !entry.nil?
+        @queue.delete(entry)
+      end
+    end
   end
 
 end
@@ -95,8 +116,8 @@ while(1)
   num_children += 1
   i += 1
   fork do
-    puts "Running #{job}."
-    job.run
+    puts "Running #{job[0]}."
+    job[0].run
   end
 end
 

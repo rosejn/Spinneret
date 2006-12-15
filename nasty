@@ -41,14 +41,14 @@ end
 bs_dir = File.join("data", "bootstrap")
 clear_and_make(bs_dir)
 
-SYNC_ROUNDS = 400
+SYNC_ROUNDS = 125
 
 # Bootstrap Simulations
 Dir.glob("workloads/bootstrap_*") do |workload|
   if workload =~ /\w+_n(\d+)_j(\d+)\.wlgz/
     nodes, join_time = $1.to_i, $2.to_i
   else
-    puts "invlaid workload #{workload}"
+    puts "Invalid workload #{workload}"
     next
   end
 
@@ -59,7 +59,7 @@ Dir.glob("workloads/bootstrap_*") do |workload|
         link_table_size.each do |table_size|
           job_dir = File.join(bs_dir, workload, m_rate.to_s, m_amount.to_s, table_size.to_s, alg)
           clear_and_make(job_dir)
-          time = nodes * join_time + (table_size * SYNC_ROUNDS * m_rate) / m_rate
+          time = nodes * join_time + (table_size / m_amount * SYNC_ROUNDS * m_rate) / m_amount
           create_job("spin -w #{workload} -s #{m_amount} -t #{table_size} -m #{alg} -r #{m_rate} -d #{job_dir} -l #{time}")
         end
       end
