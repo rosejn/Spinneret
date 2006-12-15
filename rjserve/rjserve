@@ -60,6 +60,10 @@ class RJobServer
     return job
   end
 
+  def get_queue
+    return @queue.map { | entry | entry.to_s }
+  end
+
 end
 
 printf("Ruby job starting up on %s...", SERVER_ADDR)

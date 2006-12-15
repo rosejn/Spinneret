@@ -35,6 +35,7 @@ require 'job_types'
 opts = GetoptLong.new(['--server-address', '-a', GetoptLong::REQUIRED_ARGUMENT],
                       ['--job-type',       '-j', GetoptLong::REQUIRED_ARGUMENT],
                       ['--queue-position', '-p', GetoptLong::REQUIRED_ARGUMENT],
+                      ['--queue-position', '-p', GetoptLong::REQUIRED_ARGUMENT],
                       ['--help',           '-h', GetoptLong::NO_ARGUMENT]
                      )
 
