@@ -18,9 +18,12 @@ MAGIC_CONSTANT = 2
 SLOW_RATE = 60000 * 100
 
 def sim_length(size, rate)
-  length = size * rate
-  length += SLOW_RATE + (length * MAGIC_CONSTANT)
-  return length
+#  length = size * rate
+#  length += SLOW_RATE + (length * MAGIC_CONSTANT)
+#  return length
+  
+  # current max length in nasty
+  return 310000000
 end
 
 # Bootstrap tests
