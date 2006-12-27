@@ -41,7 +41,7 @@ end
 bs_dir = File.join("data", "bootstrap")
 clear_and_make(bs_dir)
 
-SYNC_ROUNDS = 125
+SYNC_ROUNDS = 75
 
 # Bootstrap Simulations
 Dir.glob("workloads/bootstrap_*") do |workload|

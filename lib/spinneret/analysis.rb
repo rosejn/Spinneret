@@ -31,6 +31,7 @@ module Spinneret
       @nodes = nodes
 
       @trials = {}
+      @convergence = Hash.new(-1)
       internal_init
 
       return self
@@ -140,6 +141,11 @@ module Spinneret
                 "#{@failed_dht_searches} #{@successful_kwalk_searches} " +
                 "#{@failed_kwalk_searches}\n")
       end
+    end
+
+    def converged?
+
+      
     end
 
     def sums_of_squares
