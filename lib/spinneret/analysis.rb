@@ -44,6 +44,7 @@ module Spinneret
       table_sizes
       #outdegree_calc
       #is_connected?
+      network_converged?
 
       @trials = {}
       @successful_dht_searches = 0
@@ -132,7 +133,11 @@ module Spinneret
     end
 
     def default_stable_handler
-      log "Network is stable..."
+      if network_converged?
+        log "Network is stable..."  
+      else
+        log "Network is not stable..."
+      end
     end
 
     def analyze_search
@@ -143,9 +148,15 @@ module Spinneret
       end
     end
 
-    def converged?
+    # Assumes that all link tables use identical distance functions
+    def network_converged?
+      converged = true
+      @nodes.each { | peer | converged &= node_converged?(peer) }
+      return converged
+    end
 
-      
+    def node_converged?(peer)
+      return peer.link_table.chi_squared_test
     end
 
     def sums_of_squares

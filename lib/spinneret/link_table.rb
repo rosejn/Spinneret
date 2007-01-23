@@ -5,6 +5,7 @@ module Spinneret
     include Base
     include KeywordProcessor
 
+    CHI_TEST_CUTOFF_MULTIPLIER = 10
     DEFAULT_MAX_PEERS = 25
     attr_accessor :max_peers, :address_space, :distance_func
 
@@ -18,6 +19,7 @@ module Spinneret
       })
 
       @nid_peers = {}
+      @chi_square_cutoff = CHI_TEST_CUTOFF_MULTIPLIER * @max_peers
 
       compute_ideal_table
     end
@@ -168,8 +170,8 @@ module Spinneret
       elsif (i_min + 1) == (sorted_peers.size - 1) # furthest node
         @nid_peers.delete(a_min.nid)
       else 
-        da = a_min.distance - sorted_peers[i_min].distance
-        db = sorted_peers[i_min + 1].distance - b_min.distance
+        da = a_min.distance - sorted_peers[i_min - 1].distance
+        db = sorted_peers[i_min + 2].distance - b_min.distance
 
         if da < db 
           @nid_peers.delete(a_min.nid)
@@ -185,11 +187,23 @@ module Spinneret
     end
 
     # Find the optimal table of log-distances for the current address space and
-    # table size (max_peers).
+    # table size (max_peers).  Called at initialize.
     def compute_ideal_table
-      slope = Math::log2(@address_space) / @max_peers
+      slope = Math::log2(@address_space) / @max_peers.to_f
       @ideal_table = Array.new(@max_peers)
       @max_peers.times {|i| @ideal_table[i] = i * slope}
+    end
+
+    def chi_squared_test
+      pbd = peers_by_distance.map{ |p| p.distance }
+
+      return false  if pbd.length != @max_peers
+
+      pbd = pbd + Array.new(@max_peers - pbd.size, 0)
+      chi_dist = chi_squared_distance(pbd, @ideal_table)
+#      puts "#{@sim.time} Node #{@nid} chi_square_dist is #{chi_dist}"
+#      return false
+      return chi_dist < @chi_square_cutoff
     end
 
     # Find the sum of squares of our current distances to the ideal table

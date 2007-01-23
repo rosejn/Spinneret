@@ -53,7 +53,12 @@ end
 def chi_squared_distance(observed, expected)
   sum = 0
   observed.each_with_index do |o, i| 
-    sum += (o - expected[i])**2 / expected[i]
+#    printf("(%f - %f)^2 / %f\n", o, expected[i], expected[i])
+    if expected[i] == 0
+      sum += (o - expected[i])**2 
+    else
+      sum += (o - expected[i])**2 / expected[i]
+    end
   end
 
   return sum

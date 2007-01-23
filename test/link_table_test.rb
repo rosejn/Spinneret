@@ -55,6 +55,7 @@ class TestLinkTable < Test::Unit::TestCase
     removals = [76, 31, 90]
     insertions.each_with_index do |nid, i| 
       @table.store_peer(Peer.new(0, nid)) 
+      p removals[i]
       assert_equal(false, @table.has_nid?(removals[i]))
     end
   end
@@ -73,8 +74,6 @@ class TestLinkTable < Test::Unit::TestCase
       puts e.backtrace
     end
 
-    # The rounding errors makes a perfect 10 item table have an SOS of
-    # 0.00386808, so just make sure we are better than that.
     assert_equal(0, @table.sum_of_squares)
   end
   

@@ -57,4 +57,5 @@ require 'spinneret/link_table'
 require 'spinneret/node'
 require 'spinneret/analysis'
 require 'spinneret/distance_functions'
+require 'spinneret/idealized_link_table'
 
