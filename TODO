@@ -1,0 +1,5 @@
+Link Table:
+
+* Make store_peer into add_peer
+* Unify plural and single methods
+

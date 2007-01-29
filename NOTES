@@ -1,3 +1,7 @@
-Just keep random thoughts here...
+common code in lib
+simulation specific code in sim
+implementation specific code in peer
 
+the sim and peer directories also apply to the unit tests, while common stuff
+is just in the base of test.
 
