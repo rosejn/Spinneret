@@ -27,7 +27,8 @@ class TestNode < Test::Unit::TestCase
     
     4.times do |i| 
       nodes << Node.new(i+1, {
-        :start_peer => Peer.new(nodes[i].addr, nodes[i].nid) }) 
+        :start_peer => Peer.new(nodes[i].addr, nodes[i].nid) 
+      }) 
     end
 
     @sim.run(50000)

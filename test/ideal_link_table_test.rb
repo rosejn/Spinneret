@@ -1,3 +1,4 @@
+=begin
 $:.unshift(File.dirname(__FILE__) + '/../lib')
 
 require 'test/unit'
@@ -45,4 +46,4 @@ class TestIdealLinkTable < Test::Unit::TestCase
 #    assert_equal(5, @table.random_peers(5).size)
   end
 
-end
+=end

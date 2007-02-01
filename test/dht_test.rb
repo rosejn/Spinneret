@@ -64,7 +64,7 @@ class TestDHT < Test::Unit::TestCase
 #    @sim.verbose
     @sim.run(120000)
 
-    assert_not_nil(@nodes[0].responses.nil?) 
+    assert_not_nil(@nodes[0].responses) 
     assert_equal(queries.sort, @nodes[0].responses.uniq.sort) 
     
     # Test that the ttl expiration works (don't send more packets)

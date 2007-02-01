@@ -1,3 +1,4 @@
+require 'monitor'
 require 'thread'
 
 module Spinneret   
@@ -9,6 +10,8 @@ module Spinneret
 
     CHI_TEST_CUTOFF_MULTIPLIER = 10
     DEFAULT_MAX_PEERS = 25
+    DEFAULT_ADDRESS_SPACE = 10000
+    DEFAULT_NUM_SLOTS = 4
     
     attr_reader :nid
     attr_accessor :max_peers, :address_space, :distance_func
@@ -18,35 +21,40 @@ module Spinneret
     # Following are the possible values for the <em>args</em> hash:
     #
     # [*max_peers*] The maximum number of peers to keep in the table
-    # [*addr_space*] The size of the virtual network address space
+    # [*address_space*] The size of the virtual network address space
     # [*distance_func*] The distance function to be used for table management 
-    def initialize(args = {})
-      @nid = random_id 
+    def initialize(nid, args = {})
+      @nid = nid || random_id 
       @sim = GoSim::Simulation.instance
       @last_modified = 0
 
       params_to_ivars(args, {
-        :addr_space => DEFAULT_ADDRESS_SPACE,
-        :max_peers => DEFAULT_MAX_PEERS
-      })
+        :address_space => DEFAULT_ADDRESS_SPACE,
+        :max_peers => DEFAULT_MAX_PEERS,
+        :num_slots => DEFAULT_NUM_SLOTS,
+        :distance_func => nil })
 
-      @table_lock = Mutex.new
+      if @distance_func.nil?
+        @distance_func = DistanceFuncs.sym_circular(@address_space)
+      end
+
+      @table_lock = Monitor.new
       @nid_peers = {}
       @chi_square_cutoff = CHI_TEST_CUTOFF_MULTIPLIER * @max_peers
 
-      compute_ideal_table
+      #compute_ideal_table
     end
 
     # Return a random virtual network id
     def random_id
-      rand(@addr_space) 
+      rand(@address_space) 
     end
 
     # Array of peers
     #
     # NOTE: This is not a thread-safe method.
     def peers
-      @nid_peers.values
+      @table_lock.synchronize { @nid_peers.values }
     end
 
     # Array of node ids
@@ -159,8 +167,6 @@ module Spinneret
         begin
           peer.distance = Math::log2(distance(@nid, peer.nid))
         rescue Exception => e
-          puts "Exception occured finding distance of peer #{peer.nid}"
-          puts "dist: #{distance(@nid, peer.nid)} #{@nid} #{peer.nid}"
           raise e
         end
 
@@ -200,8 +206,6 @@ module Spinneret
 
       pbd = pbd + Array.new(@max_peers - pbd.size, 0)
       chi_dist = chi_squared_distance(pbd, @ideal_table)
-#      puts "#{@sim.time} Node #{@nid} chi_square_dist is #{chi_dist}"
-#      return false
       return chi_dist < @chi_square_cutoff
     end
 

@@ -7,9 +7,6 @@ module Spinneret
     include Search::DHT
     include Search::KWalker
 
-    DEFAULT_NUM_SLOTS = 4
-    DEFAULT_ADDRESS_SPACE = 10000
-
     #DEFAULT_MAINTENANCE = Maintenance::Pull
     #DEFAULT_MAINTENANCE = Maintenance::Push
     DEFAULT_MAINTENANCE = Maintenance::PushPull
@@ -29,24 +26,12 @@ module Spinneret
         :start_peer => nil,
         :maintenance => DEFAULT_MAINTENANCE,
         :maintenance_size => DEFAULT_MAINTENANCE_SIZE,
-        :maintenance_rate => DEFAULT_MAINTENANCE_PERIOD,
-        :max_peers => DEFAULT_TABLE_SIZE,
-        :address_space => DEFAULT_ADDRESS_SPACE,
-        :num_slots => DEFAULT_NUM_SLOTS,
-        :distance_func => nil })
-
-      if @distance_func.nil?
-        @distance_func = DistanceFuncs.sym_circular(@address_space)
-        args[:distance_func] = @distance_func
-      end
+        :maintenance_rate => DEFAULT_MAINTENANCE_PERIOD })
 
       extend(@maintenance)
 
-      @nid = nid
-
-      # TODO: Decide on and implement the passing through of parameters down
-      # to the link table: slots, address space, distance_func...
       @link_table = LinkTable.new(nid, args)
+      @nid = nid || @link_table.nid
       
       if @start_peer
         @link_table.store_peer(@start_peer)

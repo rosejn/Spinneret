@@ -7,7 +7,7 @@ module Spinneret
 
     DEFAULT_MEASUREMENT_PERIOD = 10000
     DEFAULT_STABILITY_THRESHOLD = 10
-    DEFAULT_OUTPUT_PATH = 'output'
+    DEFAULT_OUTPUT_PATH = 'sim/output'
 
     attr_reader :graph, :measurement_period
 
@@ -21,7 +21,7 @@ module Spinneret
 
     def setup(nodes, args = {})
       params_to_ivars(args, {
-                     :address_space => Node::DEFAULT_ADDRESS_SPACE,
+                     :address_space => LinkTable::DEFAULT_ADDRESS_SPACE,
                      :output_path => DEFAULT_OUTPUT_PATH,
                      :measurement_period => DEFAULT_MEASUREMENT_PERIOD,
                      :stability_threshold => DEFAULT_STABILITY_THRESHOLD,
@@ -40,11 +40,11 @@ module Spinneret
     def run_phase
       analyze_search
       indegree_calc
-      sum_of_squares_stats
-      table_sizes
+      #sum_of_squares_stats
+      #table_sizes
       #outdegree_calc
       #is_connected?
-      network_converged?
+      #network_converged?
 
       @trials = {}
       @successful_dht_searches = 0
