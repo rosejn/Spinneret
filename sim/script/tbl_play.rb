@@ -1,0 +1,40 @@
+#! /usr/bin/env ruby
+
+require 'spinneret'
+
+module Spinneret
+  class LinkTable
+    def execute_command(com, arg, tbl)
+      case com
+      when 'i'
+        tbl.store_peer(Spinneret::Peer.new(0, arg))
+      when 't' 
+        tbl.send('trim')
+      when 'q'
+        exit(0)
+      end
+    end
+  end
+end
+
+
+exit(0) if(ARGV.length < 1)
+
+tbl = Spinneret::LinkTable.new(ARGV[0].to_i)
+
+begin
+  while((line = $stdin.readline))
+    if line =~ /(\w)/
+      case $1
+      when 'i'
+        tbl.execute_command('i', $1.to_i, tbl)  if $' =~ / (\d+)/
+      else
+        tbl.execute_command($1, nil, tbl) 
+      end
+      puts tbl.to_s
+    end
+  end
+rescue EOFError => e
+  # Done
+end
+

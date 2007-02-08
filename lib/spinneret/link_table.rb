@@ -1,6 +1,10 @@
 require 'monitor'
 require 'thread'
 
+require 'gsl'
+
+#require 'breakpoint'
+
 module Spinneret   
   
   # A management class sitting on top of the link table.
@@ -11,7 +15,7 @@ module Spinneret
     CHI_TEST_CUTOFF_MULTIPLIER = 10
     DEFAULT_MAX_PEERS = 25
     DEFAULT_ADDRESS_SPACE = 10000
-    DEFAULT_NUM_SLOTS = 4
+#    DEFAULT_NUM_SLOTS = 4
     
     attr_reader :nid
     attr_accessor :max_peers, :address_space, :distance_func
@@ -24,15 +28,15 @@ module Spinneret
     # [*address_space*] The size of the virtual network address space
     # [*distance_func*] The distance function to be used for table management 
     def initialize(nid, args = {})
-      @nid = nid || random_id 
-      @sim = GoSim::Simulation.instance
-      @last_modified = 0
-
       params_to_ivars(args, {
         :address_space => DEFAULT_ADDRESS_SPACE,
         :max_peers => DEFAULT_MAX_PEERS,
-        :num_slots => DEFAULT_NUM_SLOTS,
+#        :num_slots => DEFAULT_NUM_SLOTS,
         :distance_func => nil })
+
+      @nid = nid || random_id 
+      @sim = GoSim::Simulation.instance
+      @last_modified = 0
 
       if @distance_func.nil?
         @distance_func = DistanceFuncs.sym_circular(@address_space)
@@ -47,7 +51,11 @@ module Spinneret
 
     # Return a random virtual network id
     def random_id
-      rand(@address_space) 
+      @@ids ||= {}
+      while(@@ids.has_key?(id = rand(@address_space)))
+      end
+      @@ids[id] = true
+      return id
     end
 
     # Array of peers
@@ -88,8 +96,21 @@ module Spinneret
     end
 
     # String representation (list of node ids)
+    RED = "\e[31m"
+    CLEAR = "\e[0m"
     def to_s
-      @nid_peers.map {|nid, peer| nid }.join(', ')
+      str = ""
+      peers = peers_by_distance()
+      smallest = find_smallest_dist()
+      (peers.length - 1).times do | idx | 
+        str += RED  if peers[idx].nid == smallest
+        str += peers[idx].nid.to_s
+        str += CLEAR  if peers[idx].nid == smallest
+        str += " <-- " +
+               sprintf("%.3f", (peers[idx + 1].distance - peers[idx].distance)) + " --> "
+      end
+      str += peers[peers.length - 1].nid.to_s
+      return str
     end
 
     def inspect
@@ -156,6 +177,8 @@ module Spinneret
       # Don't store repeats or ourself
       return if peer.nid == @nid
 
+      peer = Peer.new(peer.addr, peer.nid)
+
       # If we have already heard about this node check and possibly update the timestamp
       if has_peer?(peer)
         @table_lock.synchronize do
@@ -166,6 +189,10 @@ module Spinneret
       else
         begin
           peer.distance = Math::log2(distance(@nid, peer.nid))
+
+          if(peer.distance < 0)
+            raise Exception.new("DistanceNotPositive")
+          end
         rescue Exception => e
           raise e
         end
@@ -234,51 +261,72 @@ module Spinneret
 
     private
 
+    def find_smallest_dist
+      return nil  if @nid_peers.length < 2
+
+      sorted_peers = peers_by_distance()
+
+      i_min = 1
+      v_min = 2**31
+
+      i = 1
+      last_idx = sorted_peers.size - 1
+      while(i != last_idx)
+        a = sorted_peers[i-1]
+        b = sorted_peers[i]
+        c = sorted_peers[i+1]
+
+        dist = (b.distance - a.distance) + (c.distance - b.distance)
+
+        if(dist < v_min)
+          i_min = i
+          v_min = dist
+        end
+        i += 1
+      end
+
+      return sorted_peers[i_min].nid
+    end
+
     # Trim based on only spacing
     # The nodes on the extreme ends always stay, and the node closest to its
     # two neighbors in the middle is booted.
     #
     # NOTE: This method is not threadsafe
     def trim
-      sorted_peers = peers_by_distance
-
-      # First find the closest pair
-      i_min = 0
-      a_min = sorted_peers[0]
-      b_min = sorted_peers[1]
-
-      i = 1
-      last_idx = sorted_peers.size - 1
-      while(i != last_idx)
-        a = sorted_peers[i]
-        b = sorted_peers[i+1]
-
-        if((b.distance - a.distance) < (b_min.distance - a_min.distance))
-          a_min = a
-          b_min = b
-          i_min = i
-        end
-        i += 1
-      end
-
-      # Now pick which member of the pair needs to go
-      # Favor nodes at the edge so we keep the extremes.
-      if i_min == 0 # closest node
-        @nid_peers.delete(b_min.nid)
-      elsif (i_min + 1) == (sorted_peers.size - 1) # furthest node
-        @nid_peers.delete(a_min.nid)
-      else 
-        da = a_min.distance - sorted_peers[i_min - 1].distance
-        db = sorted_peers[i_min + 2].distance - b_min.distance
-
-        if da < db 
-          @nid_peers.delete(a_min.nid)
-        else
-          @nid_peers.delete(b_min.nid)
-        end
-      end
+      @nid_peers.delete(find_smallest_dist)
     end
 
+    public
+
+    def fit
+      sorted_peers = peers_by_distance()
+
+      x = Vector.alloc(Array.new(sorted_peers.length) { | x | x + 1 })
+      y = []
+      sorted_peers.each do | peer |
+        y << peer.distance
+      end
+
+      y = Vector.alloc(y)
+
+      return GSL::Fit::linear(x, y)
+    end
+
+    def fit2
+      sorted_peers = peers_by_distance()
+
+      samples = []
+      (sorted_peers.length - 1).times do | idx |
+        samples << sorted_peers[idx + 1].distance - sorted_peers[idx].distance
+      end
+  
+      if(samples.length > 0)
+        return samples.normal_fit()
+      else
+        return [0.0, 0.0]
+      end
+    end
   end
 
   # Just a container for keeping things like status information about a

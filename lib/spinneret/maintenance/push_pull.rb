@@ -22,7 +22,10 @@ module Maintenance
     end
 
     def handle_neighbor_response(pkt)
+#      printf("@%d\n", @sim.time) if @addr == 1641
+#      printf("before: %s\n", @link_table)  if @nid == 1641
       pkt.neighbors.each {|n| @link_table.store_peer(n)}
+#      printf("after: %s\n", @link_table)  if @nid == 1641
     end
 
   end

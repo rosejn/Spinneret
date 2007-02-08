@@ -44,5 +44,28 @@ class TestAnalysis < Test::Unit::TestCase
     assert_equal(false, analyzer.is_connected?)
     assert_equal(3, analyzer.connected_components)
   end
+
+#  def test_fit
+#    srand(0)
+#    nodes = []
+#
+#    nodes[0] = Spinneret::Node.new(nil, :address_space => 10000, :max_peers => 10)
+#    99.times do |i|
+#      start = nodes.rand
+#      nodes << Spinneret::Node.new(nil, :start_peer => Peer.new(start.addr, start.nid), :address_space => 10000, :max_peers => 10)
+#    end
+#
+#    printf("nid [25] == %d\n", nodes[25].nid)
+#
+#    100.times do | i |
+#      @sim.run(1000 * i)
+#    
+#      fit = nodes[25].link_table.fit2
+#      printf("N(tbl) = (u = %f, s = %f) [sze = %d]\n", fit[0], fit[1],
+#             nodes[25].link_table.size)
+##      printf("f(x) = %fx + %f (with rmse %f) [sze = %d]\n", fit[1], fit[0], fit[5],
+##             nodes[25].link_table.size)
+#    end
+#  end
 end
 
