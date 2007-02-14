@@ -14,7 +14,6 @@
 require 'rdoc/usage'
 require 'drb'
 require 'thread'
-
 require 'job_types'
 
 SERVER_ADDR = ":7005"
@@ -54,8 +53,8 @@ class RJobServer
       when TAIL
         @queue << [job, @uid]
       end
+      @uid += 1
     end
-    @uid += 1
   end
 
   def next
@@ -96,26 +95,20 @@ server = RJobServer.new
 DRb.start_service("druby://#{server_addr}", server)
 printf("done.  Waiting for jobs.\n")
 
-num_children = 0
-i = 0
+procs = []
 while(1)
-  if num_children == num_threads
-    Process.wait
-    num_children -= 1
+  if procs.length == num_threads
+    procs.delete(Process.wait)
   end
   
   job = nil
-  while(job.nil?)
+  while(job.nil? || !job[0].runnable?)
+    sleep 0.1
     job = server.next
-    sleep 0.01
   end
 
-  sleep 1.0  # make sure the previous command has started to allow for 
-             # command chains.  bad solution to a shity problem.
-  puts "Currently spawning job #{i}"
-  num_children += 1
-  i += 1
-  fork do
+  puts "Currently spawning job #{job[1]}"
+  procs << fork do
     puts "Running #{job[0]}."
     job[0].run
   end

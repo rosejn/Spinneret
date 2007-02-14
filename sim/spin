@@ -49,7 +49,7 @@
 
 require 'rdoc/usage'
 
-require 'lib/spinneret'
+require 'spinneret'
 require 'util/workload_parser'
 require 'util/graph-rep'
 

@@ -20,10 +20,6 @@ module Jobs
       `#{@command}`
     end
 
-    def options
-      return GetoptlOng
-    end
-
     def runnable?
       return !@command.nil?
     end
@@ -33,5 +29,32 @@ module Jobs
     end
   end
 
+  class JobChain
+    def initialize(jobs = nil)
+      @job_chain = jobs || []
+    end
+
+    def add_job(job)
+      @job_chain << job
+    end
+    alias_method :<<, :add_job
+
+    def run
+      while !@job_chain.empty?
+        job = @job_chain.shift
+        pid = fork { job.run }
+        Process.wait(pid)
+      end
+    end
+
+    def runnable?
+      return !@job_chain.nil? &&
+        @job_chain.inject(true) { | runnable, j | runnable && j.runnable? }
+    end
+
+    def to_s
+      return "JC: " + @job_chain.join { | j | j.to_s + "; " }
+    end
+  end
 end
 end

@@ -1,40 +1,106 @@
 #!/usr/bin/env ruby
+require 'rdoc/usage'
 require 'fileutils'
-require 'lib/spinneret'
+require 'spinneret'
 require 'drb'
 require 'job_types'
 
 DEFAULT_PROCESSES = 1
 
-if ARGV.size == 1
-  address = ARGV[0]
-else
-  address = "localhost:7005"
-end
+# == Synopsis
+#
+# nasty: Queue a bunch of jobs to a given rjserve server
+#
+# == Usage
+#
+# -h, --help:
+#    Show this help
+#
+# -j ip:port, -rjserver ip:port
+#    Give the ip address and port of the job server.  Defaults to
+#    localhost:7005.
+#
+# -m type, --maintenance-algs types
+#    Selects the maintenance types, separated by commas.  Default is all 
+#    registered algorithms.
+#
+# -s num, --maintenance-size num
+#    The number of peers the given maintenance protocol should use during
+#    exchange.  This may not map well onto all protocols.  Defaults to 
+#    [1, 3, 5, 10, 20].  Use a comma separated list.
+#
+# -t num, --maintenance-table-size num
+#    The size of the link table.  Defaults to [10, 25, 50, 100].  Use a comma
+#    separated list.
+#
+# -r num, --maintenance-rate num
+#    The rate of maintenance.  Defaults to [1000, 10000, 30000].  Use a comma
+#    separated list.
+#
+# -w workloads, --workloads workloads
+#    Selects the workloads over which to create the jobs.  Each workload
+#    matching the wildcard string given will have all configurations run
+#    against it.  Defaults to "workloads/bootstrap_*".
+#
+# An example:
+#   nasty -m pull,push -s 10 -t 50 -r 5000 -w "workloads/maint*"
+#
+# This would create a set of jobs simulating scenarios with a maintenance rate
+# of 5 secs, table size of 50, using either push or pull, and transferring 10
+# nodes each round.  Jobs would be created for all workloads matching the path
+# listed in the -w argument.
 
-# Simulation Parameters
+opts = GetoptLong.new(
+        ['--help',                   '-h', GetoptLong::NO_ARGUMENT],
+        ['--maintenance-rate',       '-r', GetoptLong::REQUIRED_ARGUMENT],
+        ['--maintenance-size',       '-s', GetoptLong::REQUIRED_ARGUMENT],
+        ['--maintenance-table-size', '-t', GetoptLong::REQUIRED_ARGUMENT],
+        ['--maintenance-algs',       '-m', GetoptLong::REQUIRED_ARGUMENT],
+        ['--workloads',              '-w', GetoptLong::REQUIRED_ARGUMENT],
+        ['--rjserver',               '-j', GetoptLong::REQUIRED_ARGUMENT] )
+
 m_algs = Spinneret::Maintenance.constants
-#maintenance_rate = [1000, 10000, 30000, 60000]
-#maintenance_amount = [1, 3, 5, 10, 20]
-#link_table_size = [10, 25, 50, 100] 
 maintenance_rate = [1000, 10000, 30000]
 maintenance_amount = [1, 3, 5, 10, 20]
 link_table_size = [10, 25, 50, 100] 
+address = "localhost:7005"
+workload_dir = "workloads/bootstrap_*"
+
+opts.each do | opt, arg |
+  case opt
+  when '--help'
+    RDoc::usage
+  when '--maintenance-rate'
+    maintenance_rate = arg.split(',').collect { | x | x.to_i }
+  when '--maintenance-size'
+    maintenance_amount = arg.split(',').collect { | x | x.to_i }
+  when '--maintenance-table-size'
+    link_table_size = arg.split(',').collect { | x | x.to_i }
+  when '--maintenance-algs'
+    m_algs = arg.split(',')
+  when '--rjserver'
+    address = arg
+  when '--workloads'
+    workload_dir = arg
+  end
+end
 
 jobs = []
 
 #Connect to the job server object
 DRb.start_service
-$job_queue = DRbObject.new(nil, "druby://#{address}")
+job_queue = DRbObject.new(nil, "druby://#{address}")
+
+printf("Creating jobs for workloads matching %s.\n", workload_dir)
 
 def create_job(exec)
   job = RJServe::Jobs::ShellExecute.new()
   job.parse_opt('-jc', exec)
-  $job_queue.add_job(job)
+  return job
 end
 
 def clear_and_make(dir)
-  create_job("rm -rf #{dir} && mkdir -p #{dir}")
+  return create_job("rm -rf #{dir} && mkdir -p #{dir}")
 end
 
 # Create directory for this run
@@ -44,7 +110,7 @@ clear_and_make(bs_dir)
 SYNC_ROUNDS = 75
 
 # Bootstrap Simulations
-Dir.glob("workloads/bootstrap_*") do |workload|
+Dir.glob(workload_dir) do | workload |
   if workload =~ /\w+_n(\d+)_j(\d+)\.wlgz/
     nodes, join_time = $1.to_i, $2.to_i
   else
@@ -53,14 +119,17 @@ Dir.glob("workloads/bootstrap_*") do |workload|
   end
 
   m_algs.each do | alg |
-    next if alg == "Opportunistic"
-    maintenance_rate.each do |m_rate|
-      maintenance_amount.each do |m_amount|
-        link_table_size.each do |table_size|
+    maintenance_rate.each do | m_rate |
+      maintenance_amount.each do | m_amount |
+        link_table_size.each do | table_size |
+          jc = RJServe::Jobs::JobChain.new()
+
           job_dir = File.join(bs_dir, workload, m_rate.to_s, m_amount.to_s, table_size.to_s, alg)
-          clear_and_make(job_dir)
+          jc << clear_and_make(job_dir)
           time = nodes * join_time + (table_size / m_amount * SYNC_ROUNDS * m_rate) / m_amount
-          create_job("spin -w #{workload} -s #{m_amount} -t #{table_size} -m #{alg} -r #{m_rate} -d #{job_dir} -l #{time}")
+          jc << create_job("spin -w #{workload} -s #{m_amount} -t #{table_size} -m #{alg} -r #{m_rate} -d #{job_dir} -l #{time}")
+
+          job_queue.add_job(jc)
         end
       end
     end
