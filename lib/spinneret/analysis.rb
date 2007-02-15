@@ -43,7 +43,11 @@ module Spinneret
       #sum_of_squares_stats
       #table_sizes
       #outdegree_calc
-      #is_connected?
+      setup_rgl_graph
+      connected = is_connected?
+      if(!connected)
+        printf "Not connected!\n"
+      end
       #network_converged?
 
       @trials = {}
