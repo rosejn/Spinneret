@@ -18,7 +18,7 @@ module Spinneret
 #    DEFAULT_NUM_SLOTS = 4
     
     attr_reader :nid
-    attr_accessor :max_peers, :address_space, :distance_func
+    attr_accessor :max_peers, :address_space, :distance_func, :max_peers
 
     # Create a new LinkTable.
     #
@@ -299,7 +299,7 @@ module Spinneret
 
     public
 
-    def fit
+    def line_fit
       sorted_peers = peers_by_distance()
 
       x = Vector.alloc(Array.new(sorted_peers.length) { | x | x + 1 })
@@ -313,7 +313,11 @@ module Spinneret
       return GSL::Fit::linear(x, y)
     end
 
-    def fit2
+    def density
+      return 1.0/2.0**line_fit[0]
+    end
+
+    def normal_fit
       sorted_peers = peers_by_distance()
 
       samples = []

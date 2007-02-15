@@ -20,7 +20,7 @@ end
 
 exit(0) if(ARGV.length < 1)
 
-tbl = Spinneret::LinkTable.new(ARGV[0].to_i)
+tbl = Spinneret::LinkTable.new(ARGV[0].to_i, {:address_space => 2**160})
 
 begin
   while((line = $stdin.readline))

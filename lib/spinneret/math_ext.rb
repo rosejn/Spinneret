@@ -4,6 +4,12 @@ module Math
   end
 end
 
+class Numeric
+  def deltafrom(target, delta)
+    return (self - delta) <= target && target <= (self + delta)
+  end
+end
+
 class Array
   def histogram
     num_bins = Math.sqrt(self.length).ceil

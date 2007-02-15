@@ -6,7 +6,6 @@ module Spinneret
     include Singleton
 
     DEFAULT_MEASUREMENT_PERIOD = 10000
-    DEFAULT_STABILITY_THRESHOLD = 10
     DEFAULT_OUTPUT_PATH = 'sim/output'
 
     attr_reader :graph, :measurement_period
@@ -24,14 +23,13 @@ module Spinneret
                      :address_space => LinkTable::DEFAULT_ADDRESS_SPACE,
                      :output_path => DEFAULT_OUTPUT_PATH,
                      :measurement_period => DEFAULT_MEASUREMENT_PERIOD,
-                     :stability_threshold => DEFAULT_STABILITY_THRESHOLD,
                      :stability_handler => method(:default_stable_handler) 
       })
 
       @nodes = nodes
 
       @trials = {}
-      @convergence = Hash.new(-1)
+      @convergence = Hash.new([])
       internal_init
 
       return self
@@ -43,12 +41,10 @@ module Spinneret
       #sum_of_squares_stats
       #table_sizes
       #outdegree_calc
-      setup_rgl_graph
-      connected = is_connected?
-      if(!connected)
-        printf "Not connected!\n"
-      end
+      #log "Not connected!\n" if !is_connected?
       #network_converged?
+
+      @stability_handler.call()
 
       @trials = {}
       @successful_dht_searches = 0
@@ -83,7 +79,6 @@ module Spinneret
       set_timeout(@measurement_period, true) { run_phase }
     end
 
-
     def setup_rgl_graph
       require 'rgl/base'
       require 'rgl/implicit'
@@ -109,7 +104,7 @@ module Spinneret
     public
 
     def is_connected?
-      connected_components == 1
+      connected_components() == 1
     end
 
     def connected_components
@@ -127,12 +122,6 @@ module Spinneret
 
       write_data_file("link_count") do |f|
         links.each {|k,v| f << "#{k} #{v}" }
-      end
-    end
-
-    def handle_check_stability
-      @nodes.detect(@stability_handler) do |n| 
-        @stability_threshold > (@sim.time - n.link_table.last_modified)
       end
     end
 
@@ -154,13 +143,33 @@ module Spinneret
 
     # Assumes that all link tables use identical distance functions
     def network_converged?
+      num_converged = 0
       converged = true
-      @nodes.each { | peer | converged &= node_converged?(peer) }
+      @nodes.each do | peer | 
+        if node_converged?(peer)
+          num_converged += 1
+        else
+          converged = false
+        end
+      end
+      
+      log "#{num_converged} nodes converged."
+
       return converged
     end
 
     def node_converged?(peer)
-      return peer.link_table.chi_squared_test
+      fit = peer.link_table.line_fit()
+      density = 1.0/2.0**fit[0]
+      ideal_m = (Math.log2(peer.link_table.address_space) - fit[0]) / 
+        peer.link_table.size
+
+      @convergence[peer.nid] << ideal_m
+      @convergence[peer.nid].shift  if(@convergence[peer.nid].length > 10)
+
+     # log "Ideal: #{ideal_m}, Avg: #{@convergence[peer.nid].normal_fit[0]}"
+
+      return @convergence[peer.nid].normal_fit[0].deltafrom(ideal_m, 0.1)
     end
 
     def sums_of_squares
