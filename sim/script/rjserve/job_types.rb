@@ -53,7 +53,7 @@ module Jobs
     end
 
     def to_s
-      return "JC: " + @job_chain.join { | j | j.to_s + "; " }
+      return "JC: " + @job_chain.join { | j | (j.to_s + "; ") }
     end
   end
 end
