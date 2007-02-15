@@ -6,9 +6,9 @@
 #
 # == Usage
 #
-# gen-substrate-wl.rb [OPTIONS]
+# gen-substrate-wl [OPTIONS]
 #
-# -h, --help:
+# -h, --help
 #    Show this help
 #
 # -o filename, --filename filename
@@ -17,36 +17,36 @@
 # -l num, --sim-max-length num
 #    Sets the maximum length of the generated workload
 #
-# -a num, --address-space num:
+# -a num, --address-space num
 #    The address space of the workload
 #
-# -n num, --num-nodes num:
+# -n num, --num-nodes num
 #    Number of nodes in network
 #
-# -z, --all-joins-first:
+# -z, --all-joins-first
 #    All nodes join the network first
 #
-# -j secs, --mean-join-time secs:
+# -j secs, --mean-join-time secs
 #    Time between nodes joining the network, where 0 is instantanious.  0 is
 #    the default.
 #
-# -x secs, --mean-failure-time secs:
+# -x secs, --mean-failure-time secs
 #    Time between failure for each node, where 0 is no failure.  0 is the 
 #    default.
 #
-# -q secs, --mean-leave-time secs:
+# -q secs, --mean-leave-time secs
 #    Mean time before a node leaves the network, where 0 is never.  0 is the 
 #    default.
 #
-# -r secs, --mean-rejoin-time secs:
+# -r secs, --mean-rejoin-time secs
 #    Mean time before a node rejoins the network after leaveing or a failure,
 #    where 0 indicates nodes to not rejoin.  0 is the default.
 #
-# -s secs, --mean-search-time secs:
+# -s secs, --mean-search-time secs
 #    Time between searching for each node, where 0 is no search.  0 is the 
 #    default.
 #
-# -t types, --search-types types:
+# -t types, --search-types types
 #    Specifies the search types.  Each type is a pair, name:pct, where name
 #    specifies the type and pct the percent of the time it occurs.  Multiple
 #    types can be given if they are seperated with commas:
@@ -89,7 +89,7 @@ require 'rdoc/usage'
 require 'rubygems'
 require 'gosim'
 
-require 'lib/spinneret/math_ext'
+require 'spinneret/math_ext'
 
 # Externals
 require 'gsl'
@@ -256,13 +256,14 @@ opts.each do | opt, arg |
   end
 end
 
-if(settings.addr_space == 0 || settings.mjt == 0)
-  printf("Need to specify at least --address-space, --mean-join-time \n")
+if(settings.addr_space == 0)
+  p settings
+  printf("Need to specify at least --address-space.\n")
   exit(0)
 end
 
 if(settings.join_first && nodes == 0)
-  printf("Must specify --num-nodes when using the --all-joins-first option \n")
+  printf("Must specify --num-nodes when using the --all-joins-first option.\n")
   exit(0)
 end
 
@@ -417,5 +418,9 @@ class NodeObj < GoSim::Entity
 end
 
 NodeFactory.new(nodes, settings)
-GoSim::Simulation.run(length)
+if length != 0
+  GoSim::Simulation.run(length)
+else
+  GoSim::Simulation.run()
+end
 WLPrinter.instance.flush()
