@@ -1,11 +1,4 @@
 #!/usr/bin/env ruby
-require 'rdoc/usage'
-require 'fileutils'
-require 'spinneret'
-require 'drb'
-require 'job_types'
-
-DEFAULT_PROCESSES = 1
 
 # == Synopsis
 #
@@ -16,7 +9,7 @@ DEFAULT_PROCESSES = 1
 # -h, --help:
 #    Show this help
 #
-# -j ip:port, -rjserver ip:port
+# -j ip:port, --rjserver ip:port
 #    Give the ip address and port of the job server.  Defaults to
 #    localhost:7005.
 #
@@ -49,6 +42,14 @@ DEFAULT_PROCESSES = 1
 # of 5 secs, table size of 50, using either push or pull, and transferring 10
 # nodes each round.  Jobs would be created for all workloads matching the path
 # listed in the -w argument.
+
+require 'rdoc/usage'
+require 'fileutils'
+require 'spinneret'
+require 'drb'
+require 'job_types'
+
+DEFAULT_PROCESSES = 1
 
 opts = GetoptLong.new(
         ['--help',                   '-h', GetoptLong::NO_ARGUMENT],
