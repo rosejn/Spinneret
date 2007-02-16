@@ -81,6 +81,8 @@
 #
 ######
 
+$:.unshift(File.dirname(__FILE__) + '/../../lib')
+
 # Builtins
 require 'singleton'
 require 'getoptlong'
@@ -89,7 +91,7 @@ require 'rdoc/usage'
 require 'rubygems'
 require 'gosim'
 
-require 'lib/spinneret/math_ext'
+require 'spinneret/math_ext'
 
 # Externals
 require 'gsl'

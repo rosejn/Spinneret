@@ -13,7 +13,7 @@ module Spinneret
     include KeywordProcessor
 
     CHI_TEST_CUTOFF_MULTIPLIER = 10
-    DEFAULT_MAX_PEERS = 25
+    DEFAULT_MAX_PEERS = 15
     DEFAULT_ADDRESS_SPACE = 10000
 #    DEFAULT_NUM_SLOTS = 4
     
@@ -47,6 +47,11 @@ module Spinneret
       @chi_square_cutoff = CHI_TEST_CUTOFF_MULTIPLIER * @max_peers
 
       #compute_ideal_table
+    end
+
+    # Remove all peers from the link table
+    def clear
+      @nid_peers.clear
     end
 
     # Return a random virtual network id

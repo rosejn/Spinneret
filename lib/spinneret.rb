@@ -42,7 +42,7 @@ end
 
 # Maintenance algorithms
 require 'spinneret/maintenance/pull'
-require 'spinneret/maintenance/pull_uni'
+#require 'spinneret/maintenance/pull_uni'
 require 'spinneret/maintenance/push'
 require 'spinneret/maintenance/push_pull'
 require 'spinneret/maintenance/opportunistic'

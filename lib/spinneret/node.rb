@@ -39,6 +39,8 @@ module Spinneret
       end
 
       start_maintenance
+
+      #verbose
     end
 
     def stop_maintenance
@@ -58,11 +60,15 @@ module Spinneret
     end
 
     def handle_failed_packet(pkt)
-      log "#{nid} - got failed packet! #{pkt.inspect}"
+      #log "#{nid} - got failed packet! #{pkt.inspect}"
+      puts "#{nid} - got failed packet! #{pkt.inspect}"
     end
 
     def handle_failure(e)
-      @alive = false
+      #log "Node #{nid} failed!"
+      puts "Node #{nid} failed!"
+      alive = false
+      @link_table.clear
     end
   end
 end

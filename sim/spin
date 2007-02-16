@@ -49,6 +49,8 @@
 
 require 'rdoc/usage'
 
+$:.unshift(File.dirname(__FILE__) + '/../lib')
+
 require 'spinneret'
 require 'util/workload_parser'
 require 'util/graph-rep'
