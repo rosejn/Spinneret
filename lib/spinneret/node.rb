@@ -63,6 +63,7 @@ module Spinneret
 
     def handle_failure(e)
       @alive = false
+      stop_maintenance
     end
   end
 end

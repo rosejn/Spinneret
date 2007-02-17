@@ -218,8 +218,8 @@ module Spinneret
       @nid_peers.values.sort {|a,b| a.distance <=> b.distance }
     end
 
-    # Find the optimal table of log-distances for the current address space and
-    # table size (max_peers).  Called at initialize.
+    # Find the optimal table of log-distances for the current address space
+    # and.stop    # table size (max_peers).  Called at initialize.
     def compute_ideal_table
       slope = Math::log2(@address_space) / @max_peers.to_f
       @ideal_table = Array.new(@max_peers)
@@ -302,7 +302,7 @@ module Spinneret
     def line_fit
       sorted_peers = peers_by_distance()
 
-      x = Vector.alloc(Array.new(sorted_peers.length) { | x | x + 1 })
+      x = Vector.alloc(Array.new(sorted_peers.length) { | x | x })
       y = []
       sorted_peers.each do | peer |
         y << peer.distance

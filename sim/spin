@@ -71,14 +71,16 @@ opts = GetoptLong.new(
         ['--maintenance-table-size', '-t', GetoptLong::REQUIRED_ARGUMENT],
         ['--maintenance-rate',       '-r', GetoptLong::REQUIRED_ARGUMENT] )
 
-output_dir = "./output"
-addr_space = length = 0
+pad = Scratchpad::instance
+
+output_dir = Spinneret::Analyzer::DEFAULT_OUTPUT_PATH
+pad.address_space = sim_length = 0
 converge_quit = -1
 workload = topology = nil
-maintenance = "pull"
-maint_size = Spinneret::Node::DEFAULT_MAINTENANCE_SIZE
-maint_tbl_size = Spinneret::Node::DEFAULT_TABLE_SIZE
-maint_rate = Spinneret::Node::DEFAULT_MAINTENANCE_PERIOD
+pad.maint_alg = "Pull"
+pad.maint_size = Spinneret::Node::DEFAULT_MAINTENANCE_SIZE
+pad.maint_tbl_size = Spinneret::Node::DEFAULT_TABLE_SIZE
+pad.maint_rate = Spinneret::Node::DEFAULT_MAINTENANCE_PERIOD
 
 opts.each do | opt, arg |
   case opt
@@ -95,21 +97,22 @@ opts.each do | opt, arg |
   when '--topology'
     topology = arg
   when '--max-length'
-    length = arg.to_i
+    sim_length = arg.to_i
   when '--address-space'
-    addr_space = arg.to_i
+    pad.address_space = arg.to_i
   when '--maintenance'
-    maintenance = arg
+    pad.maint_alg = arg
   when '--maintenance-size'
-    maint_size = arg.to_i
+    pad.maint_size = arg.to_i
   when '--maintenance-table-size'
-    maint_tbl_size = arg.to_i
+    pad.maint_tbl_size = arg.to_i
   when '--maintenance-rate'
-    maint_rate = arg.to_i
+    pad.maint_rate = arg.to_i
   end
 end
 
-if((workload.nil? && topology.nil?) || (workload.nil? && addr_space == 0))
+if((workload.nil? && topology.nil?) || 
+   (workload.nil? && pad.address_space == 0))
   puts "Not enough arguments:"
   puts "\tPlease specify either --workload and/or --topology"
   puts "\tNote that --topology must be accompanied by --address-space\n\n"
@@ -124,7 +127,11 @@ if(topology)
 end
 
 node_id_map = {}
-nodes = []
+pad.nodes = nodes = []
+
+def nodes.alive
+  self.find_all { | node | node.alive? }.length
+end
 
 # make sure the maintenance type is valid
 def maintenance_help
@@ -133,20 +140,20 @@ def maintenance_help
   puts "Note that capitalization *is* important."
 end
 
-if maintenance == "help"
+if pad.maint_alg == "help"
   maintenance_help(); 
   exit(0) 
 end
 
 # Upcap the first character, but do not lower case the others like .capitalize
 # would
-maintenance = (maintenance[0].chr.upcase + maintenance[1..-1]).to_sym
-if !Spinneret::Maintenance.const_defined?(maintenance)
-  puts "Invalid maintenance type \'#{maintenance.to_s}\'."
+maintenance = (pad.maint_alg[0].chr.upcase + pad.maint_alg[1..-1]).to_sym
+if !Spinneret::Maintenance.const_defined?(pad.maint_alg)
+  puts "Invalid maintenance type \'#{pad.maint_alg.to_s}\'."
   maintenance_help()
   exit(1)
 else
-  maintenance = Spinneret::Maintenance.const_get(maintenance)
+  maintenance = Spinneret::Maintenance.const_get(pad.maint_alg)
 end
 
 GoSim::Net::Topology::instance.setup(100)  # Mean latency 
@@ -174,24 +181,24 @@ if workload
   dist_func = nil
   generators[:init] = Proc.new do | opts | 
     nid = opts.to_i
-    rand_node = nodes[rand(nodes.length)]
+    rand_node = pad.nodes.rand
     peer = nil
     if !rand_node.nil?
       peer = Spinneret::Peer.new(rand_node.addr, rand_node.nid) 
     end
     n = Spinneret::Node.new(nid, {:maintenance => maintenance,
-                                  :maintenance_size => maint_size,
-                                  :maintenance_rate => maint_rate,
-                                  :max_peers => maint_tbl_size,
+                                  :maintenance_size => pad.maint_size,
+                                  :maintenance_rate => pad.maint_rate,
+                                  :max_peers => pad.maint_tbl_size,
                                   :start_peer => peer,
                                   :distance_func => dist_func,
-                                  :address_space => wl_settings.addr_space.to_i})
-    nodes << n
+                                  :address_space => pad.address_space})
+    pad.nodes << n
     n
   end
   wl_settings = WorkloadParser.new(workload, generators, node_id_map)
-  addr_space = wl_settings.addr_space.to_i
-  dist_func = DistanceFuncs::sym_circular(addr_space)
+  pad.address_space = wl_settings.addr_space.to_i
+  dist_func = DistanceFuncs::sym_circular(pad.address_space)
 end
 
 class ConvergeHandler < GoSim::Entity
@@ -221,14 +228,13 @@ end
 
 # Add the Analysis generation
 conv = ConvergeHandler.new(converge_quit)
-Spinneret::Analyzer::instance.setup(nodes, 
-                                    :address_space => addr_space,
-                                    :output_path => output_dir,
+Spinneret::Analyzer::instance.setup(:output_path => output_dir,
                                     :stability_handler => conv.method(:handle))
 
 puts "Beginning simulation...\n"
-if(length != 0)
-  GoSim::Simulation.run(length)
+puts pad
+if(sim_length != 0)
+  GoSim::Simulation.run(sim_length)
 elsif(wl_settings.sim_length != 0)
   GoSim::Simulation.run(wl_settings.sim_length.to_i)
 else

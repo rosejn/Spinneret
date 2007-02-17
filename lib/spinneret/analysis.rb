@@ -6,7 +6,7 @@ module Spinneret
     include Singleton
 
     DEFAULT_MEASUREMENT_PERIOD = 10000
-    DEFAULT_OUTPUT_PATH = 'sim/output'
+    DEFAULT_OUTPUT_PATH = 'output'
 
     attr_reader :graph, :measurement_period
 
@@ -16,17 +16,15 @@ module Spinneret
       #Register as a observer, in order to get reset messages
       @sim.add_observer(self)
       @trials = {}
+      @pad = Scratchpad::instance
     end
 
-    def setup(nodes, args = {})
+    def setup(args = {})
       params_to_ivars(args, {
-                     :address_space => LinkTable::DEFAULT_ADDRESS_SPACE,
                      :output_path => DEFAULT_OUTPUT_PATH,
                      :measurement_period => DEFAULT_MEASUREMENT_PERIOD,
                      :stability_handler => method(:default_stable_handler) 
       })
-
-      @nodes = nodes
 
       @trials = {}
       @convergence = Hash.new([])
@@ -88,7 +86,7 @@ module Spinneret
 
       @graph = RGL::ImplicitGraph.new do |g|
           g.vertex_iterator { |block|
-            @nodes.each {|n| block.call(n) }
+            @pad.nodes.each {|n| block.call(n) }
           }
 
           g.adjacent_iterator { |node, block|
@@ -108,14 +106,14 @@ module Spinneret
     end
 
     def connected_components
-      @nodes.each {|n| @node_hash[n.nid] = n }
+      @pad.nodes.each {|n| @node_hash[n.nid] = n }
       @graph.strongly_connected_components.num_comp
     end
 
     def handle_link_count
       links = {}
 
-      @nodes.each do |n| 
+      @pad.nodes.each do |n| 
         l = n.size
         links.has_key?(l) ? links[l] += 1 : links[l] = 1
       end
@@ -145,7 +143,7 @@ module Spinneret
     def network_converged?
       num_converged = 0
       converged = true
-      @nodes.each do | peer | 
+      @pad.nodes.each do | peer | 
         if node_converged?(peer)
           num_converged += 1
         else
@@ -159,21 +157,27 @@ module Spinneret
     end
 
     def node_converged?(peer)
-      fit = peer.link_table.line_fit()
-      density = 1.0/2.0**fit[0]
-      ideal_m = (Math.log2(peer.link_table.address_space) - fit[0]) / 
-        peer.link_table.size
+      c_bar = Math.log2(@pad.address_space / @pad.nodes.alive) 
+      m_bar = (Math.log2(@pad.address_space) - c_bar) / @pad.maint_tbl_size
 
-      @convergence[peer.nid] << ideal_m
-      @convergence[peer.nid].shift  if(@convergence[peer.nid].length > 10)
+      norm = peer.link_table.normal_fit()
 
-     # log "Ideal: #{ideal_m}, Avg: #{@convergence[peer.nid].normal_fit[0]}"
+#      log "ideal m: #{m_bar}, real m: #{norm[0]} (std = #{norm[1]})"
+      err = 1.0 - @pad.maint_tbl_size / @pad.nodes.alive
+      err = 0.1  if err < 0.1
+      conv = norm[0].deltafrom(m_bar, err) && norm[1] < (1.1 + err) && 
+        peer.link_table.size == @pad.maint_tbl_size
 
-      return @convergence[peer.nid].normal_fit[0].deltafrom(ideal_m, 0.1)
+      if !conv && peer.link_table.size == @pad.maint_tbl_size
+        # Only print if the table it full - if not, we don't really care
+        log "Node #{peer.nid} not converged with m #{norm[0]}, std #{norm[1]}."
+      end
+
+      return conv
     end
 
     def sums_of_squares
-      x, y = @nodes.map do |node|
+      x, y = @pad.nodes.map do |node|
         node.link_table.sum_of_squares
       end.histogram
 
@@ -183,7 +187,7 @@ module Spinneret
     end
 
     def sum_of_squares_stats
-      mean, std = @nodes.map do |node|
+      mean, std = @pad.nodes.map do |node|
         node.link_table.sum_of_squares
       end.normal_fit
 
@@ -193,8 +197,8 @@ module Spinneret
     end
 
     def table_sizes
-      table_sizes = Array.new(@nodes.first.link_table.max_peers + 1, 0)
-      @nodes.each {|n| table_sizes[n.link_table.size] += 1 }
+      table_sizes = Array.new(@pad.nodes.first.link_table.max_peers + 1, 0)
+      @pad.nodes.each {|n| table_sizes[n.link_table.size] += 1 }
 
       write_data_file("table_sizes") do |f|
         table_sizes.each_with_index {|count, index| f << "#{index} #{count}\n" } 
@@ -203,7 +207,7 @@ module Spinneret
 
     def indegree_calc
       nodes_in = Hash.new(0)
-      @nodes.each do | n |
+      @pad.nodes.each do | n |
         n.link_table.each { | out_e | nodes_in[out_e.nid] += 1 }
       end
 
