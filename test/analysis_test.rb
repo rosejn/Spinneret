@@ -13,6 +13,14 @@ class TestAnalysis < Test::Unit::TestCase
   def setup
     @sim = GoSim::Simulation::instance
     @sim.quiet
+
+    @pad = Scratchpad::instance
+    @pad.address_space = LinkTable::DEFAULT_ADDRESS_SPACE
+    @pad.maint_alg = "Pull"
+    @pad.maint_size = Spinneret::Node::DEFAULT_MAINTENANCE_SIZE
+    @pad.maint_tbl_size = Spinneret::Node::DEFAULT_TABLE_SIZE
+    @pad.maint_rate = Spinneret::Node::DEFAULT_MAINTENANCE_PERIOD
+
     GoSim::Net::Topology::instance.setup(100)
   end
 
@@ -21,26 +29,25 @@ class TestAnalysis < Test::Unit::TestCase
   end
 
   def test_connected
-    nodes = []
-
-    nodes[0] = Spinneret::Node.new(0, :maintenance => Maintenance::Pull) 
+    @pad.nodes = []
+    @pad.nodes[0] = Spinneret::Node.new(0, :maintenance => Maintenance::Pull) 
     4.times do |i| 
-      nodes << Spinneret::Node.new(i+1,
-        :start_peer => Peer.new(nodes[i].addr, nodes[i].nid),
+      @pad.nodes << Spinneret::Node.new(i+1,
+        :start_peer => Peer.new(@pad.nodes[i].addr, @pad.nodes[i].nid),
         :maintenance => Maintenance::Pull) 
     end
 
     @sim.run(500)
 
-    analyzer = Spinneret::Analyzer::instance.setup(nodes)
+    analyzer = Spinneret::Analyzer::instance.setup()
     assert_equal(true, analyzer.is_connected?)
     assert_equal(1, analyzer.connected_components)
 
-    nodes << Spinneret::Node.new(100) 
+    @pad.nodes << Spinneret::Node.new(100) 
     assert_equal(false, analyzer.is_connected?)
     assert_equal(2, analyzer.connected_components)
 
-    nodes << Spinneret::Node.new(101) 
+    @pad.nodes << Spinneret::Node.new(101) 
     assert_equal(false, analyzer.is_connected?)
     assert_equal(3, analyzer.connected_components)
   end

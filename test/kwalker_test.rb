@@ -34,8 +34,16 @@ class TestKWalker < Test::Unit::TestCase
   def setup
     @sim = GoSim::Simulation.instance
     @sim.quiet
-    @nodes = []
-    Spinneret::Analyzer::instance.setup(@nodes)
+
+    @pad = Scratchpad::instance
+    @pad.address_space = LinkTable::DEFAULT_ADDRESS_SPACE
+    @pad.maint_alg = "Pull"
+    @pad.maint_size = Spinneret::Node::DEFAULT_MAINTENANCE_SIZE
+    @pad.maint_tbl_size = Spinneret::Node::DEFAULT_TABLE_SIZE
+    @pad.maint_rate = Spinneret::Node::DEFAULT_MAINTENANCE_PERIOD
+    @pad.nodes = []
+
+    Spinneret::Analyzer::instance.setup()
   end
 
   def teardown
@@ -48,7 +56,7 @@ class TestKWalker < Test::Unit::TestCase
     node_c = KWalkerNode.new(2, :start_peer => Peer.new(node_b.addr, node_b.nid))
     node_d = KWalkerNode.new(3, :start_peer => Peer.new(node_c.addr, node_c.nid))
 
-    @nodes << node_a << node_b << node_c << node_d
+    @pad.nodes << node_a << node_b << node_c << node_d
 
     # Verify that responses come back correctly
     node_b.schedule_search(node_a.addr, node_b.nid, 1)

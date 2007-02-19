@@ -156,14 +156,18 @@ module Spinneret
       return converged
     end
 
+    def nodes_alive
+      @pad.nodes.find_all { | node | node.alive? }.length
+    end
+
     def node_converged?(peer)
-      c_bar = Math.log2(@pad.address_space / @pad.nodes.alive) 
+      c_bar = Math.log2(@pad.address_space / nodes_alive) 
       m_bar = (Math.log2(@pad.address_space) - c_bar) / @pad.maint_tbl_size
 
       norm = peer.link_table.normal_fit()
 
 #      log "ideal m: #{m_bar}, real m: #{norm[0]} (std = #{norm[1]})"
-      err = 1.0 - @pad.maint_tbl_size / @pad.nodes.alive
+      err = 1.0 - @pad.maint_tbl_size / nodes_alive
       err = 0.1  if err < 0.1
       conv = norm[0].deltafrom(m_bar, err) && norm[1] < (1.1 + err) && 
         peer.link_table.size == @pad.maint_tbl_size

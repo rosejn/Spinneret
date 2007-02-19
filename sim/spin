@@ -129,10 +129,6 @@ end
 node_id_map = {}
 pad.nodes = nodes = []
 
-def nodes.alive
-  self.find_all { | node | node.alive? }.length
-end
-
 # make sure the maintenance type is valid
 def maintenance_help
   puts "Valid maintenance types are:"
