@@ -20,7 +20,7 @@ module Spinneret
     def initialize(nid, args = {})
       super()
 
-      log "Node addr: #{@addr} nid: #{nid}"
+      #log "Node addr: #{@addr} nid: #{nid}"
 
       args = params_to_ivars(args, {
         :start_peer => nil,
@@ -60,15 +60,12 @@ module Spinneret
     end
 
     def handle_failed_packet(pkt)
-      #log "#{nid} - got failed packet! #{pkt.inspect}"
-      puts "#{nid} - got failed packet! #{pkt.inspect}"
+      log "#{nid} - got failed packet! #{pkt.inspect}"
     end
 
     def handle_failure(e)
-      #log "Node #{nid} failed!"
-      puts "Node #{nid} failed!"
-      alive = false
-      @link_table.clear
+      log "Node #{nid} failed!"
+      self.alive = false
     end
   end
 end

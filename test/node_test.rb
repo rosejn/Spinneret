@@ -35,4 +35,29 @@ class TestNode < Test::Unit::TestCase
 
     nodes.each { | n | assert_equal(4, n.link_table.size) }
   end
+
+    class FailNode < Node
+      def handle_failed_packet(pkt)
+        puts "here"
+      end
+    end
+
+  def test_failure
+
+    nodes = []
+    nodes[0] = FailNode.new(0) 
+    
+    4.times do |i| 
+      nodes << FailNode.new(i+1, {
+        :start_peer => Peer.new(nodes[i].addr, nodes[i].nid) 
+      }) 
+    end
+
+    @sim.schedule_event(:liveness_packet,
+                        nodes[0].nid, 25000, 
+                        GoSim::Net::LivenessPacket.new(false))
+    @sim.run(50000)
+
+    nodes.each { | n | assert_equal(4, n.link_table.size) }
+  end
 end

@@ -191,15 +191,18 @@ if workload
     nodes << n
     n
   end
+
   wl_settings = WorkloadParser.new(workload, generators, node_id_map)
   addr_space = wl_settings.addr_space.to_i
   dist_func = DistanceFuncs::sym_circular(addr_space)
 end
 
-class ConvergeHandler < GoSim::Entity
+class ConvergeHandler
+  include GoSim::Base
+
   def initialize(time)
-    super()
     @converge_time = time
+    @sim = GoSim::Simulation.instance
   end
 
   def handle
