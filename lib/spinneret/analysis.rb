@@ -177,6 +177,12 @@ module Spinneret
         log "Node #{peer.nid} not converged with m #{norm[0]}, std #{norm[1]}."
       end
 
+      append_data_file("converge_measure") do | f |
+        f << "#{@sim.time} #{peer.nid} #{norm[0]} #{norm[1]}"
+        f << " (converged)"   if conv
+        f << "\n"
+      end
+
       return conv
     end
 

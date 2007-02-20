@@ -8,6 +8,15 @@
 #
 # rjserve-client -a address [-j jobtype] [-p position] -- [job arguments]
 #
+# -h, --help
+#     Prints this help.
+#
+# -l, --list-jobs
+#     List all jobs currently in the queue.
+#
+# -x, --kill-queue
+#     Delete all jobs.  Lets currently running jobs finish.
+#
 # -a ip:port, --server-address ip:port
 #     Specify the IP and port number of the rjserve process.  The IP can be
 #     numerical or a symbolic domain name, and the port can be left out if the
@@ -17,8 +26,8 @@
 #     The job class that will represent the job.  Defaults to ShellExecute,
 #     which taks the -jc flag to specify the command to run.  Any module should
 #     take the -jh option, which will force it to print it's help documentation.
-#     Note that this option must be specified before any argument options so that
-#     rjserve-client knows which job type to pass them to.
+#     Note that this option must be specified before any argument options so
+#     that rjserve-client knows which job type to pass them to.
 #
 #     Note that arguments to jobs *must* be preceeded by '--'.  An example:
 #        rjserve-client -a localhost:7005 -- -jc 'ls -l > output'
@@ -26,6 +35,14 @@
 # -p position, --queue-position position
 #     The position in which the job should be inserted.  Only two values are
 #     currently allowed: head and tail.  Defaults to tail.
+#
+# -r start-end, --remove-jobs start-end
+#     Remove listed jobs from the queue.  The argument can be a range or a
+#     single job number.  For example:
+#        rjserve-client -r 45-78
+#     removes jobs 45-78, inclusive, and
+#        rjserve-client -r 45
+#     removes only job 45.
 
 require 'rdoc/usage'
 require 'drb'
