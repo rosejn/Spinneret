@@ -7,33 +7,23 @@ module Spinneret
     include Search::DHT
     include Search::KWalker
 
-    #DEFAULT_MAINTENANCE = Maintenance::Pull
-    #DEFAULT_MAINTENANCE = Maintenance::Push
-    DEFAULT_MAINTENANCE = Maintenance::PushPull
-    DEFAULT_MAINTENANCE_SIZE = 5
-    DEFAULT_MAINTENANCE_PERIOD  = 1000
-    DEFAULT_TABLE_SIZE = LinkTable::DEFAULT_MAX_PEERS
-    
     attr_reader  :nid, :link_table
 
-    # TODO: Move to keyword style hash
-    def initialize(nid, args = {})
+    # Create a new node
+    # [*nid*] The unique network id for this node.
+    def initialize(nid, start_peer = nil)
       super()
 
-      #log "Node addr: #{@addr} nid: #{nid}"
+      @start_peer = start_peer
+      @config = Configuration::instance.node
 
-      args = params_to_ivars(args, {
-        :start_peer => nil,
-        :maintenance => DEFAULT_MAINTENANCE,
-        :maintenance_size => DEFAULT_MAINTENANCE_SIZE,
-        :maintenance_rate => DEFAULT_MAINTENANCE_PERIOD })
+      extend(@config.maintenance_algorithm)
 
-      extend(@maintenance)
-
-      @link_table = LinkTable.new(nid, args)
+      @link_table = LinkTable.new(nid)
       @nid = nid || @link_table.nid
       
       if @start_peer
+        log "Storing start peer..."
         @link_table.store_peer(@start_peer)
         do_maintenance
       end
@@ -48,7 +38,7 @@ module Spinneret
     end
 
     def start_maintenance
-      @maint_timeout = set_timeout(@maintenance_rate, true) { do_maintenance }
+      @maint_timeout = set_timeout(@config.maintenance_rate, true) { do_maintenance }
     end
     
     def to_s
@@ -66,6 +56,7 @@ module Spinneret
     def handle_failure(e)
       log "Node #{nid} failed!"
       self.alive = false
+      #stop_maintenance
     end
   end
 end

@@ -5,10 +5,7 @@ module Spinneret
     include KeywordProcessor
     include Singleton
 
-    DEFAULT_MEASUREMENT_PERIOD = 10000
-    DEFAULT_OUTPUT_PATH = 'sim/output'
-
-    attr_reader :graph, :measurement_period
+    attr_reader :graph
 
     def initialize()
       super()
@@ -16,23 +13,28 @@ module Spinneret
       #Register as a observer, in order to get reset messages
       @sim.add_observer(self)
       @trials = {}
+
+      @config = Configuration.instance
+      @pad = Scratchpad::instance
+
+      internal_init
     end
 
-    def setup(nodes, args = {})
-      params_to_ivars(args, {
-                     :address_space => LinkTable::DEFAULT_ADDRESS_SPACE,
-                     :output_path => DEFAULT_OUTPUT_PATH,
-                     :measurement_period => DEFAULT_MEASUREMENT_PERIOD,
-                     :stability_handler => method(:default_stable_handler) 
-      })
-
-      @nodes = nodes
+    def enable
+      @config.analyzer.stability_handler ||= method(:default_stable_handler) 
 
       @trials = {}
       @convergence = Hash.new([])
-      internal_init
 
+      @timeout = set_timeout(@config.analyzer.measurement_period, true) { run_phase }
+
+      @enabled = true
       return self
+    end
+
+    def disable
+      @timeout.cancel unless @timeout.nil?
+      @enabled = false
     end
 
     def run_phase
@@ -44,7 +46,7 @@ module Spinneret
       #log "Not connected!\n" if !is_connected?
       #network_converged?
 
-      @stability_handler.call()
+      @config.analyzer.stability_handler.call()
 
       @trials = {}
       @successful_dht_searches = 0
@@ -57,10 +59,8 @@ module Spinneret
     #same, which isn't an issue, as this is only used in unit testing...anyway,
     #added @nodes to attr_writer
     def update
-      log "Resetting Analyzer"
       reset
       internal_init
-      log "Analyzer now has sid #{sid}"
     end
 
     private
@@ -76,7 +76,6 @@ module Spinneret
       @successful_kwalk_searches = 0
       @failed_kwalk_searches = 0
       setup_rgl_graph
-      set_timeout(@measurement_period, true) { run_phase }
     end
 
     def setup_rgl_graph
@@ -88,7 +87,7 @@ module Spinneret
 
       @graph = RGL::ImplicitGraph.new do |g|
           g.vertex_iterator { |block|
-            @nodes.each {|n| block.call(n) }
+            @pad.nodes.each {|n| block.call(n) }
           }
 
           g.adjacent_iterator { |node, block|
@@ -108,14 +107,14 @@ module Spinneret
     end
 
     def connected_components
-      @nodes.each {|n| @node_hash[n.nid] = n }
+      @pad.nodes.each {|n| @node_hash[n.nid] = n }
       @graph.strongly_connected_components.num_comp
     end
 
     def handle_link_count
       links = {}
 
-      @nodes.each do |n| 
+      @pad.nodes.each do |n| 
         l = n.size
         links.has_key?(l) ? links[l] += 1 : links[l] = 1
       end
@@ -145,7 +144,7 @@ module Spinneret
     def network_converged?
       num_converged = 0
       converged = true
-      @nodes.each do | peer | 
+      @pad.nodes.each do | peer | 
         if node_converged?(peer)
           num_converged += 1
         else
@@ -158,22 +157,32 @@ module Spinneret
       return converged
     end
 
+    def nodes_alive
+      @pad.nodes.find_all { | node | node.alive? }.length
+    end
+
     def node_converged?(peer)
-      fit = peer.link_table.line_fit()
-      density = 1.0/2.0**fit[0]
-      ideal_m = (Math.log2(peer.link_table.address_space) - fit[0]) / 
-        peer.link_table.size
+      c_bar = Math.log2(@config.link_table.address_space / nodes_alive) 
+      m_bar = (Math.log2(@config.link_table.address_space) - c_bar) / @config.link_table.max_peers
 
-      @convergence[peer.nid] << ideal_m
-      @convergence[peer.nid].shift  if(@convergence[peer.nid].length > 10)
+      norm = peer.link_table.normal_fit()
 
-     # log "Ideal: #{ideal_m}, Avg: #{@convergence[peer.nid].normal_fit[0]}"
+#      log "ideal m: #{m_bar}, real m: #{norm[0]} (std = #{norm[1]})"
+      err = 1.0 - @config.link_table.max_peers / nodes_alive
+      err = 0.1  if err < 0.1
+      conv = norm[0].deltafrom(m_bar, err) && norm[1] < (1.1 + err) && 
+        peer.link_table.size == @config.link_table.max_peers
 
-      return @convergence[peer.nid].normal_fit[0].deltafrom(ideal_m, 0.1)
+      if !conv && peer.link_table.size == @config.link_table.max_peers
+        # Only print if the table it full - if not, we don't really care
+        log "Node #{peer.nid} not converged with m #{norm[0]}, std #{norm[1]}."
+      end
+
+      return conv
     end
 
     def sums_of_squares
-      x, y = @nodes.map do |node|
+      x, y = @pad.nodes.map do |node|
         node.link_table.sum_of_squares
       end.histogram
 
@@ -183,7 +192,7 @@ module Spinneret
     end
 
     def sum_of_squares_stats
-      mean, std = @nodes.map do |node|
+      mean, std = @pad.nodes.map do |node|
         node.link_table.sum_of_squares
       end.normal_fit
 
@@ -193,8 +202,8 @@ module Spinneret
     end
 
     def table_sizes
-      table_sizes = Array.new(@nodes.first.link_table.max_peers + 1, 0)
-      @nodes.each {|n| table_sizes[n.link_table.size] += 1 }
+      table_sizes = Array.new(@pad.nodes.first.link_table.max_peers + 1, 0)
+      @pad.nodes.each {|n| table_sizes[n.link_table.size] += 1 }
 
       write_data_file("table_sizes") do |f|
         table_sizes.each_with_index {|count, index| f << "#{index} #{count}\n" } 
@@ -203,7 +212,7 @@ module Spinneret
 
     def indegree_calc
       nodes_in = Hash.new(0)
-      @nodes.each do | n |
+      @pad.nodes.each do | n |
         n.link_table.each { | out_e | nodes_in[out_e.nid] += 1 }
       end
 
@@ -242,7 +251,7 @@ module Spinneret
       end
 
       # Make a link to the current one for live graphing...
-      cur_path = File.join(@output_path, "cur_indegree_dist")
+      cur_path = File.join(@config.analyzer.output_path, "cur_indegree_dist")
       File.delete(cur_path) if File.symlink?(cur_path)
       File.symlink(datafile_path("indegree_dist"), cur_path)
     end
@@ -272,7 +281,7 @@ module Spinneret
     end
 
     def datafile_path(category)
-      File.join(@output_path, @sim.time.to_s + '_' + category)
+      File.join(@config.analyzer.output_path, @sim.time.to_s + '_' + category)
     end
 
     def write_data_file(category, &block)
@@ -282,7 +291,7 @@ module Spinneret
     end
 
     def append_data_file(filename, &block)
-      File.open(File.join(@output_path, filename), "a") do | f |
+      File.open(File.join(@config.analyzer.output_path, filename), "a") do | f |
         yield(f)
       end
     end

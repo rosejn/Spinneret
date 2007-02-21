@@ -34,8 +34,13 @@ class TestKWalker < Test::Unit::TestCase
   def setup
     @sim = GoSim::Simulation.instance
     @sim.quiet
-    @nodes = []
-    Spinneret::Analyzer::instance.setup(@nodes)
+
+    @config = Configuration::instance
+
+    @pad = Scratchpad::instance
+    @pad.nodes = []
+
+    Spinneret::Analyzer::instance.enable
   end
 
   def teardown
@@ -44,11 +49,11 @@ class TestKWalker < Test::Unit::TestCase
 
   def test_kwalker
     node_a = KWalkerNode.new(0)
-    node_b = KWalkerNode.new(1, :start_peer => Peer.new(node_a.addr, node_a.nid))
-    node_c = KWalkerNode.new(2, :start_peer => Peer.new(node_b.addr, node_b.nid))
-    node_d = KWalkerNode.new(3, :start_peer => Peer.new(node_c.addr, node_c.nid))
+    node_b = KWalkerNode.new(1, Peer.new(node_a.addr, node_a.nid))
+    node_c = KWalkerNode.new(2, Peer.new(node_b.addr, node_b.nid))
+    node_d = KWalkerNode.new(3, Peer.new(node_c.addr, node_c.nid))
 
-    @nodes << node_a << node_b << node_c << node_d
+    @pad.nodes << node_a << node_b << node_c << node_d
 
     # Verify that responses come back correctly
     node_b.schedule_search(node_a.addr, node_b.nid, 1)

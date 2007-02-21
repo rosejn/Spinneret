@@ -6,47 +6,26 @@ require 'gsl'
 #require 'breakpoint'
 
 module Spinneret   
-  
+
   # A management class sitting on top of the link table.
   class LinkTable
     include Base
     include KeywordProcessor
 
-    CHI_TEST_CUTOFF_MULTIPLIER = 10
-    DEFAULT_MAX_PEERS = 15
-    DEFAULT_ADDRESS_SPACE = 10000
-#    DEFAULT_NUM_SLOTS = 4
-    
     attr_reader :nid
-    attr_accessor :max_peers, :address_space, :distance_func, :max_peers
 
     # Create a new LinkTable.
-    #
-    # Following are the possible values for the <em>args</em> hash:
-    #
-    # [*max_peers*] The maximum number of peers to keep in the table
-    # [*address_space*] The size of the virtual network address space
-    # [*distance_func*] The distance function to be used for table management 
-    def initialize(nid, args = {})
-      params_to_ivars(args, {
-        :address_space => DEFAULT_ADDRESS_SPACE,
-        :max_peers => DEFAULT_MAX_PEERS,
-#        :num_slots => DEFAULT_NUM_SLOTS,
-        :distance_func => nil })
+    def initialize(nid)
+      @config = Configuration.instance.link_table
 
       @nid = nid || random_id 
       @sim = GoSim::Simulation.instance
       @last_modified = 0
 
-      if @distance_func.nil?
-        @distance_func = DistanceFuncs.sym_circular(@address_space)
-      end
+      @config.distance_func ||= DistanceFuncs.sym_circular(@config.address_space)
 
       @table_lock = Monitor.new
       @nid_peers = {}
-      @chi_square_cutoff = CHI_TEST_CUTOFF_MULTIPLIER * @max_peers
-
-      #compute_ideal_table
     end
 
     # Remove all peers from the link table
@@ -57,7 +36,7 @@ module Spinneret
     # Return a random virtual network id
     def random_id
       @@ids ||= {}
-      while(@@ids.has_key?(id = rand(@address_space)))
+      while(@@ids.has_key?(id = rand(@config.address_space)))
       end
       @@ids[id] = true
       return id
@@ -74,12 +53,12 @@ module Spinneret
     def nids
       @table_lock.synchronize { @nid_peers.keys }
     end
-    
+
     # The total number of nodes in the table.
     def size
       @table_lock.synchronize { @nid_peers.size }
     end
-    
+
     # Whether the table currently contains a specific address.
     def has_nid?(nid)
       @table_lock.synchronize { @nid_peers.has_key?(nid) }
@@ -94,7 +73,7 @@ module Spinneret
     def get_peer(nid)
       @table_lock.synchronize { @nid_peers[nid] }
     end
-    
+
     # Peer iterator
     def each
       @table_lock.synchronize { @nid_peers.each { |nid, peer| yield peer } }
@@ -109,10 +88,10 @@ module Spinneret
       smallest = find_smallest_dist()
       (peers.length - 1).times do | idx | 
         str += RED  if peers[idx].nid == smallest
-        str += peers[idx].nid.to_s
-        str += CLEAR  if peers[idx].nid == smallest
-        str += " <-- " +
-               sprintf("%.3f", (peers[idx + 1].distance - peers[idx].distance)) + " --> "
+      str += peers[idx].nid.to_s
+      str += CLEAR  if peers[idx].nid == smallest
+      str += " <-- " +
+        sprintf("%.3f", (peers[idx + 1].distance - peers[idx].distance)) + " --> "
       end
       str += peers[peers.length - 1].nid.to_s
       return str
@@ -134,10 +113,10 @@ module Spinneret
     # Get the <n> closest peers to <dest_nid>
     def closest_peers(dest_nid, n)
       @table_lock.synchronize do
-      peers.sort do |a,b| 
-        distance(dest_nid, a.nid) <=> distance(dest_nid, b.nid)     
-      end[0, n]
-    end
+        peers.sort do |a,b| 
+          distance(dest_nid, a.nid) <=> distance(dest_nid, b.nid)     
+        end[0, n]
+      end
     end
 
     # Get a random node from the table.
@@ -172,7 +151,7 @@ module Spinneret
     # [*x*] A node id
     # [*y*] A node id
     def distance(x, y)
-      @distance_func.call(x, y)
+      @config.distance_func.call(x, y)
     end
 
     # Store an address in the table if it is new.
@@ -205,7 +184,7 @@ module Spinneret
         @table_lock.synchronize do
           @nid_peers[peer.nid] = peer
 
-          trim if @nid_peers.size > @max_peers
+          trim if @nid_peers.size > @config.max_peers
         end
       end
     end
@@ -217,52 +196,25 @@ module Spinneret
     def remove_peer(id)
       @table_lock.synchronize { @nid_peers.delete(id) }
     end
-    
+
     # Array of peers sorted by distance from me.
     def peers_by_distance
       @nid_peers.values.sort {|a,b| a.distance <=> b.distance }
-    end
-
-    # Find the optimal table of log-distances for the current address space and
-    # table size (max_peers).  Called at initialize.
-    def compute_ideal_table
-      slope = Math::log2(@address_space) / @max_peers.to_f
-      @ideal_table = Array.new(@max_peers)
-      @max_peers.times {|i| @ideal_table[i] = i * slope}
-    end
-
-    def chi_squared_test
-      pbd = peers_by_distance.map{ |p| p.distance }
-
-      return false  if pbd.length != @max_peers
-
-      pbd = pbd + Array.new(@max_peers - pbd.size, 0)
-      chi_dist = chi_squared_distance(pbd, @ideal_table)
-      return chi_dist < @chi_square_cutoff
     end
 
     # Find the sum of squares of our current distances to the ideal table
     def sum_of_squares
       d = 0
       pbd = peers_by_distance
-      @max_peers.times do |index|
+      @config.max_peers.times do |index|
         if pbd[index]
           d += (@ideal_table[index] - pbd[index].distance) ** 2
         else
           d += @ideal_table[index] ** 2
         end
       end
-      d / @max_peers
+      d / @config.max_peers
     end
-
-=begin
-    def peers_by_distance_from_ideal
-      from_ideal = []
-      peers_by_distance.each_with_index do |peer, index|
-
-      end
-    end
-=end
 
     private
 
@@ -307,7 +259,7 @@ module Spinneret
     def line_fit
       sorted_peers = peers_by_distance()
 
-      x = Vector.alloc(Array.new(sorted_peers.length) { | x | x + 1 })
+      x = Vector.alloc(Array.new(sorted_peers.length) { | x | x })
       y = []
       sorted_peers.each do | peer |
         y << peer.distance
@@ -329,7 +281,7 @@ module Spinneret
       (sorted_peers.length - 1).times do | idx |
         samples << sorted_peers[idx + 1].distance - sorted_peers[idx].distance
       end
-  
+
       if(samples.length > 0)
         return samples.normal_fit()
       else

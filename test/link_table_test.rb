@@ -13,10 +13,10 @@ class TestLinkTable < Test::Unit::TestCase
   TEST_ADDRESS_SPACE = 1000
   
   def setup
-    @table = LinkTable.new(TEST_ADDR, {
-      :num_slots => TEST_SLOTS, 
-      :address_space => TEST_ADDRESS_SPACE,
-      :distance_func =>  DistanceFuncs.sym_circular(TEST_ADDRESS_SPACE) })
+    @table = LinkTable.new(TEST_ADDR)
+
+    @config = Configuration.instance.link_table
+    @config.address_space = TEST_ADDRESS_SPACE
   end
 
   def test_basic
@@ -41,62 +41,4 @@ class TestLinkTable < Test::Unit::TestCase
     assert_equal(Peer, @table.random_peer.class)
     assert_equal(5, @table.random_peers(5).size)
   end
-
-  # Do a more targetted test to verify the trimming strategy.
-=begin
-  def test_trim
-    nids = [2, 5, 20, 30, 31, 38, 44, 75, 76, 90]
-    @table.max_peers = nids.size
-
-    nids.each {|nid| @table.store_peer(Peer.new(0, nid)) }
-    assert_equal(nids.size, @table.size)
-
-    # Test boundaries and middle
-    insertions = [1, 25, 91]
-    removals = [76, 31, 90]
-    insertions.each_with_index do |nid, i| 
-      @table.store_peer(Peer.new(0, nid)) 
-      p removals[i]
-      assert_equal(false, @table.has_nid?(removals[i]))
-    end
-  end
-=end
-
-  def test_ideal_stats
-    nids = [1,2,4,8,16,32,64,128,256,512, 1024, 2048]
-    @table.distance_func = DistanceFuncs.sym_circular(nids.last * 2)
-    @table.address_space = nids.last * 2
-    @table.max_peers = nids.size
-    @table.compute_ideal_table
-
-    begin
-      nids.each {|nid| @table.store_peer(Peer.new(0, nid)) }
-    rescue Exception => e
-      puts e
-      puts e.backtrace
-    end
-
-    assert_equal(0, @table.sum_of_squares)
-  end
-  
-=begin
-  # Do a more targetted test to verify the trimming strategy.
-  def test_distribution
-    @table = LinkTable.new(0, {
-      :num_slots => TEST_SLOTS, 
-      :address_space => TEST_ADDRESS_SPACE,
-      :distance_func =>  DistanceFuncs.sym_circular(1024) })
-    nids = (1..1023).to_a
-    @table.max_peers = 25
-
-    fill_table nids
-  end
-
-  def fill_table(nids)
-    nids = nids.randomize
-    nids.each {|nid| @table.store_peer(Peer.new(0, nid)) }
-    @table.peers.map {|p| p.distance}.sort.each {|d| printf "%.2f ", d}
-    puts @table.peers.sort {|a, b| a.distance <=> b.distance }.map {|p| p.nid}.join(', ') 
-  end
-=end
 end

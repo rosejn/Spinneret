@@ -6,6 +6,20 @@ require 'spinneret'
 require 'rubygems'
 require 'gosim'
 
+class FailNode < Spinneret::Node
+  def initialize(nid, start_peer = nil)
+    super
+    
+    @failed_packets = 0
+  end
+
+  def handle_failed_packet(pkt)
+    @failed_packets += 1
+
+    log "failed packet: #{pkt.inspect}"
+  end
+end
+
 class TestNode < Test::Unit::TestCase
   
   include Spinneret
@@ -26,9 +40,7 @@ class TestNode < Test::Unit::TestCase
     nodes[0] = Node.new(0) 
     
     4.times do |i| 
-      nodes << Node.new(i+1, {
-        :start_peer => Peer.new(nodes[i].addr, nodes[i].nid) 
-      }) 
+      nodes << Node.new(i+1, Peer.new(nodes[i].addr, nodes[i].nid)) 
     end
 
     @sim.run(50000)
@@ -36,28 +48,20 @@ class TestNode < Test::Unit::TestCase
     nodes.each { | n | assert_equal(4, n.link_table.size) }
   end
 
-    class FailNode < Node
-      def handle_failed_packet(pkt)
-        puts "here"
-      end
-    end
-
   def test_failure
-
+    @sim.quiet
     nodes = []
     nodes[0] = FailNode.new(0) 
     
     4.times do |i| 
-      nodes << FailNode.new(i+1, {
-        :start_peer => Peer.new(nodes[i].addr, nodes[i].nid) 
-      }) 
+      nodes << FailNode.new(i+1, Peer.new(nodes[i].addr, nodes[i].nid)) 
     end
 
     @sim.schedule_event(:liveness_packet,
-                        nodes[0].nid, 25000, 
+                        nodes[0].addr, 25000, 
                         GoSim::Net::LivenessPacket.new(false))
     @sim.run(50000)
 
-    nodes.each { | n | assert_equal(4, n.link_table.size) }
+    assert_equal(false, nodes[0].alive?)
   end
 end
