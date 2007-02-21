@@ -35,6 +35,9 @@
 #    matching the wildcard string given will have all configurations run
 #    against it.  Defaults to "workloads/bootstrap_*".
 #
+# -c time, --converge time
+#    Runs until convergenced for time units.  Turns off absolute timing.
+#
 # An example:
 #   nasty -m pull,push -s 10 -t 50 -r 5000 -w "workloads/maint*"
 #
@@ -58,6 +61,7 @@ opts = GetoptLong.new(
         ['--maintenance-table-size', '-t', GetoptLong::REQUIRED_ARGUMENT],
         ['--maintenance-algs',       '-m', GetoptLong::REQUIRED_ARGUMENT],
         ['--workloads',              '-w', GetoptLong::REQUIRED_ARGUMENT],
+        ['--converge',               '-c', GetoptLong::REQUIRED_ARGUMENT],
         ['--rjserver',               '-j', GetoptLong::REQUIRED_ARGUMENT] )
 
 m_algs = Spinneret::Maintenance.constants
@@ -66,6 +70,7 @@ maintenance_amount = [1, 3, 5, 10, 20]
 link_table_size = [10, 25, 50, 100] 
 address = "localhost:7005"
 workload_dir = "workloads/bootstrap_*"
+converge = 0
 
 opts.each do | opt, arg |
   case opt
@@ -79,6 +84,8 @@ opts.each do | opt, arg |
     link_table_size = arg.split(',').collect { | x | x.to_i }
   when '--maintenance-algs'
     m_algs = arg.split(',')
+  when '--converge'
+    converge = arg.to_i
   when '--rjserver'
     address = arg
   when '--workloads'
@@ -128,8 +135,15 @@ Dir.glob(workload_dir) do | workload |
           job_dir = File.join(bs_dir, workload, m_rate.to_s, m_amount.to_s, table_size.to_s, alg)
           jc << clear_and_make(job_dir)
           time = nodes * join_time + (table_size / m_amount * SYNC_ROUNDS * m_rate) / m_amount
-          jc << create_job("spin -w #{workload} -s #{m_amount} -t #{table_size} -m #{alg} -r #{m_rate} -d #{job_dir} -l #{time}")
+          job_str = "spin -w #{workload} -s #{m_amount} -t #{table_size} -m #{alg} -r #{m_rate} -d #{job_dir}"
 
+          if(converge >= -1)
+            job_str += " -c #{converge}"
+          else
+            job_str += " -l #{time}"
+          end
+
+          jc << create_job(job_str)
           job_queue.add_job(jc)
         end
       end
