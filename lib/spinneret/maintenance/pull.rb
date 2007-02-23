@@ -9,7 +9,7 @@ module Maintenance
     def do_maintenance
       peers = @link_table.random_peers(NUM_NEIGHBOR_REQUESTS)
       send_packet(:neighbor_request, peers.map { | p | p.addr },
-                  NeighborRequest.new(@addr, @nid, @maintenance_size - 1))
+                  NeighborRequest.new(@addr, @nid, @config.maintenance_size - 1))
     end
 
     def handle_neighbor_request(pkt)

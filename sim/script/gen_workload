@@ -24,7 +24,7 @@
 #    Number of nodes in network
 #
 # -z, --all-joins-first
-#    All nodes join the network first
+#    All nodes join the network before any queries are issued.
 #
 # -j secs, --mean-join-time secs
 #    Time between nodes joining the network, where 0 is instantanious.  0 is
@@ -80,6 +80,8 @@
 #             recover
 #
 ######
+
+$:.unshift(File.dirname(__FILE__) + '/../../lib')
 
 # Builtins
 require 'singleton'

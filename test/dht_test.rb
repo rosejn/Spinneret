@@ -37,15 +37,12 @@ class TestDHT < Test::Unit::TestCase
     @sim = GoSim::Simulation.instance
     @sim.quiet
 
+    @config = Configuration.instance
+
     @pad = Scratchpad::instance
-    @pad.address_space = LinkTable::DEFAULT_ADDRESS_SPACE
-    @pad.maint_alg = "Pull"
-    @pad.maint_size = Spinneret::Node::DEFAULT_MAINTENANCE_SIZE
-    @pad.maint_tbl_size = Spinneret::Node::DEFAULT_TABLE_SIZE
-    @pad.maint_rate = Spinneret::Node::DEFAULT_MAINTENANCE_PERIOD
     @pad.nodes = []
 
-    Spinneret::Analyzer::instance.setup()
+    Spinneret::Analyzer::instance.disable
     srand(0)
   end
 
@@ -58,7 +55,7 @@ class TestDHT < Test::Unit::TestCase
     @pad.nodes << DHTNode.new(0)
     100.times do |i| 
       peer = Peer.new(@pad.nodes[i].addr, @pad.nodes[i].nid)
-      @pad.nodes << DHTNode.new(i+1, {:start_peer => peer })
+      @pad.nodes << DHTNode.new(i+1, peer)
     end
 
     @sim.run(60000)
@@ -68,7 +65,6 @@ class TestDHT < Test::Unit::TestCase
     queries.each {|q| @pad.nodes[0].schedule_search(q, 1) }
 
     @pad.nodes.each {|n| n.stop_maintenance }
-#    @sim.verbose
     @sim.run(120000)
 
     assert_not_nil(@pad.nodes[0].responses) 

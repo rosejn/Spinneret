@@ -40,9 +40,19 @@ module KeywordProcessor
   end
 end
 
+require 'ostruct'
+
+class Scratchpad < OpenStruct
+  include Singleton
+end
+
+class Configuration < OpenStruct
+  include Singleton
+end
+
 # Maintenance algorithms
 require 'spinneret/maintenance/pull'
-require 'spinneret/maintenance/pull_uni'
+#require 'spinneret/maintenance/pull_uni'
 require 'spinneret/maintenance/push'
 require 'spinneret/maintenance/push_pull'
 require 'spinneret/maintenance/opportunistic'
@@ -51,6 +61,9 @@ require 'spinneret/maintenance/opportunistic'
 require 'spinneret/search/search_base'
 require 'spinneret/search/kwalker'
 require 'spinneret/search/dht'
+
+# Configuration Defaults
+require 'defaults'
 
 # Internals
 require 'spinneret/math_ext'

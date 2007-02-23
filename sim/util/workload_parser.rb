@@ -53,5 +53,4 @@ class WorkloadParser < GoSim::Entity
   def method_missing(name)
     return @settings[name.to_s]
   end
-
 end

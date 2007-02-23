@@ -5,10 +5,7 @@ module Spinneret
     include KeywordProcessor
     include Singleton
 
-    DEFAULT_MEASUREMENT_PERIOD = 10000
-    DEFAULT_OUTPUT_PATH = 'output'
-
-    attr_reader :graph, :measurement_period
+    attr_reader :graph
 
     def initialize()
       super()
@@ -16,21 +13,28 @@ module Spinneret
       #Register as a observer, in order to get reset messages
       @sim.add_observer(self)
       @trials = {}
+
+      @config = Configuration.instance
       @pad = Scratchpad::instance
+
+      internal_init
     end
 
-    def setup(args = {})
-      params_to_ivars(args, {
-                     :output_path => DEFAULT_OUTPUT_PATH,
-                     :measurement_period => DEFAULT_MEASUREMENT_PERIOD,
-                     :stability_handler => method(:default_stable_handler) 
-      })
+    def enable
+      @config.analyzer.stability_handler ||= method(:default_stable_handler) 
 
       @trials = {}
       @convergence = Hash.new([])
-      internal_init
 
+      @timeout = set_timeout(@config.analyzer.measurement_period, true) { run_phase }
+
+      @enabled = true
       return self
+    end
+
+    def disable
+      @timeout.cancel unless @timeout.nil?
+      @enabled = false
     end
 
     def run_phase
@@ -42,7 +46,7 @@ module Spinneret
       #log "Not connected!\n" if !is_connected?
       #network_converged?
 
-      @stability_handler.call()
+      @config.analyzer.stability_handler.call()
 
       @trials = {}
       @successful_dht_searches = 0
@@ -55,10 +59,8 @@ module Spinneret
     #same, which isn't an issue, as this is only used in unit testing...anyway,
     #added @nodes to attr_writer
     def update
-      log "Resetting Analyzer"
       reset
       internal_init
-      log "Analyzer now has sid #{sid}"
     end
 
     private
@@ -74,7 +76,6 @@ module Spinneret
       @successful_kwalk_searches = 0
       @failed_kwalk_searches = 0
       setup_rgl_graph
-      set_timeout(@measurement_period, true) { run_phase }
     end
 
     def setup_rgl_graph
@@ -161,18 +162,18 @@ module Spinneret
     end
 
     def node_converged?(peer)
-      c_bar = Math.log2(@pad.address_space / nodes_alive) 
-      m_bar = (Math.log2(@pad.address_space) - c_bar) / @pad.maint_tbl_size
+      c_bar = Math.log2(@config.link_table.address_space / nodes_alive) 
+      m_bar = (Math.log2(@config.link_table.address_space) - c_bar) / @config.link_table.max_peers
 
       norm = peer.link_table.normal_fit()
 
 #      log "ideal m: #{m_bar}, real m: #{norm[0]} (std = #{norm[1]})"
-      err = 1.0 - @pad.maint_tbl_size / nodes_alive
+      err = 1.0 - @config.link_table.max_peers / nodes_alive
       err = 0.1  if err < 0.1
       conv = norm[0].deltafrom(m_bar, err) && norm[1] < (1.1 + err) && 
-        peer.link_table.size == @pad.maint_tbl_size
+        peer.link_table.size == @config.link_table.max_peers
 
-      if !conv && peer.link_table.size == @pad.maint_tbl_size
+      if !conv && peer.link_table.size == @config.link_table.max_peers
         # Only print if the table it full - if not, we don't really care
         log "Node #{peer.nid} not converged with m #{norm[0]}, std #{norm[1]}."
       end
@@ -256,7 +257,7 @@ module Spinneret
       end
 
       # Make a link to the current one for live graphing...
-      cur_path = File.join(@output_path, "cur_indegree_dist")
+      cur_path = File.join(@config.analyzer.output_path, "cur_indegree_dist")
       File.delete(cur_path) if File.symlink?(cur_path)
       File.symlink(datafile_path("indegree_dist"), cur_path)
     end
@@ -286,7 +287,7 @@ module Spinneret
     end
 
     def datafile_path(category)
-      File.join(@output_path, @sim.time.to_s + '_' + category)
+      File.join(@config.analyzer.output_path, @sim.time.to_s + '_' + category)
     end
 
     def write_data_file(category, &block)
@@ -296,7 +297,7 @@ module Spinneret
     end
 
     def append_data_file(filename, &block)
-      File.open(File.join(@output_path, filename), "a") do | f |
+      File.open(File.join(@config.analyzer.output_path, filename), "a") do | f |
         yield(f)
       end
     end

@@ -35,15 +35,12 @@ class TestKWalker < Test::Unit::TestCase
     @sim = GoSim::Simulation.instance
     @sim.quiet
 
+    @config = Configuration::instance
+
     @pad = Scratchpad::instance
-    @pad.address_space = LinkTable::DEFAULT_ADDRESS_SPACE
-    @pad.maint_alg = "Pull"
-    @pad.maint_size = Spinneret::Node::DEFAULT_MAINTENANCE_SIZE
-    @pad.maint_tbl_size = Spinneret::Node::DEFAULT_TABLE_SIZE
-    @pad.maint_rate = Spinneret::Node::DEFAULT_MAINTENANCE_PERIOD
     @pad.nodes = []
 
-    Spinneret::Analyzer::instance.setup()
+    Spinneret::Analyzer::instance.enable
   end
 
   def teardown
@@ -52,9 +49,9 @@ class TestKWalker < Test::Unit::TestCase
 
   def test_kwalker
     node_a = KWalkerNode.new(0)
-    node_b = KWalkerNode.new(1, :start_peer => Peer.new(node_a.addr, node_a.nid))
-    node_c = KWalkerNode.new(2, :start_peer => Peer.new(node_b.addr, node_b.nid))
-    node_d = KWalkerNode.new(3, :start_peer => Peer.new(node_c.addr, node_c.nid))
+    node_b = KWalkerNode.new(1, Peer.new(node_a.addr, node_a.nid))
+    node_c = KWalkerNode.new(2, Peer.new(node_b.addr, node_b.nid))
+    node_d = KWalkerNode.new(3, Peer.new(node_c.addr, node_c.nid))
 
     @pad.nodes << node_a << node_b << node_c << node_d
 
