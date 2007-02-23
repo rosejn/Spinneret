@@ -48,8 +48,12 @@
 #    The rate of maintenance.  Defaults to Node::DEFAULT_MAINTENANCE_PERIOD
 #
 # -c time, --converge-quit time
-#    If the network has been converged for greater than time seocnds, stop the
+#    If the network has been converged for greater than time ticks, stop the
 #    simulation.
+#
+# -y time, --analysis-measurement time
+#    The time between runs of the analysis engine.
+#
 
 require 'rdoc/usage'
 
@@ -69,7 +73,8 @@ opts = GetoptLong.new(
         ['--maintenance',            '-m', GetoptLong::REQUIRED_ARGUMENT],
         ['--maintenance-size',       '-s', GetoptLong::REQUIRED_ARGUMENT],
         ['--maintenance-table-size', '-t', GetoptLong::REQUIRED_ARGUMENT],
-        ['--maintenance-rate',       '-r', GetoptLong::REQUIRED_ARGUMENT] )
+        ['--maintenance-rate',       '-r', GetoptLong::REQUIRED_ARGUMENT],
+        ['--analysis-measurement',   '-y', GetoptLong::REQUIRED_ARGUMENT] )
 
 pad = Scratchpad::instance
 
