@@ -184,6 +184,7 @@ module Spinneret
         @table_lock.synchronize do
           @nid_peers[peer.nid] = peer
 
+          GoSim::DataSet[:link].log(:add, @nid, peer.nid)
           trim if @nid_peers.size > @config.max_peers
         end
       end
@@ -251,7 +252,10 @@ module Spinneret
     #
     # NOTE: This method is not threadsafe
     def trim
-      @nid_peers.delete(find_smallest_dist)
+      smallest = find_smallest_dist
+
+      GoSim::DataSet[:link].log(:remove, @nid, smallest)
+      @nid_peers.delete(smallest)
     end
 
     public
