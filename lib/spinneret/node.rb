@@ -21,6 +21,9 @@ module Spinneret
 
       @link_table = LinkTable.new(nid)
       @nid = nid || @link_table.nid
+
+      # Log
+      GoSim::DataSet[:node].log(:new, @nid, @addr)
       
       if @start_peer
         log "Storing start peer..."

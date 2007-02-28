@@ -33,6 +33,9 @@ module Spin
       @pad = Scratchpad::instance
       @config = Configuration::instance
 
+      # Create data sets for collection and viz
+      node_data = GoSim::DataSet.new(:node, "output")
+
       @generators = {}
       @generators[:init] = Proc.new do | opts | 
         nid = opts.to_i
@@ -41,6 +44,8 @@ module Spin
         if !rand_node.nil?
           peer = Spinneret::Peer.new(rand_node.addr, rand_node.nid) 
         end
+
+        # Create
         @pad.nodes << Spinneret::Node.new(nid, peer)
         @pad.nodes.last
       end

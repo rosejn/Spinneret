@@ -42,6 +42,7 @@ end
 
 require 'ostruct'
 
+# These should go into the Spinneret namespace
 class Scratchpad < OpenStruct
   include Singleton
 end

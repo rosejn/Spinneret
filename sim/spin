@@ -157,10 +157,11 @@ GoSim::Net::Topology::instance.setup(100)  # Mean latency
 
 Spinneret::Analyzer::instance.enable # Add the Analysis generation
 
+Spin::Simulation::instance.setup(workload, sim_length, converge_quit)
 if(__FILE__ != $PROGRAM_NAME)
   # Do stuff for goviz version
+  require 'util/spin_viz'
+else
+  Spin::Simulation::instance.run
 end
-
-Spin::Simulation::instance.setup(workload, sim_length, converge_quit)
-Spin::Simulation::instance.run
 
