@@ -62,6 +62,8 @@ require 'util/workload_parser'
 #require 'util/graph-rep'
 require 'util/spin_sim'
 
+srand 0
+
 opts = GetoptLong.new(
         ['--help',                   '-h', GetoptLong::NO_ARGUMENT],
         ['--verbose',                '-v', GetoptLong::NO_ARGUMENT],

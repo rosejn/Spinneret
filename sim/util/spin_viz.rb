@@ -83,7 +83,7 @@ module Spin
         @pts << p  if p != @pts.last
         if @pts.length > 1
           p @dest
-          @paths << Arc.new(@manager, @pts[-2], @pts[-1], "Gold") if @dest == "992"
+          @paths << Arc.new(@manager, @pts[-2], @pts[-1], "Gold") if @dest == "594"
           @paths << Arc.new(@manager, @pts[-2], @pts[-1], "LightBlue") if @dest == "153"
         end
       end
