@@ -196,6 +196,7 @@ module Spinneret
     # [*id*] The id of the peer to be removed
     def remove_peer(id)
       @table_lock.synchronize { @nid_peers.delete(id) }
+      GoSim::DataSet[:link].log(:remove, @nid, id)
     end
 
     # Array of peers sorted by distance from me.
