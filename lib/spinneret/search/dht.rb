@@ -13,6 +13,7 @@ module Search
   module DHT
     def handle_search_dht(dest_addr)
       new_uid = SearchBase::get_new_uid()
+      GoSim::DataSet[:dht_search].log(:new, @nid, @uid, dest_addr)
       dht_query(new_uid, dest_addr.to_i) 
     end
 
@@ -20,6 +21,7 @@ module Search
     # possible in the current link table.
     def dht_query(uid, query, src_addr = @addr, ttl = DHT_TTL)
       log "node: #{@nid} - dht_query( q = #{query})"
+      GoSim::DataSet[:dht_search].log(:update, @nid, @uid, query)
 
       # Are we a local query?
       if(src_addr == @addr)

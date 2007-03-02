@@ -36,6 +36,7 @@ module Spin
       # Create data sets for collection and viz
       node_data = GoSim::DataSet.new(:node, "output")
       node_data = GoSim::DataSet.new(:link, "output")
+      node_data = GoSim::DataSet.new(:dht_search, "output")
 
       @generators = {}
       @generators[:init] = Proc.new do | opts | 

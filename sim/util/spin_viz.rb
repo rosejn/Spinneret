@@ -3,7 +3,7 @@ module Spin
     class Manager
       include Singleton
 
-      attr_reader :map, :spin_conf
+      attr_reader :map, :spin_conf, :nodes
 
       def initialize
         @spin_conf = Configuration::instance
@@ -18,27 +18,22 @@ module Spin
         @map = @view.space_map
         @nodes = {}
 
-        @edges_visible = false
-        @edges = {}
+        @queries = {}
 
         # Register to handle various datasets
         GoSim::DataSet.add_handler(:node, &method(:handle_node_update))
         GoSim::DataSet.add_handler(:link, &method(:handle_link_update))
+        GoSim::DataSet.add_handler(:dht_search, &method(:handle_dht_update))
 
         # Add custom controls
-#        edge_toggle = Gtk::Button.new("Toggle Edges")
-#        edge_toggle.signal_connect("clicked") do
-#          @edges_visible = !@edges_visible 
-#          if @edges_visible
-#            @edges.values.each {|e| e.show }
-#          else
-#            @edges.values.each {|e| e.hide }
-#          end
-#        end
-#        box = Gtk::VBox.new
-#        box.pack_start(edge_toggle)
-#
-#        @controls.add(box)
+        edge_toggle = Gtk::Button.new("Toggle Nodes")
+        edge_toggle.signal_connect("clicked") do
+          @nodes.values.each { | n | n.select }
+        end
+        box = Gtk::VBox.new
+        box.pack_start(edge_toggle)
+
+        @controls.add(box)
         @controls.show_all
       end
 
@@ -58,6 +53,49 @@ module Spin
           @nodes[nid1].remove_link(nid2)
         end
       end
+
+      def handle_dht_update(status, nid, uid, dest, *args)
+        case status
+        when :new
+          @queries[uid] = nid
+          @nodes[nid].add_query(uid, dest)
+        when :update
+          @nodes[@queries[uid]].add_query_point(uid, nid)
+        end
+      end
+    end
+
+    class DHTQuery < Gnome::CanvasGroup
+      def initialize(manager, nid, dest)
+        @root = manager.map.root
+        @manager = manager
+
+        @dest = dest
+        @paths = []
+        @pts = []
+        add_point(nid)
+      end
+
+      def add_point(nid)
+        n = @manager.nodes[nid] 
+        p = [n.x + Node::SIZE/2, n.y + Node::SIZE/2]
+
+        @pts << p  if p != @pts.last
+        if @pts.length > 1
+          p @dest
+          @paths << Arc.new(@manager, @pts[-2], @pts[-1], "Gold") if @dest == "992"
+          @paths << Arc.new(@manager, @pts[-2], @pts[-1], "LightBlue") if @dest == "153"
+        end
+      end
+
+      def show
+        @paths.each { | p | p.show }
+      end
+
+      def hide
+        @paths.each { | p | p.hide }
+      end
+
     end
 
     module VizComponent
@@ -121,6 +159,7 @@ module Spin
         if p1[0] < p2[0];  x = -1.0  else  x = 1.0   end
         mid_arr = [[(x_purp - (x * x_para_dif)), (y_purp - (x * y_para_dif))],
           [(x_purp + (x * x_para_dif)), (y_purp + (x * y_para_dif))]]
+
         mid_arr.sort! do | x, y |
           point_distance(p1, x) <=> point_distance(p1, y)
         end
@@ -198,6 +237,7 @@ module Spin
         @map = @manager.map
 
         @links = {}
+        @queries = {}
 
         @@nodes[id] = self
 
@@ -208,8 +248,6 @@ module Spin
         y_line = (id / @new_line).to_i
         @y = (y_line) * 50 + 40
         @x = 40 + tx(id - @new_line * y_line) / @new_line
-
-        p "new graph node, #{@x} #{@y}"
 
         super(@map.root, :x => @x, :y => @y) 
         @circle = Gnome::CanvasEllipse.new(self, 
@@ -253,6 +291,15 @@ module Spin
 
       def remove_link(dest_nid)
         @links.delete(dest_nid).hide
+      end
+      
+      def add_query(uid, q)
+        @queries[uid] = DHTQuery.new(@manager, @id, q)
+        @queries[uid].hide  if !@selected
+      end
+
+      def add_query_point(uid, nid)
+        @queries[uid].add_point(nid) 
       end
 
       def select
