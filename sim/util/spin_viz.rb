@@ -119,9 +119,16 @@ module Spin
         path_points = get_arc_points(p1, p2)
         path_def = points_to_bpath(path_points)
 
+        width = 0
+        if color == "Red"
+          width = 4
+        else
+          width = 2
+        end
+
         super(@root, {:bpath => path_def,
                       :outline_color => color,
-                      :width_pixels => 2})
+                      :width_pixels => width})
 
         if arrowhead == true
             @arrowhead = draw_arrow_head(path_points[2], p2, color) 
@@ -220,7 +227,7 @@ module Spin
       SIZE = 10
 
       NODE_FILL = 'DeepSkyBlue'
-      NODE_SELECTED_FILL = 'red'
+      NODE_SELECTED_FILL = 'Green'
       NODE_OUTLINE = 'black'
 
       LABEL_FILL = 'white'
@@ -230,6 +237,13 @@ module Spin
       attr_reader :x, :y, :edges
 
       @@nodes = {}
+
+      def pos(id)
+        pos =  id / 1000.to_f   # Force base lookup in string
+        rad = (pos * 2 * Math::PI - (Math::PI + Math::PI / 2))
+        @x = -1.0 * Math::cos(rad) * 250 + 300
+        @y = -1.0 * Math::sin(rad) * 250 + 300
+      end
 
       def initialize(manager, id)
         @manager = manager
@@ -248,6 +262,7 @@ module Spin
         y_line = (id / @new_line).to_i
         @y = (y_line) * 50 + 40
         @x = 40 + tx(id - @new_line * y_line) / @new_line
+        pos(id)
 
         super(@map.root, :x => @x, :y => @y) 
         @circle = Gnome::CanvasEllipse.new(self, 
