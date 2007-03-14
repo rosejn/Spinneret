@@ -10,10 +10,9 @@ class KWalkerNode < Spinneret::Node
   attr_reader :got_response, :packet_counter
 
   # TODO: What do we want to do with search responses?
-  def handle_kwalker_response(pkt)
-    log "node: #{@nid} got response from #{pkt.src_id}"
+  def kwalker_response(uid, peer_addr)
     @got_response ||= []
-    @got_response << pkt.src_id
+    @got_response << peer_addr
   end
 
   def schedule_search(src_id, query_id, time)
@@ -49,9 +48,9 @@ class TestKWalker < Test::Unit::TestCase
 
   def test_kwalker
     node_a = KWalkerNode.new(0)
-    node_b = KWalkerNode.new(1, Peer.new(node_a.addr, node_a.nid))
-    node_c = KWalkerNode.new(2, Peer.new(node_b.addr, node_b.nid))
-    node_d = KWalkerNode.new(3, Peer.new(node_c.addr, node_c.nid))
+    node_b = KWalkerNode.new(1, node_a.addr)
+    node_c = KWalkerNode.new(2, node_b.addr)
+    node_d = KWalkerNode.new(3, node_c.addr)
 
     @pad.nodes << node_a << node_b << node_c << node_d
 
@@ -65,8 +64,8 @@ class TestKWalker < Test::Unit::TestCase
     node_d.schedule_search(node_a.addr, node_b.nid, 1)
     @sim.run(20000)
 
-    assert_equal(1, node_a.got_response.uniq[0])
-#    3.times { assert_equal(1, node_a.got_response.shift) }
+    assert_equal(3, node_a.got_response.size)
+    #    3.times { assert_equal(1, node_a.got_response.shift) }
 
     # Test that the ttl expiration works (don't send more packets)
     count = node_a.packet_counter

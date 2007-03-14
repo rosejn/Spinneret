@@ -18,8 +18,6 @@ class TestAnalysis < Test::Unit::TestCase
     @config.maintenance_algorithm = Maintenance::Pull
 
     @pad = Scratchpad::instance
-
-    GoSim::Net::Topology::instance.setup(100)
   end
 
   def teardown
@@ -30,7 +28,7 @@ class TestAnalysis < Test::Unit::TestCase
     @pad.nodes = []
     @pad.nodes[0] = Spinneret::Node.new(0) 
     4.times do |i| 
-      @pad.nodes << Spinneret::Node.new(i+1, Peer.new(@pad.nodes[i].addr, @pad.nodes[i].nid))
+      @pad.nodes << Spinneret::Node.new(i+1, @pad.nodes[i].addr)
     end
 
     @sim.run(500)
