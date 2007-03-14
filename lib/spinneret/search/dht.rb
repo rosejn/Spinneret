@@ -13,15 +13,17 @@ module Search
   module DHT
     def handle_search_dht(dest_addr)
       new_uid = SearchBase::get_new_uid()
-      GoSim::DataSet[:dht_search].log(:new, @nid, @uid, dest_addr)
+      GoSim::Data::DataSet[:dht_search].log(:new, @uid, dest_addr, nil, @nid)
       dht_query(new_uid, dest_addr.to_i) 
     end
 
     # Do a logarithmic query where at each hop we jump to the closest node
     # possible in the current link table.
-    def dht_query(uid, query, src_addr = @addr, ttl = DHT_TTL)
+    def dht_query(uid, query, src_addr = @addr, immed_src = nil, ttl = DHT_TTL)
       log "node: #{@nid} - dht_query( q = #{query})"
-      GoSim::DataSet[:dht_search].log(:update, @nid, @uid, query)
+      if !immed_src.nil?
+        GoSim::Data::DataSet[:dht_search].log(:update, @uid, query, immed_src, @nid) 
+      end
 
       # Are we a local query?
       if(src_addr == @addr)
@@ -45,7 +47,7 @@ module Search
           dest = closest.addr
           log "#{@nid} - dht query: #{query} to dest: #{closest.nid}"
           send_packet(:dht_query, dest, 
-                      DHTQuery.new(uid, src_addr, query, ttl))
+                      DHTQuery.new(uid, @nid, src_addr, query, ttl))
          
         # Start the burst query
         else 
@@ -69,7 +71,7 @@ module Search
 
           log "#{@nid} - dht direct burst query: #{query} to dest: #{query}"
           send_packet(:dht_burst_query, dest,
-                      DHTBurstQuery.new(uid, src_addr, query, ttl - 1))
+                      DHTBurstQuery.new(uid, @nid, src_addr, query, ttl - 1))
 
         # Otherwise we follow the burst chance
         else
@@ -82,7 +84,7 @@ module Search
           dest = peers.map {|p| p.addr }
           log "#{@nid} - dht burst query: #{query} to dest: #{peers.map {|p| p.nid }.join(', ')}"
           send_packet(:dht_burst_query, dest,
-                      DHTBurstQuery.new(uid, src_addr, query, ttl - 1))
+                      DHTBurstQuery.new(uid, @nid, src_addr, query, ttl - 1))
         end
       end
     end
@@ -91,7 +93,7 @@ module Search
       if(query == @nid)
         log "#{@nid} - query: #{query} successful!"
         send_packet(:dht_response, src_addr, 
-                    DHTResponse.new(uid, @addr, @nid, ttl))
+                    DHTResponse.new(uid, @nid, @addr, @nid, ttl))
         log "DHT Search successfull for #{@nid} (#{uid})"
         true
       elsif ttl == 0
@@ -107,11 +109,11 @@ module Search
     end
 
     def handle_dht_query(pkt)
-      dht_query(pkt.uid, pkt.query, pkt.src_addr, pkt.ttl)
+      dht_query(pkt.uid, pkt.query, pkt.src_addr, pkt.immed_src, pkt.ttl)
     end
 
     def handle_dht_burst_query(pkt)
-      dht_burst_query(pkt.uid, pkt.query, pkt.src_addr, pkt.ttl)
+      dht_burst_query(pkt.uid, pkt.query, pkt.src_addr, pkt.immed_src, pkt.ttl)
     end
 
     # TODO: What do we want to do with search responses?

@@ -34,9 +34,11 @@ module Spin
       @config = Configuration::instance
 
       # Create data sets for collection and viz
-      node_data = GoSim::DataSet.new(:node, "output")
-      node_data = GoSim::DataSet.new(:link, "output")
-      node_data = GoSim::DataSet.new(:dht_search, "output")
+      GoSim::Data::DataSet.new(:node)
+      GoSim::Data::DataSet.new(:link)
+      GoSim::Data::DataSet.new(:dht_search)
+      GoSim::Data::DataSetWriter.instance.set_output_file("trace.gz")
+      GoSim::Data::DataSetWriter.instance.add_view_mod("spin_viz")
 
       @generators = {}
       @generators[:init] = Proc.new do | opts | 

@@ -3,11 +3,11 @@ module Spin
     class Manager
       include Singleton
 
+      SEARCHES = 0
+
       attr_reader :map, :spin_conf, :nodes
 
       def initialize
-        @spin_conf = Configuration::instance
-
         @view = GoSim::View.instance
 
         @view.add_reset_handler { Spin::Simulation.instance.reset }
@@ -21,20 +21,61 @@ module Spin
         @queries = {}
 
         # Register to handle various datasets
-        GoSim::DataSet.add_handler(:node, &method(:handle_node_update))
-        GoSim::DataSet.add_handler(:link, &method(:handle_link_update))
-        GoSim::DataSet.add_handler(:dht_search, &method(:handle_dht_update))
+        GoSim::Data::DataSet.add_handler(:node, &method(:handle_node_update))
+        GoSim::Data::DataSet.add_handler(:link, &method(:handle_link_update))
+        GoSim::Data::DataSet.add_handler(:dht_search, 
+                                         &method(:handle_dht_search_update))
 
         # Add custom controls
         edge_toggle = Gtk::Button.new("Toggle Nodes")
         edge_toggle.signal_connect("clicked") do
           @nodes.values.each { | n | n.select }
         end
+
+        scrolled_win = Gtk::ScrolledWindow.new
+        scrolled_win.set_policy(Gtk::POLICY_AUTOMATIC, Gtk::POLICY_AUTOMATIC)
+
+        @model = Gtk::ListStore.new(String)
+        column = Gtk::TreeViewColumn.new("Searches",
+                                         Gtk::CellRendererText.new, {:text => 0})
+        @treeview = Gtk::TreeView.new(@model)
+        @treeview.append_column(column)
+        @treeview.selection.set_mode(Gtk::SELECTION_MULTIPLE)
+        scrolled_win.add_with_viewport(@treeview)
+        
+        @treeview.selection.signal_connect("changed") do | selection |
+          selection.selected_each do | model, path, iter |
+            show_search(iter.get_value(SEARCHES))
+          end
+        end
+
         box = Gtk::VBox.new
         box.pack_start(edge_toggle)
+        box.pack_start(scrolled_win, true, true, 0)
 
         @controls.add(box)
         @controls.show_all
+      end
+
+      def show_search(id)
+        @queries[id].show
+      end
+
+      def hide_search(id)
+        @queries[id].hide
+      end
+
+      def handle_dht_search_update(status, uid, id, prev_nid, cur_nid)
+        sid = "DHT #{id.to_s}"
+
+        case status
+        when :new
+          @model.append[SEARCHES] = sid
+          s = DHTQuery.new(self, id)
+          @queries[sid] = s
+        end
+
+        @queries[sid].extend_path(prev_nid, cur_nid)
       end
 
       def handle_node_update(status, nid, *args)
@@ -66,34 +107,44 @@ module Spin
     end
 
     class DHTQuery < Gnome::CanvasGroup
-      def initialize(manager, nid, dest)
+      def initialize(manager, dest)
         @root = manager.map.root
         @manager = manager
 
         @dest = dest
         @paths = []
         @pts = []
-        add_point(nid)
+
+        @shown = false
       end
 
-      def add_point(nid)
-        n = @manager.nodes[nid] 
-        p = [n.x + Node::SIZE/2, n.y + Node::SIZE/2]
+      def extend_path(src, dest)
+        p "src #{src} dest #{dest}"
 
-        @pts << p  if p != @pts.last
+        if !src.nil?
+          n1 = @manager.nodes[src]  
+          p1 = [n1.x + Node::SIZE/2, n1.y + Node::SIZE/2]
+          @pts << p1
+        end
+
+        n2 = @manager.nodes[dest]
+        p2 = [n2.x + Node::SIZE/2, n2.y + Node::SIZE/2]
+        @pts << p2
+
         if @pts.length > 1
-          p @dest
-          @paths << Arc.new(@manager, @pts[-2], @pts[-1], "Gold") if @dest == "594"
-          @paths << Arc.new(@manager, @pts[-2], @pts[-1], "LightBlue") if @dest == "153"
+          @paths << Arc.new(@manager, @pts[-2], @pts[-1], "Gold")
+          @paths.last.hide  if !@shown
         end
       end
 
       def show
         @paths.each { | p | p.show }
+        @shown = true
       end
 
       def hide
         @paths.each { | p | p.hide }
+        @shown = false
       end
 
     end
@@ -110,7 +161,7 @@ module Spin
     end
 
     class Arc < Gnome::CanvasBpath
-      def initialize(manager, p1, p2, color, arrowhead = false)
+      def initialize(manager, p1, p2, color, width = 2, arrowhead = false)
         @root = manager.map.root
 
         @line = nil
@@ -118,13 +169,6 @@ module Spin
 
         path_points = get_arc_points(p1, p2)
         path_def = points_to_bpath(path_points)
-
-        width = 0
-        if color == "Red"
-          width = 4
-        else
-          width = 2
-        end
 
         super(@root, {:bpath => path_def,
                       :outline_color => color,
@@ -258,10 +302,6 @@ module Spin
         @edges = []
         @view = GoSim::View.instance
 
-        @new_line = @manager.spin_conf.link_table.address_space / 10.0
-        y_line = (id / @new_line).to_i
-        @y = (y_line) * 50 + 40
-        @x = 40 + tx(id - @new_line * y_line) / @new_line
         pos(id)
 
         super(@map.root, :x => @x, :y => @y) 
@@ -296,12 +336,17 @@ module Spin
             @selected ? deselect : select
           end
         end
+
+        puts "Added Node"
       end
 
       def add_link(dest_nid)
+        puts "dest id #{dest_nid}"
         dest = [@@nodes[dest_nid].x + SIZE/2, @@nodes[dest_nid].y + SIZE/2]
         @links[dest_nid] = Arc.new(@manager, [@x + SIZE/2, @y + SIZE/2], dest, "Red")
         @links[dest_nid].hide if !@selected
+
+        puts "Added Link"
       end
 
       def remove_link(dest_nid)
@@ -349,7 +394,8 @@ module Spin
 =end
 
     end
-  end
-end
+
+  end  # Visualization
+end  # Spin
 
 Spin::Visualization::Manager.instance
