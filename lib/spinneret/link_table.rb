@@ -15,10 +15,11 @@ module Spinneret
     attr_reader :nid
 
     # Create a new LinkTable.
-    def initialize(nid)
+    def initialize(node)
       @config = Configuration.instance.link_table
 
-      @nid = nid || random_id 
+      @node = node
+      @nid = @node.nid || random_id 
       @sim = GoSim::Simulation.instance
       @last_modified = 0
 
@@ -59,7 +60,7 @@ module Spinneret
       @table_lock.synchronize { @nid_peers.size }
     end
 
-    # Whether the table currently contains a specific address.
+    # Whether the table currently contains a specific nid.
     def has_nid?(nid)
       @table_lock.synchronize { @nid_peers.has_key?(nid) }
     end
@@ -72,6 +73,10 @@ module Spinneret
     # Get a peer by node id
     def get_peer(nid)
       @table_lock.synchronize { @nid_peers[nid] }
+    end
+
+    def get_peer_by_addr(addr)
+      store_peer(addr)
     end
 
     # Peer iterator
@@ -157,11 +162,11 @@ module Spinneret
     # Store an address in the table if it is new.
     #
     # [*peer*] The peer to add to the table
-    def store_peer(peer)
-      # Don't store repeats or ourself
-      return if peer.nid == @nid
+    def store_peer(peer_addr)
+      return nil if peer_addr == @node.addr # Don't store ourself
 
-      peer = Peer.new(peer.addr, peer.nid)
+      peer = Peer.new(@node, peer_addr)
+      return nil if peer.nid.nil?
 
       # If we have already heard about this node check and possibly update the timestamp
       if has_peer?(peer)
@@ -170,6 +175,7 @@ module Spinneret
             @nid_peers[peer.nid].last_seen = peer.last_seen
           end
         end
+        peer = @nid_peers[peer.nid]
       else
         begin
           peer.distance = Math::log2(distance(@nid, peer.nid))
@@ -187,8 +193,9 @@ module Spinneret
           trim if @nid_peers.size > @config.max_peers
         end
       end
+
+      peer
     end
-    alias :<< :store_peer
 
     # Remove a peer from the table
     #
@@ -292,17 +299,16 @@ module Spinneret
 
   # Just a container for keeping things like status information about a
   # specific peer in the link table.
-  class Peer
+  class Peer < GoSim::Net::Peer
     include Base
 
-    attr_reader :addr, :nid
-    attr_accessor :distance, :last_seen, :distance_from_ideal
+    attr_reader :nid
+    attr_accessor :distance, :last_seen
 
-    # We may also have algorithms that use things like rtt to make decisions.
-    # What about a generic field that holds algorithm specific data?
+    def initialize(local_node, remote_addr)
+      super
 
-    def initialize(addr, nid)
-      @addr, @nid = addr, nid
+      @nid = @remote_node.nid if @remote_node
       @distance = -1 # TODO: Decide if this needs to be address space
 
       seen

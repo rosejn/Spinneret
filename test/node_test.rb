@@ -40,7 +40,7 @@ class TestNode < Test::Unit::TestCase
     nodes[0] = Node.new(0) 
     
     4.times do |i| 
-      nodes << Node.new(i+1, Peer.new(nodes[i].addr, nodes[i].nid)) 
+      nodes << Node.new(i+1, nodes[i].addr) 
     end
 
     @sim.run(50000)
@@ -51,15 +51,13 @@ class TestNode < Test::Unit::TestCase
   def test_failure
     @sim.quiet
     nodes = []
-    nodes[0] = FailNode.new(0) 
+    nodes[0] = Node.new(0) 
     
     4.times do |i| 
-      nodes << FailNode.new(i+1, Peer.new(nodes[i].addr, nodes[i].nid)) 
+      nodes << Node.new(i+1, nodes[i].addr) 
     end
 
-    @sim.schedule_event(:liveness_packet,
-                        nodes[0].addr, 25000, 
-                        GoSim::Net::LivenessPacket.new(false))
+    @sim.schedule_event(:alive, nodes[0].addr, 25000, false)
     @sim.run(50000)
 
     assert_equal(false, nodes[0].alive?)

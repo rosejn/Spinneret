@@ -3,27 +3,43 @@ $:.unshift(File.dirname(__FILE__) + '/../lib')
 require 'test/unit'
 require 'spinneret'
 
+class FakeNode
+  attr_reader :addr, :nid
+
+  def initialize(addr, nid)
+    @addr = addr
+    @nid = nid
+  end
+end
 
 class TestLinkTable < Test::Unit::TestCase
 
   include Spinneret
 
   TEST_ADDR = 0
+  TEST_NID  = 0
   TEST_SLOTS = 2
   TEST_ADDRESS_SPACE = 1000
   
   def setup
-    @table = LinkTable.new(TEST_ADDR)
+    @node = FakeNode.new(TEST_ADDR, TEST_NID)
+    @table = LinkTable.new(@node)
 
     @config = Configuration.instance.link_table
     @config.address_space = TEST_ADDRESS_SPACE
   end
 
   def test_basic
+    root = Node.new(0)
+    @table = LinkTable.new(root)
     num_nodes = 10
 
-    # store_addr & size
-    num_nodes.times {|i| @table.store_peer(Peer.new(0, 2**i)) }
+    nodes = []
+    num_nodes.times do |i| 
+      nodes << Node.new(2**i)
+      @table.store_peer(nodes.last.addr) 
+    end
+
     assert_equal(num_nodes, @table.size)
 
     # has_nid?

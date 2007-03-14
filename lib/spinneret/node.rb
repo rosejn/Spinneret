@@ -11,26 +11,23 @@ module Spinneret
 
     # Create a new node
     # [*nid*] The unique network id for this node.
-    def initialize(nid, start_peer = nil)
+    def initialize(nid, start_peer_addr = nil)
       super()
 
-      @start_peer = start_peer
+      @start_peer_addr = start_peer_addr
       @config = Configuration::instance.node
 
       extend(@config.maintenance_algorithm)
 
-      @link_table = LinkTable.new(nid)
+      @link_table = LinkTable.new(self)
       @nid = nid || @link_table.nid
       
-      if @start_peer
-        log "Storing start peer..."
-        @link_table.store_peer(@start_peer)
+      if @start_peer_addr
+        @link_table.store_peer(@start_peer_addr)
         do_maintenance
       end
 
       start_maintenance
-
-      #verbose
     end
 
     def stop_maintenance
@@ -50,13 +47,7 @@ module Spinneret
     end
 
     def handle_failed_packet(pkt)
-      log "#{nid} - got failed packet! #{pkt.inspect}"
-    end
-
-    def handle_failure(e)
-      log "Node #{nid} failed!"
-      self.alive = false
-      #stop_maintenance
+      log {"Node #{nid}: got failed packet! #{pkt.inspect}"}
     end
   end
 end

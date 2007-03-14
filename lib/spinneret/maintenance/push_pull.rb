@@ -8,26 +8,21 @@ module Maintenance
 
     def do_maintenance
       peers = @link_table.random_peers(NUM_NEIGHBOR_REQUESTS)
-      send_packet(:neighbor_request, peers.map { | p | p.addr },
-                  NeighborRequest.new(@addr, @nid,
-                                      @link_table.random_peers(@config.maintenance_size / 2)))
+      peers.each do |peer|
+        addrs = @link_table.random_peers(@config.maintenance_size / 2).map {|p| p.addr }
+
+        d = peer.neighbor_request(@addr, addrs)
+
+        d.add_callback do |addrs| 
+          addrs.each {|p| @link_table.store_peer(p) } 
+        end
+      end
     end
 
-    def handle_neighbor_request(pkt)
-      send_packet(:neighbor_response, pkt.src,
-                  NeighborResponse.new(@addr, @nid,
-                                       @link_table.random_peers(@config.maintenance_size / 2)))
-      @link_table.store_peer(Peer.new(pkt.src, pkt.nid))
-      handle_neighbor_response(pkt)
+    def neighbor_request(src_addr, peers)
+      @link_table.store_peer(src_addr)
+      @link_table.random_peers(@config.maintenance_size / 2).map {|p| p.addr }
     end
-
-    def handle_neighbor_response(pkt)
-      printf("@%d\n", @sim.time) if @addr == 25
-      printf("before: %s\n", @link_table)  if @addr == 25
-      pkt.neighbors.each {|n| @link_table.store_peer(n)}
-      printf("after: %s\n", @link_table)  if @addr == 25
-    end
-
   end
 
 end

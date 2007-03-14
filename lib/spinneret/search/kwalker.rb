@@ -18,7 +18,7 @@ module Search
                       k = KW_NUM_WALKERS,
                       ttl = KW_TTL, orig = true)
 
-      log "node: #{@nid} - kwalker_query( q = #{query}, src = #{src_addr}, ttl = #{ttl})"
+      log {"node: #{@nid} - kwalker_query( q = #{query}, src = #{src_addr}, ttl = #{ttl})"}
 
       if(orig == true)
         @local_queries ||= []
@@ -34,23 +34,23 @@ module Search
       end
 
       if(query == @nid)
-        send_packet(:kwalker_response, src_addr, 
-                    KWalkerResponse.new(uid, @addr, @nid, ttl - 1))
+        peer = @link_table.get_peer_by_addr(src_addr)
+        peer.kwalker_response(uid, @addr)
       elsif ttl == 0
         return
       else 
         # First check for a direct neighbor
         closest = @link_table.closest_peer(query)
         return if closest.nil?
+
         if closest.nid == query
-          dest = closest.addr
+          closest.kwalker_query(uid, query, src_addr, ttl - 1)
         else # Go random 
-          dest = @link_table.random_peers(k).map {|p| p.addr }
+          @link_table.random_peers(k).each do |peer|
+            peer.kwalker_query(uid, query, src_addr, ttl - 1)
+          end
         end
 
-        log "forwarding query to dest: #{dest}"
-        send_packet(:kwalker_query, dest, 
-                    KWalkerQuery.new(uid, src_addr, query, ttl - 1))
       end
     end
 
@@ -59,12 +59,14 @@ module Search
     end
 
     # TODO: What do we want to do with search responses?
-    def handle_kwalker_response(pkt)
-      log "KWalker got a query response..."
-      if @local_queries[pkt.uid] == false
-        Analyzer::instance::successful_kwalk_search(pkt.uid)
+    def kwalker_response(uid, peer_addr)
+      @local_queries ||= []
+
+      log {"KWalker got a query response..."}
+      if @local_queries[uid] == false
+        Analyzer::instance::successful_kwalk_search(uid)
       end
-      @local_queries[pkt.uid] = true
+      @local_queries[uid] = true
     end
   end
 end

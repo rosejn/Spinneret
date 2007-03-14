@@ -11,15 +11,14 @@ module Search
   DHT_QUERY_TIMEOUT = 30000
 
   module DHT
-    def handle_search_dht(dest_addr)
-      new_uid = SearchBase::get_new_uid()
-      dht_query(new_uid, dest_addr.to_i) 
+    def search_dht(dest_addr)
+      dht_query(SearchBase::get_new_uid, dest_addr.to_i) 
     end
 
     # Do a logarithmic query where at each hop we jump to the closest node
     # possible in the current link table.
     def dht_query(uid, query, src_addr = @addr, ttl = DHT_TTL)
-      log "node: #{@nid} - dht_query( q = #{query})"
+      log {"node: #{@nid} - dht_query( q = #{query})"}
 
       # Are we a local query?
       if(src_addr == @addr)
@@ -40,11 +39,9 @@ module Search
         return if closest.nil? # Can't do anything if we don't have peers...
 
         if closer?(query, closest) # Jump
-          dest = closest.addr
-          log "#{@nid} - dht query: #{query} to dest: #{closest.nid}"
-          send_packet(:dht_query, dest, 
-                      DHTQuery.new(uid, src_addr, query, ttl))
-         
+          log {"#{@nid} - dht query: #{query} to dest: #{closest.nid}"}
+          closest.dht_query(uid, query, src_addr, ttl)
+          
         # Start the burst query
         else 
           dht_burst_query(uid, query, src_addr, DHT_BURST_TTL)
@@ -55,19 +52,21 @@ module Search
     # Do a localized, probabalistic burst flood to get over local minima close
     # to the query target.
     def dht_burst_query(uid, query, src_addr, ttl)
-      log "node: #{@nid} - dht_query( q = #{query})"
+      log {"node: #{@nid} - dht_burst_query( q = #{query})"}
 
       unless us_or_dead?(uid, query, src_addr, ttl)
         peers = @link_table.closest_peers(query, DHT_BURST_SIZE)
-        return if peers.empty?
+        if peers.empty?
+          log {"#{@nid}: no peers to forward DHT search uid: #{uid}"}
+          return
+        end
        
         # If one of our immediate neighbors is the target go straight there.
         if @link_table.has_nid?(query)
-          dest = [@link_table.get_peer(query).addr]
+          dest = @link_table.get_peer(query)
 
-          log "#{@nid} - dht direct burst query: #{query} to dest: #{query}"
-          send_packet(:dht_burst_query, dest,
-                      DHTBurstQuery.new(uid, src_addr, query, ttl - 1))
+          log {"#{@nid} - dht direct burst query: #{query} to dest: #{query}"}
+          dest.dht_burst_query(uid, query, src_addr, ttl - 1)
 
         # Otherwise we follow the burst chance
         else
@@ -77,23 +76,22 @@ module Search
           peers = peers.select { rand <= DHT_BURST_CHANCE }
           return if peers.empty?
 
-          dest = peers.map {|p| p.addr }
-          log "#{@nid} - dht burst query: #{query} to dest: #{peers.map {|p| p.nid }.join(', ')}"
-          send_packet(:dht_burst_query, dest,
-                      DHTBurstQuery.new(uid, src_addr, query, ttl - 1))
+          log {"#{@nid} - dht burst query: #{query} to dest: #{peers.map {|p| p.nid }.join(', ')}"}
+          peers.each {|p| p.dht_burst_query(uid, query, src_addr, ttl - 1) }
         end
       end
     end
 
     def us_or_dead?(uid, query, src_addr, ttl)
       if(query == @nid)
-        log "#{@nid} - query: #{query} successful!"
-        send_packet(:dht_response, src_addr, 
-                    DHTResponse.new(uid, @addr, @nid, ttl))
-        log "DHT Search successfull for #{@nid} (#{uid})"
+        log {"#{@nid} - query: #{query} successful!"}
+        dest = @link_table.get_peer_by_addr(src_addr)
+        log {"DHT Search successfull for #{@nid} (#{uid})"}
+        dest.dht_response(uid, @nid)
         true
+
       elsif ttl == 0
-        log "#{@nid} - query: #{query} ttl reached 0!"
+        log {"#{@nid} - query: #{query} ttl reached 0!"}
         true
       else
         false
@@ -104,21 +102,13 @@ module Search
       @link_table.distance(query, peer.nid) < @link_table.distance(@nid, query)
     end
 
-    def handle_dht_query(pkt)
-      dht_query(pkt.uid, pkt.query, pkt.src_addr, pkt.ttl)
-    end
-
-    def handle_dht_burst_query(pkt)
-      dht_burst_query(pkt.uid, pkt.query, pkt.src_addr, pkt.ttl)
-    end
-
     # TODO: What do we want to do with search responses?
-    def handle_dht_response(pkt)
-      log "DHT got a query response..."
-      if @local_queries[pkt.uid] == false
-        Analyzer::instance::successful_dht_search(pkt.uid)
+    def dht_response(uid, peer_nid)
+      log {"DHT got a query response..."}
+      if @local_queries[uid] == false
+        Analyzer::instance::successful_dht_search(uid)
       end
-      @local_queries[pkt.uid] = true
+      @local_queries[uid] = true
     end
   end
 end

@@ -1,11 +1,11 @@
-$LOAD_PATH.unshift(File.expand_path(File.dirname(__FILE__)))
+$LOAD_PATH.unshift("/home/rosejn/projects/gosim/lib")
 
 #require 'breakpoint'  # Fixin' up
 require 'benchmark'    # Checkin out
 #require 'profile'     # Speedin' up
 
 # Libraries that should be installed.
-require 'rubygems'
+#require 'rubygems'
 require 'gosim'
 require 'zlib'
 
