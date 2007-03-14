@@ -14,6 +14,8 @@ module Spinneret
       lt = c.link_table = OpenStruct.new
       lt.max_peers = 15
       lt.address_space = 10000
+      lt.distance_func = nil  #set by simulation after final address space 
+                              #is known
 
       # Analyzer
       an = c.analyzer = OpenStruct.new

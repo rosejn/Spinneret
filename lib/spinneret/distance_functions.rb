@@ -3,7 +3,8 @@ module DistanceFuncs
   def DistanceFuncs.sym_circular(address_space)
     return Proc.new do | x, y |
       if x >= address_space || y >= address_space
-        raise Exception.new("AddressOutOfRange") 
+        max = [x, y].max
+        raise Exception.new("AddressOutOfRange: #{max} >= #{address_space}") 
       end
 
       d1 = (y - x).abs

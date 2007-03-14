@@ -218,8 +218,17 @@ module Spinneret
 
     def indegree_calc
       nodes_in = Hash.new(0)
+      endpoints = Hash.new { | hash, key | hash[key] = [] }
       @pad.nodes.each do | n |
-        n.link_table.each { | out_e | nodes_in[out_e.nid] += 1 }
+        # count in edges
+        n.link_table.each do | out_e | 
+          nodes_in[out_e.nid] += 1 
+          endpoints[out_e.nid] << n.nid
+        end
+      end
+
+      write_data_file("endpoint_map") do | f |
+        endpoints.each_pair { | nid, edges | f << "#{nid}: #{edges.join(", ")}\n" }
       end
 
       max = nodes_in.values.max
@@ -228,13 +237,6 @@ module Spinneret
       write_data_file("indegree_node") do |f|
         sorted = nodes_in.sort { | p1, p2 | p1[1] <=> p2[1] }
         sorted.each { | x | f.write("#{x[0]} #{x[1]}\n") }
-        if sorted.length > 10
-          sorted[-5..-1].each { | x | @high_indegree[x[0]] += 1 }
-        end
-      end
-
-      write_data_file("high_indegree") do |f|
-        @high_indegree.each { | node, times | f.write("#{node} #{times}\n") }
       end
 
       distrib = Array.new(max + 1, 0)

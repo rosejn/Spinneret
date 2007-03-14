@@ -21,10 +21,6 @@
 #    Set the input workload.  Workloads are generated with 
 #    script/gen_workload.
 #
-# -q filename, --topology filename  (NOT IMPLEMENTED)
-#    Set the input topology.  Only required if the workload does not have node
-#    joins.  Useful for non-bootstrap testing.
-#
 # -l num, --max-length num
 #    The maximum amount of time to allow the simulation to run
 #
@@ -48,16 +44,23 @@
 #    The rate of maintenance.  Defaults to Node::DEFAULT_MAINTENANCE_PERIOD
 #
 # -c time, --converge-quit time
-#    If the network has been converged for greater than time seocnds, stop the
+#    If the network has been converged for greater than time ticks, stop the
 #    simulation.
+#
+# -y time, --analysis-measurement time
+#    The time between runs of the analysis engine.
+#
 
 require 'rdoc/usage'
 
 $:.unshift(File.dirname(__FILE__) + '/../lib')
 
 require 'spinneret'
+require 'English'
+
 require 'util/workload_parser'
-require 'util/graph-rep'
+#require 'util/graph-rep'
+require 'util/spin_sim'
 
 opts = GetoptLong.new(
         ['--help',                   '-h', GetoptLong::NO_ARGUMENT],
@@ -65,24 +68,20 @@ opts = GetoptLong.new(
         ['--converge-quit',          '-c', GetoptLong::REQUIRED_ARGUMENT],
         ['--output-dir',             '-d', GetoptLong::REQUIRED_ARGUMENT],
         ['--workload',               '-w', GetoptLong::REQUIRED_ARGUMENT],
-        ['--topology',               '-q', GetoptLong::REQUIRED_ARGUMENT],
         ['--max-length',             '-l', GetoptLong::REQUIRED_ARGUMENT],
         ['--address-space',          '-a', GetoptLong::REQUIRED_ARGUMENT],
         ['--maintenance',            '-m', GetoptLong::REQUIRED_ARGUMENT],
         ['--maintenance-size',       '-s', GetoptLong::REQUIRED_ARGUMENT],
         ['--maintenance-table-size', '-t', GetoptLong::REQUIRED_ARGUMENT],
-        ['--maintenance-rate',       '-r', GetoptLong::REQUIRED_ARGUMENT] )
+        ['--maintenance-rate',       '-r', GetoptLong::REQUIRED_ARGUMENT],
+        ['--analysis-measurement',   '-y', GetoptLong::REQUIRED_ARGUMENT] )
 
 pad = Scratchpad::instance
+config = Configuration::instance
 
-output_dir = Spinneret::Analyzer::DEFAULT_OUTPUT_PATH
-pad.address_space = sim_length = 0
+sim_length = 0
 converge_quit = -1
 workload = topology = nil
-pad.maint_alg = "Pull"
-pad.maint_size = Spinneret::Node::DEFAULT_MAINTENANCE_SIZE
-pad.maint_tbl_size = Spinneret::Node::DEFAULT_TABLE_SIZE
-pad.maint_rate = Spinneret::Node::DEFAULT_MAINTENANCE_PERIOD
 
 opts.each do | opt, arg |
   case opt
@@ -93,28 +92,26 @@ opts.each do | opt, arg |
   when '--converge-quit'
     converge_quit = arg.to_i
   when '--output-dir'
-    output_dir = arg
+    config.analyzer.output_path = arg
   when '--workload'
     workload = arg
-  when '--topology'
-    topology = arg
   when '--max-length'
     sim_length = arg.to_i
   when '--address-space'
-    pad.address_space = arg.to_i
+    config.link_table.address_sapce = arg.to_i
   when '--maintenance'
-    pad.maint_alg = arg
+    config.node.maintenance_algorithm = arg
   when '--maintenance-size'
-    pad.maint_size = arg.to_i
+    config.node.maintenance_size = arg.to_i
   when '--maintenance-table-size'
-    pad.maint_tbl_size = arg.to_i
+    config.link_table.max_peers = arg.to_i
   when '--maintenance-rate'
-    pad.maint_rate = arg.to_i
+    config.node.maintenance_rate = arg.to_i
   end
 end
 
 if((workload.nil? && topology.nil?) || 
-   (workload.nil? && pad.address_space == 0))
+   (workload.nil? && config.link_table.address_space == 0))
   puts "Not enough arguments:"
   puts "\tPlease specify either --workload and/or --topology"
   puts "\tNote that --topology must be accompanied by --address-space\n\n"
@@ -128,7 +125,6 @@ if(topology)
   exit(0)
 end
 
-node_id_map = {}
 pad.nodes = nodes = []
 
 # make sure the maintenance type is valid
@@ -138,107 +134,34 @@ def maintenance_help
   puts "Note that capitalization *is* important."
 end
 
-if pad.maint_alg == "help"
+if config.node.maintenance_algorithm == "help"
   maintenance_help(); 
   exit(0) 
 end
 
 # Upcap the first character, but do not lower case the others like .capitalize
 # would
-maintenance = (pad.maint_alg[0].chr.upcase + pad.maint_alg[1..-1]).to_sym
-if !Spinneret::Maintenance.const_defined?(pad.maint_alg)
-  puts "Invalid maintenance type \'#{pad.maint_alg.to_s}\'."
-  maintenance_help()
-  exit(1)
-else
-  maintenance = Spinneret::Maintenance.const_get(pad.maint_alg)
+if config.node.maintenance_algorithm.class != Module
+  m = config.node.maintenance_algorithm
+  m = (m[0].chr.upcase + m[1..-1]).to_sym
+  if !Spinneret::Maintenance.const_defined?(m)
+    puts "Invalid maintenance type \'#{m.to_s}\'."
+    maintenance_help()
+    exit(1)
+  else
+    config.node.maintenance_algorithm = Spinneret::Maintenance.const_get(m)
+  end
 end
 
 GoSim::Net::Topology::instance.setup(100)  # Mean latency 
 
-#if topology
-#  dist_func = DistanceFuncs::sym_circular(addr_space)
-#  rt_tbls = LogRandRouteTableParser.new(File.new(topology, "r"), nil, 
-#                                        dist_func)
-#  nodes = rt_tbls.get_nodes()
-#  nodes.each do | n | 
-#    peer = node_id_map[nodes[rand(nodes.length)]]
-#    if(!peer.nil?)
-#      n = Spinneret::Node.new(n, peer, dist_func, addr_space)
-#    else
-#      n = Spinneret::Node.new(n, nil, dist_func, addr_space)
-#    end
-#    node_id_map[n] = n.sid
-#    nodes << n
-#  end
-#end
+Spinneret::Analyzer::instance.enable # Add the Analysis generation
 
-if workload
-  generators = {}
-  wl_settings = nil
-  dist_func = nil
-  generators[:init] = Proc.new do | opts | 
-    nid = opts.to_i
-    rand_node = pad.nodes.rand
-    peer = nil
-    if !rand_node.nil?
-      peer = Spinneret::Peer.new(rand_node.addr, rand_node.nid) 
-    end
-    n = Spinneret::Node.new(nid, {:maintenance => maintenance,
-                                  :maintenance_size => pad.maint_size,
-                                  :maintenance_rate => pad.maint_rate,
-                                  :max_peers => pad.maint_tbl_size,
-                                  :start_peer => peer,
-                                  :distance_func => dist_func,
-                                  :address_space => pad.address_space})
-    pad.nodes << n
-    n
-  end
-
-  wl_settings = WorkloadParser.new(workload, generators, node_id_map)
-  pad.address_space = wl_settings.addr_space.to_i
-  dist_func = DistanceFuncs::sym_circular(pad.address_space)
-end
-
-class ConvergeHandler
-  include GoSim::Base
-
-  def initialize(time)
-    @converge_time = time
-    @sim = GoSim::Simulation.instance
-  end
-
-  def handle
-    return nil  if @converge_time == -1
-
-    a = Spinneret::Analyzer.instance
-    time = @sim.time
-
-    if a.network_converged?
-      log "Converged"
-      @start ||= time
-      if(time - @start  >= @converge_time)
-        log "Quiting due to convergence.\n"
-        @sim.stop
-      end
-    else
-      @start = nil
-    end
-  end
-end
-
-# Add the Analysis generation
-conv = ConvergeHandler.new(converge_quit)
-Spinneret::Analyzer::instance.setup(:output_path => output_dir,
-                                    :stability_handler => conv.method(:handle))
-
-puts "Beginning simulation...\n"
-puts pad
-if(sim_length != 0)
-  GoSim::Simulation.run(sim_length)
-elsif(wl_settings.sim_length != 0)
-  GoSim::Simulation.run(wl_settings.sim_length.to_i)
+Spin::Simulation::instance.setup(workload, sim_length, converge_quit)
+if(__FILE__ != $PROGRAM_NAME)
+  # Do stuff for goviz version
+  require 'util/spin_viz'
 else
-  GoSim::Simulation.run() 
+  Spin::Simulation::instance.run
 end
 
