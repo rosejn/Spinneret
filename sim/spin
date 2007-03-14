@@ -59,8 +59,9 @@ require 'spinneret'
 require 'English'
 
 require 'util/workload_parser'
-#require 'util/graph-rep'
 require 'util/spin_sim'
+
+srand 0
 
 opts = GetoptLong.new(
         ['--help',                   '-h', GetoptLong::NO_ARGUMENT],
@@ -152,6 +153,12 @@ if config.node.maintenance_algorithm.class != Module
     config.node.maintenance_algorithm = Spinneret::Maintenance.const_get(m)
   end
 end
+
+Signal.trap("SIGINT") {
+  puts "Quiting"
+  GoSim::DataSet::close()
+  exit
+}
 
 Spinneret::Analyzer::instance.enable # Add the Analysis generation
 

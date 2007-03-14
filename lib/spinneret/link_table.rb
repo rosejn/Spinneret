@@ -190,6 +190,7 @@ module Spinneret
         @table_lock.synchronize do
           @nid_peers[peer.nid] = peer
 
+          GoSim::Data::DataSet[:link].log(:add, @nid, peer.nid)
           trim if @nid_peers.size > @config.max_peers
         end
       end
@@ -202,6 +203,7 @@ module Spinneret
     # [*id*] The id of the peer to be removed
     def remove_peer(id)
       @table_lock.synchronize { @nid_peers.delete(id) }
+      GoSim::Data::DataSet[:link].log(:remove, @nid, id)
     end
 
     # Array of peers sorted by distance from me.
@@ -258,7 +260,10 @@ module Spinneret
     #
     # NOTE: This method is not threadsafe
     def trim
-      @nid_peers.delete(find_smallest_dist)
+      smallest = find_smallest_dist
+
+      GoSim::Data::DataSet[:link].log(:remove, @nid, smallest)
+      @nid_peers.delete(smallest)
     end
 
     public

@@ -102,28 +102,6 @@ DEFAULT_STATIC_FAILURE = "0:0.0"
 
 # These methods can take a filename
 
-class WLPrinter
-  include Singleton
-
-  def init(sim, file)
-    @sim = sim
-    @last_time = -1
-    @file = file
-  end
-
-  def printf(fmt_str, *args)
-    if(@sim.time > @last_time)
-      @last_time = @sim.time
-      @file.write("time #{@sim.time}\n")
-    end
-
-    @file.write(sprintf(fmt_str, *args))
-  end
-
-  def flush()
-    @file.close()
-  end
-end
 
 class Killer < GoSim::Entity
   def initialize(end_time)
@@ -133,7 +111,7 @@ class Killer < GoSim::Entity
   end
 
   def handle_die(e)
-    WLPrinter.instance.flush()
+    GoSim::WLWriter.instance.flush()
     exit(0)
   end
 end
@@ -259,7 +237,6 @@ opts.each do | opt, arg |
 end
 
 if(settings.addr_space == 0)
-  p settings
   printf("Need to specify at least --address-space.\n")
   exit(0)
 end
@@ -289,11 +266,9 @@ file.write(settings)
 file.write("# num_nodes: #{nodes}\n")
 file.write("# sim_length: #{length}\n")
 
-puts settings
-
 settings.search_types = parse_search_types(settings.search_types)
 
-WLPrinter.instance.init(GoSim::Simulation.instance, file)
+GoSim::WLWriter.instance.init(file)
 
 GSL::Rng.env_setup
 $R = GSL::Rng.alloc("mt19937")
@@ -319,7 +294,7 @@ class NodeFactory < GoSim::Entity
     @num_nodes = -1  if @num_nodes == 0   # Generating an inifinite number
 
     NodeList.instance.nodes = []
-    @wl = WLPrinter.instance
+    @wl = GoSim::WLWriter.instance
     @node_ids = []
 
     @sim.schedule_event(:node_gen, @sid, 
@@ -366,7 +341,7 @@ class NodeObj < GoSim::Entity
     @id, @settings = id, settings
     @left = false
     
-    @wl = WLPrinter.instance
+    @wl = GoSim::WLWriter.instance
 
     if @settings.mft != 0 
       @sim.schedule_event(:failure, @sid, 
@@ -425,4 +400,4 @@ if length != 0
 else
   GoSim::Simulation.run()
 end
-WLPrinter.instance.flush()
+GoSim::WLWriter.instance.flush()

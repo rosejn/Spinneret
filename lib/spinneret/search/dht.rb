@@ -12,13 +12,17 @@ module Search
 
   module DHT
     def search_dht(dest_addr)
+      GoSim::Data::DataSet[:dht_search].log(:new, @uid, dest_addr, nil, @nid)
       dht_query(SearchBase::get_new_uid, dest_addr.to_i) 
     end
 
     # Do a logarithmic query where at each hop we jump to the closest node
     # possible in the current link table.
-    def dht_query(uid, query, src_addr = @addr, ttl = DHT_TTL)
-      log {"node: #{@nid} - dht_query( q = #{query})"}
+    def dht_query(uid, query, src_addr = @addr, immed_src = nil, ttl = DHT_TTL)
+      log "node: #{@nid} - dht_query( q = #{query})"
+      if !immed_src.nil?
+        GoSim::Data::DataSet[:dht_search].log(:update, @uid, query, immed_src, @nid) 
+      end
 
       # Are we a local query?
       if(src_addr == @addr)
