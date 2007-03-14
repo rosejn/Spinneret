@@ -153,8 +153,6 @@ if config.node.maintenance_algorithm.class != Module
   end
 end
 
-GoSim::Net::Topology::instance.setup(100)  # Mean latency 
-
 Spinneret::Analyzer::instance.enable # Add the Analysis generation
 
 Spin::Simulation::instance.setup(workload, sim_length, converge_quit)

@@ -15,7 +15,7 @@ class WorkloadParser < GoSim::Entity
     @file = Zlib::GzipReader.open(filename)
 
     #@sim.schedule_event(:parse, @sid, 0, nil)
-    handle_parse(nil)  # parse up to first time event
+    parse(nil)  # parse up to first time event
   end
 
   COMMENT_RE = /#(.*)/
@@ -23,7 +23,7 @@ class WorkloadParser < GoSim::Entity
   TIME_RE    = /time (\d+)/
   INST_RE    = /(\d+) (\w+)(.*)/
 
-  def handle_parse(e)
+  def parse(e)
     while(1)
       case @file.readline
       when COMMENT_RE

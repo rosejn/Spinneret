@@ -5,7 +5,7 @@ require 'benchmark'    # Checkin out
 #require 'profile'     # Speedin' up
 
 # Libraries that should be installed.
-#require 'rubygems'
+require 'rubygems'
 require 'gosim'
 require 'zlib'
 

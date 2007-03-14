@@ -6,18 +6,16 @@ module Maintenance
     NUM_NEIGHBOR_REQUESTS = 1
 
     def do_maintenance
-      peers = @link_table.random_peers(@config.maintenance_size)
+      addrs = @link_table.random_peers(@config.maintenance_size).map {|p| p.addr}
       send_peers = @link_table.random_peers(NUM_NEIGHBOR_REQUESTS)
-      send_packet(:neighbor_push, send_peers.map{ | p | p.addr },
-                  NeighborPush.new(@addr, @nid, peers))
+      send_peers.each do |peer|
+        peer.neighbor_push(@addr, @nid, addrs)
+      end
     end
 
-    def handle_neighbor_push(pkt)
-      pkt.neighbors.each { | n | @link_table.store_peer(n)}
-      @link_table.store_peer(Peer.new(pkt.src, pkt.nid))
+    def neighbor_push(src_addr, src_nid, addrs)
+      addrs.push(src_addr).each {|addr| @link_table.store_peer(addr)}
     end
-
   end
-
 end
 end
