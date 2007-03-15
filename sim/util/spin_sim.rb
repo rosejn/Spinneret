@@ -44,13 +44,13 @@ module Spin
       @generators[:init] = Proc.new do | opts | 
         nid = opts.to_i
         rand_node = @pad.nodes.rand
-        peer = nil
+        peer_addr = nil
         if !rand_node.nil?
-          peer = Spinneret::Peer.new(rand_node.addr, rand_node.nid) 
+          peer_addr = rand_node.addr
         end
 
         # Create
-        @pad.nodes << Spinneret::Node.new(nid, peer)
+        @pad.nodes << Spinneret::Node.new(nid, peer_addr)
         @pad.nodes.last
       end
 

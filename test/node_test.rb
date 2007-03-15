@@ -6,20 +6,6 @@ require 'spinneret'
 require 'rubygems'
 require 'gosim'
 
-class FailNode < Spinneret::Node
-  def initialize(nid, start_peer = nil)
-    super
-    
-    @failed_packets = 0
-  end
-
-  def handle_failed_packet(pkt)
-    @failed_packets += 1
-
-    log "failed packet: #{pkt.inspect}"
-  end
-end
-
 class TestNode < Test::Unit::TestCase
   
   include Spinneret
@@ -49,7 +35,7 @@ class TestNode < Test::Unit::TestCase
   end
 
   def test_failure
-    @sim.quiet
+    @sim.verbose
     nodes = []
     nodes[0] = Node.new(0) 
     
