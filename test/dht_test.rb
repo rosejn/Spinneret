@@ -40,7 +40,6 @@ class TestDHT < Test::Unit::TestCase
   end
 
   def teardown
-    puts "teardown"
     @sim.reset
   end
 

@@ -164,6 +164,7 @@ module Spinneret
     # [*peer*] The peer to add to the table
     def store_peer(peer_addr)
       return nil if peer_addr == @node.addr # Don't store ourself
+#      return nil if @nid == @node.nid # Don't store ourself
 
       peer = Peer.new(@node, peer_addr)
       return nil if peer.nid.nil?

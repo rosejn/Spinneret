@@ -154,17 +154,20 @@ if config.node.maintenance_algorithm.class != Module
   end
 end
 
-Signal.trap("SIGINT") {
-  puts "Quiting"
-  GoSim::DataSet::close()
-  exit
-}
+["SIGINT", "TERM"].each do | sig |
+  Signal.trap(sig) {
+    puts "Quiting"
+    GoSim::Data::DataSetWriter.instance.close()
+    exit
+  }
+end
 
 Spinneret::Analyzer::instance.enable # Add the Analysis generation
-
 Spin::Simulation::instance.setup(workload, sim_length, converge_quit)
+
 if(__FILE__ != $PROGRAM_NAME)
-  # Do stuff for goviz version
+  # Do stuff for goviz version - this activates the simulation seperately,
+  # intigrating with the GTK mainloop
   require 'util/spin_viz'
 else
   Spin::Simulation::instance.run
