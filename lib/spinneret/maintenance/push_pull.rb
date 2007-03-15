@@ -20,6 +20,7 @@ module Maintenance
     end
 
     def neighbor_request(src_addr, peers)
+      log {"#{@nid} - got neighbor request from #{src_addr}"}
       @link_table.store_peer(src_addr)
       @link_table.random_peers(@config.maintenance_size / 2).map {|p| p.addr }
     end

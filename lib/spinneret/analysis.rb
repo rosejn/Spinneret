@@ -152,7 +152,8 @@ module Spinneret
         end
       end
       
-      log "#{num_converged} nodes converged."
+      #log {"#{num_converged} nodes converged."}
+      puts "#{num_converged} nodes converged."
 
       return converged
     end

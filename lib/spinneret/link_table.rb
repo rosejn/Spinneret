@@ -163,6 +163,7 @@ module Spinneret
     #
     # [*peer*] The peer to add to the table
     def store_peer(peer_addr)
+      log {"storing #{peer_addr} at node #{@node.addr}"}
       return nil if peer_addr == @node.addr # Don't store ourself
 
       peer = Peer.new(@node, peer_addr)
@@ -184,6 +185,9 @@ module Spinneret
             raise Exception.new("DistanceNotPositive")
           end
         rescue Exception => e
+          puts "#{@node.addr - @nid}:Could not compute distance from ourself(#{@nid}) to (#{peer.nid})"
+          puts "Peer-> #{peer.inspect}" 
+          puts "Self-> #{self.inspect}"
           raise e
         end
 
@@ -287,6 +291,7 @@ module Spinneret
     end
 
     def normal_fit
+      log {"#{@nid} - normal_fit size=#{size}"}
       sorted_peers = peers_by_distance()
 
       samples = []

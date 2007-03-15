@@ -45,7 +45,7 @@ class TestDHT < Test::Unit::TestCase
   end
 
   def test_dht_query
-    #@sim.verbose
+    @sim.verbose
 
     nodes = []
 
