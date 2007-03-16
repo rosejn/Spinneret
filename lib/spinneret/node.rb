@@ -19,16 +19,13 @@ module Spinneret
 
       extend(@config.maintenance_algorithm)
 
+      @nid = nid || @link_table.random_id
       @link_table = LinkTable.new(self)
-      @nid = nid || @link_table.nid
 
       log {"#{@nid} - using #{@config.maintenance_algorithm.to_s}"}
 
-      if @nid == 28651
-        puts "FOUND: #{@nid} -> #{@addr}"
-      end
-
       # Log
+      #puts "New Node #{@nid}"
       GoSim::Data::DataSet[:node].log(:new, @nid, @addr)
       
       if @start_peer_addr

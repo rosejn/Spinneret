@@ -35,7 +35,7 @@ class TestNode < Test::Unit::TestCase
   end
 
   def test_failure
-    @sim.verbose
+#    @sim.verbose
     nodes = []
     nodes[0] = Node.new(0) 
     

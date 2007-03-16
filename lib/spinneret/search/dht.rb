@@ -44,7 +44,7 @@ module Search
 
         if closer?(query, closest) # Jump
           log {"#{@nid} - dht query: #{query} to dest: #{closest.nid}"}
-          closest.dht_query(uid, query, src_addr, ttl)
+          closest.dht_query(uid, query, src_addr, @nid, ttl)
           
         # Start the burst query
         else 

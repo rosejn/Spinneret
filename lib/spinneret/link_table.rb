@@ -19,7 +19,7 @@ module Spinneret
       @config = Configuration.instance.link_table
 
       @node = node
-      @nid = @node.nid || random_id 
+      @nid = @node.nid
       @sim = GoSim::Simulation.instance
       @last_modified = 0
 
@@ -93,12 +93,13 @@ module Spinneret
       smallest = find_smallest_dist()
       (peers.length - 1).times do | idx | 
         str += RED  if peers[idx].nid == smallest
-      str += peers[idx].nid.to_s
-      str += CLEAR  if peers[idx].nid == smallest
-      str += " <-- " +
-        sprintf("%.3f", (peers[idx + 1].distance - peers[idx].distance)) + " --> "
+        str += peers[idx].nid.to_s
+        str += CLEAR  if peers[idx].nid == smallest
+        str += " <-- " +
+               sprintf("%.3f", (peers[idx + 1].distance - peers[idx].distance)) + " --> "
       end
       str += peers[peers.length - 1].nid.to_s
+
       return str
     end
 
@@ -186,9 +187,9 @@ module Spinneret
             raise Exception.new("DistanceNotPositive")
           end
         rescue Exception => e
-          puts "#{@node.addr - @nid}:Could not compute distance from ourself(#{@nid}) to (#{peer.nid})"
-          puts "Peer-> #{peer.inspect}" 
-          puts "Self-> #{self.inspect}"
+          #puts "#{@node.addr - @nid}:Could not compute distance from ourself(#{@nid}) to (#{peer.nid})"
+          #puts "Peer-> #{peer.inspect}" 
+          #puts "Self-> #{self.inspect}"
           raise e
         end
 

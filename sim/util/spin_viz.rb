@@ -336,17 +336,12 @@ module Spin
             @selected ? deselect : select
           end
         end
-
-        puts "Added Node"
       end
 
       def add_link(dest_nid)
-        puts "dest id #{dest_nid}"
         dest = [@@nodes[dest_nid].x + SIZE/2, @@nodes[dest_nid].y + SIZE/2]
         @links[dest_nid] = Arc.new(@manager, [@x + SIZE/2, @y + SIZE/2], dest, "Red")
         @links[dest_nid].hide if !@selected
-
-        puts "Added Link"
       end
 
       def remove_link(dest_nid)
