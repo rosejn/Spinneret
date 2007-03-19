@@ -25,11 +25,35 @@ module Spin
         GoSim::Data::DataSet.add_handler(:link, &method(:handle_link_update))
         GoSim::Data::DataSet.add_handler(:dht_search, 
                                          &method(:handle_dht_search_update))
+        GoSim::Data::DataSet.add_handler(:converge_measure,
+                                         &method(:handle_converge_update))
+
+        #Setup data view
+        @data_treeview = @view.data
+        data_model = Gtk::ListStore.new(String, Integer)
+        convergence = data_model.append
+        convergence[0] = "convergence"
+        convergence[1] = 0
+        text_renderer = Gtk::CellRendererText.new
+#        text_renderer.foreground = "Red"
+        text_renderer.scale = 2
+        @data_treeview.append_column(Gtk::TreeViewColumn.new("Field",
+                                                      text_renderer,
+                                                      {:text => 0}))
+        @data_treeview.append_column(Gtk::TreeViewColumn.new("Value",
+                                                      text_renderer,
+                                                      {:text => 1}))
+        @data_treeview.model = data_model
+
 
         # Add custom controls
-        edge_toggle = Gtk::Button.new("Toggle Nodes")
+        edge_toggle = Gtk::ToggleButton.new("Toggle Nodes")
         edge_toggle.signal_connect("clicked") do
-          @nodes.values.each { | n | n.select }
+          if edge_toggle.active?
+            @nodes.values.each { | n | n.select }
+          else
+            @nodes.values.each { | n | n.deselect }
+          end
         end
 
         scrolled_win = Gtk::ScrolledWindow.new
@@ -40,12 +64,15 @@ module Spin
                                          Gtk::CellRendererText.new, {:text => 0})
         @treeview = Gtk::TreeView.new(@model)
         @treeview.append_column(column)
-        @treeview.selection.set_mode(Gtk::SELECTION_MULTIPLE)
+#        @treeview.selection.set_mode(Gtk::SELECTION_SINGLE)
         scrolled_win.add_with_viewport(@treeview)
+        @cur_selected = nil
         
         @treeview.selection.signal_connect("changed") do | selection |
+          hide_search(@cur_selected)  if !@cur_selected.nil?
           selection.selected_each do | model, path, iter |
-            show_search(iter.get_value(SEARCHES))
+            @cur_selected = iter.get_value(SEARCHES)
+            show_search(@cur_selected)
           end
         end
 
@@ -65,6 +92,10 @@ module Spin
         @queries[id].hide
       end
 
+      def handle_converge_update(status, value)
+        @data_treeview.model.iter_first.set_value(1, value)
+      end
+
       def handle_dht_search_update(status, uid, id, prev_nid, cur_nid)
         sid = "DHT #{id.to_s}"
 
@@ -82,7 +113,8 @@ module Spin
         case status
         when :new
           @nodes[nid] = Node.new(self, nid)
-          # add node
+        when :failure
+          @nodes[nid].fail
         end
       end
 
@@ -123,16 +155,16 @@ module Spin
 
         if !src.nil?
           n1 = @manager.nodes[src]  
-          p1 = [n1.x + Node::SIZE/2, n1.y + Node::SIZE/2]
+          p1 = [n1.x + n1.width/2, n1.y + n1.height/2]
           @pts << p1
         end
 
         n2 = @manager.nodes[dest]
-        p2 = [n2.x + Node::SIZE/2, n2.y + Node::SIZE/2]
+        p2 = [n2.x + n2.width/2, n2.y + n2.height/2]
         @pts << p2
 
         if @pts.length > 1
-          @paths << Arc.new(@manager, @pts[-2], @pts[-1], "Gold")
+          @paths << Arc.new(@manager, @pts[-2], @pts[-1], "Gold", 2)
           @paths.last.hide  if !@shown
         end
       end
@@ -268,7 +300,7 @@ module Spin
     class Node < Gnome::CanvasGroup
       include VizComponent
 
-      SIZE = 10
+      REPS = ["img/phone.png", "img/laptop.png"]
 
       NODE_FILL = 'DeepSkyBlue'
       NODE_SELECTED_FILL = 'Green'
@@ -278,7 +310,7 @@ module Spin
       BOX_FILL = 'black'
       BOX_OUTLINE = 'darkgray'
 
-      attr_reader :x, :y, :edges
+      attr_reader :x, :y, :edges, :height, :width
 
       @@nodes = {}
 
@@ -299,37 +331,52 @@ module Spin
 
         @@nodes[id] = self
 
-        @edges = []
         @view = GoSim::View.instance
 
         pos(id)
 
         super(@map.root, :x => @x, :y => @y) 
-        @circle = Gnome::CanvasEllipse.new(self, 
-              :fill_color => NODE_FILL, :outline_color => NODE_OUTLINE, 
-              :x1 => 0, :x2 => SIZE,
-              :y1 => 0, :y2 => SIZE)
+#        @size = 10
+#        @circle = Gnome::CanvasEllipse.new(self, 
+#              :fill_color => NODE_FILL, :outline_color => NODE_OUTLINE, 
+#              :x1 => 0, :x2 => @size,
+#              :y1 => 0, :y2 => @size)
 
-        mid = SIZE / 2
+
+        @@last_rep ||= 0
+        #im = Gdk::Pixbuf.new(REPS[rand(REPS.length)])
+        im = Gdk::Pixbuf.new(REPS[@@last_rep])
+        @@last_rep = (@@last_rep + 1) % REPS.length
+        @width = im.width
+        @height = im.height
+        image = Gnome::CanvasPixbuf.new(self,
+                                      :pixbuf => im,
+                                      :x => 0,
+                                      :y => 0,
+                                      :width => im.width,
+                                      :height => im.height,
+                                      :anchor => Gtk::ANCHOR_NORTH_WEST)
+        
+
+        mid = @width / 2
         @label = Gnome::CanvasText.new(self, 
-                                       :x => mid, :y => SIZE + 2, 
+                                       :x => mid, :y => @height + 2, 
                                        :fill_color => LABEL_FILL,
                                        :anchor => Gtk::ANCHOR_NORTH,
                                        :size_points => 8,
                                        :text => "#{@id.to_s}")# (#{@neighbor_locs.size})")
-#        @label.hide
-        @label.text_width
         w = @label.text_width
-        @box = Gnome::CanvasRect.new(self, :x1 => mid - (w / 2 + 4), :y1 => SIZE + 2,
+        @box = Gnome::CanvasRect.new(self, :x1 => mid - (w / 2 + 4), :y1 => @height + 2,
                                 :x2 => mid + w / 2 + 4,  
-                                :y2 => SIZE + @label.text_height + 2,
+                                :y2 => @height + @label.text_height + 2,
                                 :fill_color => BOX_FILL,
-                                :outline_color => BOX_OUTLINE) 
+                                :outline_color => BOX_FILL)
         @box.raise_to_top
         @label.raise_to_top
-        @box.hide
+        @box.show
 
         @selected = false
+        @failed = false
 
         signal_connect("event") do | item, event |
           if event.event_type == Gdk::Event::BUTTON_PRESS && event.button == 1
@@ -339,9 +386,13 @@ module Spin
       end
 
       def add_link(dest_nid)
-        dest = [@@nodes[dest_nid].x + SIZE/2, @@nodes[dest_nid].y + SIZE/2]
-        @links[dest_nid] = Arc.new(@manager, [@x + SIZE/2, @y + SIZE/2], dest, "Red")
-        @links[dest_nid].hide if !@selected
+        dest_node = @@nodes[dest_nid]
+        dest = [dest_node.x + dest_node.width/2, dest_node.y + dest_node.height/2]
+
+        link = Arc.new(@manager, [@x + @width/2, @y + @height/2], dest, "Red", 3)
+        link.lower_to_bottom.raise(1)
+        link.hide if !@selected
+        @links[dest_nid] = link
       end
 
       def remove_link(dest_nid)
@@ -360,22 +411,32 @@ module Spin
       def select
         raise_to_top
         @selected = true
-        @circle.set(:fill_color => NODE_SELECTED_FILL)
+        #@circle.set(:fill_color => NODE_SELECTED_FILL)
         @label.show
-        @box.show
-        @links.each_value { | l | l.show }
-#        @view.set_data([["foo", "bar", 2]], ["c1", "c2", "c3"])
-        @edges.each {|e| e.show }
+#        @box.show
+        @box.set(:outline_color => BOX_OUTLINE)
+        @links.each_value { | l | l.show }  if !@failed
       end
 
       def deselect
         @selected = false
-        @circle.set(:fill_color => NODE_FILL)
+        #@circle.set(:fill_color => NODE_FILL)
         #@label.hide
-        @box.hide
+#        @box.hide
+        @box.set(:outline_color => BOX_FILL)
         @links.each_value { | l  | l.hide }
-        #@view.clear_data
-        @edges.each {|e| e.hide }
+      end
+
+      def fail
+        @failed = true
+
+        Gnome::CanvasLine.new(self, :points => [[0,0], [@width, @height]],
+                              :fill_color => "Red",
+                              :width_units => 2)
+        Gnome::CanvasLine.new(self, :points => [[@width,0], [0, @height]],
+                              :fill_color => "Red",
+                              :width_units => 2)
+        @links.each_value { | l  | l.hide }
       end
 
 =begin

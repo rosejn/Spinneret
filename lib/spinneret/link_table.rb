@@ -293,7 +293,6 @@ module Spinneret
     end
 
     def normal_fit
-      log {"#{@nid} - normal_fit size=#{size}"}
       sorted_peers = peers_by_distance()
 
       samples = []

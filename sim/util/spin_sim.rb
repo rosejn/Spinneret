@@ -37,6 +37,7 @@ module Spin
       GoSim::Data::DataSet.new(:node)
       GoSim::Data::DataSet.new(:link)
       GoSim::Data::DataSet.new(:dht_search)
+      GoSim::Data::DataSet.new(:converge_measure)
       GoSim::Data::DataSetWriter.instance.set_output_file("trace.gz")
       GoSim::Data::DataSetWriter.instance.add_view_mod("spin_viz")
 

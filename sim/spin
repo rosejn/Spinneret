@@ -108,6 +108,8 @@ opts.each do | opt, arg |
     config.link_table.max_peers = arg.to_i
   when '--maintenance-rate'
     config.node.maintenance_rate = arg.to_i
+  when '--analysis-measurement'
+    config.analyzer.measurement_period = arg.to_i
   end
 end
 

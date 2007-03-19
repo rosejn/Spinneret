@@ -5,9 +5,9 @@ module Search
   DHTResponse = SearchBase.new(:src_addr, :src_id, :ttl)
 
   DHT_TTL          = 20
-  DHT_BURST_TTL    = 4
+  DHT_BURST_TTL    = 2
   DHT_BURST_SIZE   = 4
-  DHT_BURST_CHANCE = 0.7
+  DHT_BURST_CHANCE = 0.75
   DHT_QUERY_TIMEOUT = 30000
 
   module DHT
@@ -48,15 +48,17 @@ module Search
           
         # Start the burst query
         else 
-          dht_burst_query(uid, query, src_addr, DHT_BURST_TTL)
+          dht_burst_query(uid, query, src_addr, immed_src, DHT_BURST_TTL)
         end
       end
     end
 
     # Do a localized, probabalistic burst flood to get over local minima close
     # to the query target.
-    def dht_burst_query(uid, query, src_addr, ttl)
+    def dht_burst_query(uid, query, src_addr, immed_src, ttl)
       log {"node: #{@nid} - dht_burst_query( q = #{query})"}
+
+      GoSim::Data::DataSet[:dht_search].log(:update, @uid, query, immed_src, @nid) 
 
       unless us_or_dead?(uid, query, src_addr, ttl)
         peers = @link_table.closest_peers(query, DHT_BURST_SIZE)
@@ -70,7 +72,7 @@ module Search
           dest = @link_table.get_peer(query)
 
           log {"#{@nid} - dht direct burst query: #{query} to dest: #{query}"}
-          dest.dht_burst_query(uid, query, src_addr, ttl - 1)
+          dest.dht_burst_query(uid, query, src_addr, @nid, ttl - 1)
 
         # Otherwise we follow the burst chance
         else
@@ -81,7 +83,7 @@ module Search
           return if peers.empty?
 
           log {"#{@nid} - dht burst query: #{query} to dest: #{peers.map {|p| p.nid }.join(', ')}"}
-          peers.each {|p| p.dht_burst_query(uid, query, src_addr, ttl - 1) }
+          peers.each {|p| p.dht_burst_query(uid, query, src_addr, @nid, ttl - 1) }
         end
       end
     end

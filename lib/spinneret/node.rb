@@ -54,7 +54,13 @@ module Spinneret
       "#<Spinneret::Node #{to_s}"
     end
 
+    def failure(arg)
+      alive(false)
+      GoSim::Data::DataSet[:node].log(:failure, @nid)
+    end
+
     def handle_failed_packet(pkt)
+      puts "Node #{nid}: got failed packet! #{pkt.inspect}"
       log {"Node #{nid}: got failed packet! #{pkt.inspect}"}
     end
   end
