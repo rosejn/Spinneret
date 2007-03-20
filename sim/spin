@@ -175,3 +175,5 @@ else
   Spin::Simulation::instance.run
 end
 
+GoSim::Data::DataSetWriter.instance.close
+

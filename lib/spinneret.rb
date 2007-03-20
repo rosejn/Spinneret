@@ -73,5 +73,3 @@ require 'spinneret/node'
 require 'spinneret/analysis'
 require 'spinneret/distance_functions'
 require 'spinneret/scratchpad'
-#require 'spinneret/idealized_link_table'
-

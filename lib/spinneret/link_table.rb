@@ -27,6 +27,8 @@ module Spinneret
 
       @table_lock = Monitor.new
       @nid_peers = {}
+
+      @peer_factory = PeerFactory.new(nil, method(:errback_node_removal))
     end
 
     # Remove all peers from the link table
@@ -168,7 +170,7 @@ module Spinneret
       return nil if peer_addr == @node.addr # Don't store ourself
 #      return nil if @nid == @node.nid # Don't store ourself
 
-      peer = Peer.new(@node, peer_addr)
+      peer = @peer_factory.new_peer(@node, peer_addr)
       return nil if peer.nid.nil?
 
       # If we have already heard about this node check and possibly update the timestamp
@@ -210,6 +212,19 @@ module Spinneret
     def remove_peer(id)
       @table_lock.synchronize { @nid_peers.delete(id) }
       GoSim::Data::DataSet[:link].log(:remove, @nid, id)
+    end
+
+    def errback_node_removal(failure)
+      orig_req = failure.result
+
+      @table_lock.synchronize do
+        failed = @nid_peers.find { | key, node | node.addr == orig_req.dest }
+        if failed   # Node may have already been removed
+          failed = failed[1]
+          log { "Failure from nid #{failed.nid}, deleting from table.\n" }
+          remove_peer(failed.nid)
+        end
+      end
     end
 
     # Array of peers sorted by distance from me.
@@ -305,6 +320,20 @@ module Spinneret
       else
         return [0.0, 0.0]
       end
+    end
+  end
+
+  class PeerFactory
+    def initialize(default_cb, default_eb)
+      @cb, @eb = default_cb, default_eb 
+    end
+
+    def new_peer(local_node, remote_addr)
+      p = Peer.new(local_node, remote_addr)
+      p.add_default_callback(@cb)
+      p.add_default_errback(@eb)
+
+      return p
     end
   end
 
