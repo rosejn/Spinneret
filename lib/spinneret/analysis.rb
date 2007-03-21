@@ -152,7 +152,7 @@ module Spinneret
         end
       end
       
-      #log {"#{num_converged} nodes converged."}
+      log {"#{num_converged} nodes converged."}
       #puts "#{num_converged} nodes converged."
       GoSim::Data::DataSet[:converge_measure].log(:update, num_converged)
 

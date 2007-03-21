@@ -109,10 +109,23 @@ module Spin
         @queries[sid].extend_path(prev_nid, cur_nid)
       end
 
+      def repos_nodes
+        n = nodes.to_a.sort { | x, y | x[0] <=> y[0] }.map { | x | x[1] }
+
+        n.each_with_index do | node, idx |
+          pos =  idx / (25 + 1).to_f 
+          rad = (pos * 2 * Math::PI - (Math::PI + Math::PI / 2))
+          x = -1.0 * Math::cos(rad) * 250 + 300
+          y = -1.0 * Math::sin(rad) * 250 + 300
+          node.set_pos(x, y)
+        end
+      end
+
       def handle_node_update(status, nid, *args)
         case status
         when :new
           @nodes[nid] = Node.new(self, nid)
+          #repos_nodes
         when :failure
           @nodes[nid].fail
         end
@@ -319,6 +332,11 @@ module Spin
         rad = (pos * 2 * Math::PI - (Math::PI + Math::PI / 2))
         @x = -1.0 * Math::cos(rad) * 250 + 300
         @y = -1.0 * Math::sin(rad) * 250 + 300
+      end
+
+      def set_pos(x, y)
+        @x, @y = x, y
+        self.set(:x => @x, :y => @y)
       end
 
       def initialize(manager, id)

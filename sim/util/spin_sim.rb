@@ -8,9 +8,15 @@ module Spin
     end
 
     def handle
-      return nil  if @converge_time == -1
-
       a = Spinneret::Analyzer.instance
+
+      if @converge_time == -1
+        # We still need to call network_converged in order for the stats print
+        a.network_converged?
+
+        return nil
+      end
+
       time = @sim.time
 
       if a.network_converged?
