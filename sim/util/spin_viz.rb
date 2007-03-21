@@ -113,7 +113,7 @@ module Spin
         n = nodes.to_a.sort { | x, y | x[0] <=> y[0] }.map { | x | x[1] }
 
         n.each_with_index do | node, idx |
-          pos =  idx / (25 + 1).to_f 
+          pos =  idx / (25).to_f 
           rad = (pos * 2 * Math::PI - (Math::PI + Math::PI / 2))
           x = -1.0 * Math::cos(rad) * 250 + 300
           y = -1.0 * Math::sin(rad) * 250 + 300
@@ -125,7 +125,7 @@ module Spin
         case status
         when :new
           @nodes[nid] = Node.new(self, nid)
-          #repos_nodes
+          repos_nodes
         when :failure
           @nodes[nid].fail
         end
@@ -335,8 +335,9 @@ module Spin
       end
 
       def set_pos(x, y)
+        move(x - @x, y - @y)
+
         @x, @y = x, y
-        self.set(:x => @x, :y => @y)
       end
 
       def initialize(manager, id)
@@ -415,15 +416,6 @@ module Spin
 
       def remove_link(dest_nid)
         @links.delete(dest_nid).hide
-      end
-      
-      def add_query(uid, q)
-        @queries[uid] = DHTQuery.new(@manager, @id, q)
-        @queries[uid].hide  if !@selected
-      end
-
-      def add_query_point(uid, nid)
-        @queries[uid].add_point(nid) 
       end
 
       def select
