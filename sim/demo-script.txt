@@ -1,0 +1,83 @@
+Demo script for PLASTIC review meeting:
+
+- Log into the demo account, start xwindows:
+  startx -- :1
+
+- Open goviz and the demo trace:
+  cd spinneret/sim
+  goviz -t trace.gz
+
+- When goviz opens, one should see the "convergence" field in the data window and the "searches" and "toggle nodes" controls.  The screen should initially be blank.
+
+- Push the "Forward" button.  
+  This will read in the events that declare the nodes existence, therefore triggering them to be drawn to the screen.  All 25 nodes should now be displayed in a circle.  
+
+- Click the "Toggle Nodes" button.
+  This will show all the network links.  Convergence should be at 10. Explain what the convergence number means:
+
+"Convergence measures how many nodes in the network can forward queries in an optimal manner.  In other words, their link tables have both enough nodes and a log-sampling of network.  This allows them to both perform O(log(n)) forwarding and, since individual links are not constrained, efficient random-walks. You will see this number quickly converge to 25, the number of nodes in the network."
+
+- Explain that when you move the simulation forward, the audience will see many links move from crossing the across the hash space to instead link to neighbors.
+
+"As I move the simulation forward, you will see long-distance links change to shorter links to closer nodes.  This is because the maintenance protocol is discovering closer nodes that improve the quality of the log-sampling of the network.  Some long-distance links will, of course, remain, in order that the node can quickly execute greedy routing algorithms."
+
+- Click the "Forward" button twice more, with a small break between each click.
+  The time should now be 6000, and the network will be completely converged (convergence will be 25).
+
+- Click "Play", and explain the following.  Make sure to not run the trace past time 40000.
+
+"The network will now settle down, as most nodes have now discovered an optimal set of nodes in the network."
+
+- Click "Forward"
+  You'll see the addition of a search "DHT 594" in the Searches list under "Controls."
+
+- Untoggle "Toggle Nodes"
+
+- Select nodes 299 and 567 and explain:
+
+"Say the network consists of cellphones and laptops, in a fairly ad-hoc environment with IP routing.  Node 299 needs contextual information about a process its user is performing, so the PLASTIC enabled application calculates the appropriate network identifier, and injects a query into the network."
+
+- Select the search "DHT 594."  Explain:
+
+"The network quickly routes the query greedily towards node 594, which contains the applications needed context information, using the link tables at node 299, and the 567.  Notice that the query takes the largest possible hop first, with each step becoming progressively smaller."
+
+- Control-click the "DHT 594" search to de-select it.
+
+- De-select nodes 299 and 567.
+
+- Select nodes 849 and 92.  Explain:
+
+"Node 849 executes a similar query for data that resides on node 153.  The search will display a similar pattern."
+
+- Click forward 5 more times.
+  The "DHT 153" search will now be displayed in the Searches window.
+
+- Select "DHT 153."
+
+- Explain:
+
+"In the case failure, the P2P substrate quickly corrects link tables, allowing for greedy queries to once again succeed.  For example, node 567, which served as the second hop of the initial query, now fails."
+
+- Un-select the "DHT 153" query by control-clicking the text.  Also un-selected nodes 92 and 849.
+
+- Select node 299 and 567.
+
+- Click the "Forward" button 5 times.
+  The simulation is now at time 62000.  Explain:
+
+"Node 567 has now failed, and its links are no longer available for queries."
+
+- Click the "Forward" button.  Explain:
+
+"Node 299 notices this failure almost immediately, and replaces the failed node with another that maintains the log-distributed sampling of the network.  As I continue to run the network forward in time, 299 will continue to refine its link table until sampling is once again optimal."
+
+- Click the "Forward" button 5 more times.  
+  A second search with the label "DHT 594" will now appear at the bottom of the search list.  You may need to scroll the window to see it.
+
+Explain:
+"You'll notice node 299 resampling the network.  Note that it stays converged the entire time."
+
+- Select the new "DHT 594" search.  Explain:
+
+"We can see a new search for updated context information has used new links to reach it's target successfully."
+

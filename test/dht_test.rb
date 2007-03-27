@@ -10,7 +10,7 @@ class DHTNode < Spinneret::Node
   attr_reader :responses, :packet_counter
 
   # TODO: What do we want to do with search responses?
-  def dht_response(uid, peer_nid)
+  def dht_response(uid, peer_nid, hops)
     log {"node: #{@nid} got response from #{peer_nid}"}
     @responses ||= []
     @responses << peer_nid

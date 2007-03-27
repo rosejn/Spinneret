@@ -30,7 +30,8 @@ module Search
         @local_queries[uid] = false
         set_timeout(DHT_QUERY_TIMEOUT) {
           if @local_queries[uid] == false
-            Analyzer::instance::failed_dht_search(uid)
+            GoSim::Data::EventCast::instance::publish(:dht_search_finish, uid, false, 0)
+#            Analyzer::instance::failed_dht_search(uid)
           end
           @local_queries.delete(uid)
         }
@@ -44,7 +45,7 @@ module Search
 
         if closer?(query, closest) # Jump
           log {"#{@nid} - dht query: #{query} to dest: #{closest.nid}"}
-          closest.dht_query(uid, query, src_addr, @nid, ttl)
+          closest.dht_query(uid, query, src_addr, @nid, ttl - 1)
           
         # Start the burst query
         else 
@@ -93,7 +94,7 @@ module Search
         log {"#{@nid} - query: #{query} successful!"}
         dest = @link_table.get_peer_by_addr(src_addr)
         log {"DHT Search successfull for #{@nid} (#{uid})"}
-        dest.dht_response(uid, @nid)
+        dest.dht_response(uid, @nid, DHT_TTL - ttl)
         true
 
       elsif ttl == 0
@@ -109,10 +110,11 @@ module Search
     end
 
     # TODO: What do we want to do with search responses?
-    def dht_response(uid, peer_nid)
+    def dht_response(uid, peer_nid, ttl)
       log {"DHT got a query response..."}
       if @local_queries[uid] == false
-        Analyzer::instance::successful_dht_search(uid)
+        GoSim::Data::EventCast::instance::publish(:dht_search_finish, uid, true, ttl)
+#        Analyzer::instance::successful_dht_search(uid)
       end
       @local_queries[uid] = true
     end

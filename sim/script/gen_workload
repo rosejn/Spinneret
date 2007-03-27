@@ -100,8 +100,28 @@ require 'zlib'
 DEFAULT_SEARCH_TYPE = "dht:0.5,kwalk:0.5"
 DEFAULT_STATIC_FAILURE = "0:0.0"
 
-# These methods can take a filename
+class WLPrinter
+  include Singleton
 
+  def init(sim, file)
+    @sim = sim
+    @last_time = -1
+    @file = file
+  end
+
+  def printf(fmt_str, *args)
+    if(@sim.time > @last_time)
+      @last_time = @sim.time
+      @file.write("time #{@sim.time}\n")
+    end
+
+    @file.write(sprintf(fmt_str, *args))
+  end
+
+  def flush()
+    @file.close()
+  end
+end
 
 class Killer < GoSim::Entity
   def initialize(end_time)
@@ -110,8 +130,8 @@ class Killer < GoSim::Entity
     @sim.schedule_event(:die, @sid, end_time, nil)
   end
 
-  def handle_die(e)
-    GoSim::WLWriter.instance.flush()
+  def die(e)
+    WLPrinter.instance.flush()
     exit(0)
   end
 end
@@ -268,7 +288,7 @@ file.write("# sim_length: #{length}\n")
 
 settings.search_types = parse_search_types(settings.search_types)
 
-GoSim::WLWriter.instance.init(file)
+WLPrinter.instance.init(GoSim::Simulation::instance, file)
 
 GSL::Rng.env_setup
 $R = GSL::Rng.alloc("mt19937")
@@ -294,14 +314,14 @@ class NodeFactory < GoSim::Entity
     @num_nodes = -1  if @num_nodes == 0   # Generating an inifinite number
 
     NodeList.instance.nodes = []
-    @wl = GoSim::WLWriter.instance
+    @wl = WLPrinter.instance
     @node_ids = []
 
     @sim.schedule_event(:node_gen, @sid, 
                         $R.poisson(@settings.mjt).round, nil)
   end
 
-  def handle_node_gen(e)
+  def node_gen(e)
     nodes = NodeList.instance.nodes
 
     if nodes.length == @settings.addr_space
@@ -341,7 +361,7 @@ class NodeObj < GoSim::Entity
     @id, @settings = id, settings
     @left = false
     
-    @wl = GoSim::WLWriter.instance
+    @wl = WLPrinter.instance
 
     if @settings.mft != 0 
       @sim.schedule_event(:failure, @sid, 
@@ -359,17 +379,17 @@ class NodeObj < GoSim::Entity
     end
   end
 
-  def handle_send(e)
+  def send(e)
     type = choose_search_method(@settings.search_types)
     if(!@left && !type.nil?)
-      @wl.printf("%d search_%s %d\n", @id, type.name, 
-                 NodeList::instance.random_live_node.id)
+      while((id = NodeList::instance.random_live_node.id) == @id); end
+      @wl.printf("%d search_%s %d\n", @id, type.name, id) 
     end
     @sim.schedule_event(:send, @sid, 
                         $R.poisson(@settings.mst).round, nil)
   end
 
-  def handle_failure(e)
+  def failure(e)
     return  if @left == true
 
     @wl.printf("%d failure\n", @id)
@@ -380,13 +400,13 @@ class NodeObj < GoSim::Entity
     end
   end
 
-  def handle_leave(e)
+  def leave(e)
     @wl.printf("%d leave\n", @id)
     @left = true
     NodeList.instance.nodes.delete(self)
   end
   
-  def handle_recover(e)
+  def recover(e)
     @wl.printf("%d recover\n", @id)
     @left = false
     @sim.schedule_event(:failure, @sid, 
@@ -400,4 +420,4 @@ if length != 0
 else
   GoSim::Simulation.run()
 end
-GoSim::WLWriter.instance.flush()
+WLPrinter.instance.flush()

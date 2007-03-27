@@ -139,16 +139,6 @@ module Spin
           @nodes[nid1].remove_link(nid2)
         end
       end
-
-      def handle_dht_update(status, nid, uid, dest, *args)
-        case status
-        when :new
-          @queries[uid] = nid
-          @nodes[nid].add_query(uid, dest)
-        when :update
-          @nodes[@queries[uid]].add_query_point(uid, nid)
-        end
-      end
     end
 
     class DHTQuery < Gnome::CanvasGroup
@@ -328,7 +318,7 @@ module Spin
       @@nodes = {}
 
       def pos(id)
-        pos =  id / 1000.to_f   # Force base lookup in string
+        pos =  id / 1000.to_f
         rad = (pos * 2 * Math::PI - (Math::PI + Math::PI / 2))
         @x = -1.0 * Math::cos(rad) * 250 + 300
         @y = -1.0 * Math::sin(rad) * 250 + 300

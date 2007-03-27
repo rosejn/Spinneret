@@ -17,6 +17,21 @@ module Spinneret
       @config = Configuration.instance
       @pad = Scratchpad::instance
 
+      ecast = GoSim::Data::EventCast.instance
+
+      ecast.add_handler(:dht_search_begin) do | id |
+
+      end
+
+      ecast.add_handler(:dht_search_finish) do | id, state, hops |
+        if state
+          @successful_dht_searches += 1
+          @hops += hops
+        else
+          @failed_dht_searches += 1
+        end
+      end
+
       internal_init
     end
 
@@ -45,6 +60,7 @@ module Spinneret
       #outdegree_calc
       #log "Not connected!\n" if !is_connected?
       #network_converged?
+      search_analysis
 
       @config.analyzer.stability_handler.call()
 
@@ -53,6 +69,7 @@ module Spinneret
       @failed_dht_searches = 0
       @successful_kwalk_searches = 0
       @failed_kwalk_searches = 0
+      @hops = 0
     end
 
     #What happens to @nodes here?  For now the reference better remain the
@@ -75,7 +92,19 @@ module Spinneret
       @failed_dht_searches = 0
       @successful_kwalk_searches = 0
       @failed_kwalk_searches = 0
+      @hops = 0
       setup_rgl_graph
+    end
+
+    def search_analysis
+      append_data_file("hop_average") do | f |
+        if @successful_dht_searches == 0
+          avg = 0
+        else
+          avg = @hops/@successful_dht_searches.to_f
+        end
+        f << "#{@sim.time} #{avg}\n"
+      end
     end
 
     def setup_rgl_graph
