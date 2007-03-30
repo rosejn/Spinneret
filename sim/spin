@@ -52,7 +52,8 @@
 #
 
 require 'rdoc/usage'
-
+require 'rubygems'
+require 'fastthread'
 $:.unshift(File.dirname(__FILE__) + '/../lib')
 
 require 'spinneret'
@@ -165,6 +166,7 @@ end
 end
 
 Spinneret::Analyzer::instance.enable # Add the Analysis generation
+#Spinneret::Analyzer::instance.disable
 Spin::Simulation::instance.setup(workload, sim_length, converge_quit)
 
 if(__FILE__ != $PROGRAM_NAME)
@@ -176,4 +178,5 @@ else
 end
 
 GoSim::Data::DataSetWriter.instance.close
+
 

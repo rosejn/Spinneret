@@ -63,5 +63,9 @@ module Spinneret
       puts "Node #{nid}: got failed packet! #{pkt.inspect}"
       log {"Node #{nid}: got failed packet! #{pkt.inspect}"}
     end
+
+    def id
+      return nid
+    end
   end
 end

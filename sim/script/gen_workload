@@ -49,15 +49,23 @@
 # -t types, --search-types types
 #    Specifies the search types.  Each type is a pair, name:pct, where name
 #    specifies the type and pct the percent of the time it occurs.  Multiple
-#    types can be given if they are seperated with commas:
+#    types can be given if they are separated with commas:
 #        dht:0.2,kwalk:0.8
-#    would create a workoad with 20% DHT searches, and 80% random k-walker
+#    would create a workload with 20% DHT searches, and 80% random k-walker
 #    searches.  Note that the sum of the probabilities must be <= to 1.0.
 #    Defaults to
 #        dht:0.5,kwalk:0.5
 #
+# -c, --converge-before-search
+#    Don't start the searches before converging.  This inserts a non-timed
+#    event, which effectively pauses the trace until maintenance converges the
+#    network.  All timed events after this non-timed event are treated as being
+#    relative to the time of convergence.
+#
+#    Forces -z to true.
+#
 # -f time:pct, --static-failure time:pct
-#    Create a static failire in the network of pct percent nodes at time.  For
+#    Create a static failure in the network of pct percent nodes at time.  For
 #    example:
 #        -f 60000:0.5
 #    would create a static failure of 50% of all nodes at time 60000 (60
@@ -107,15 +115,20 @@ class WLPrinter
     @sim = sim
     @last_time = -1
     @file = file
+    @converge_time = 0
   end
 
   def printf(fmt_str, *args)
     if(@sim.time > @last_time)
       @last_time = @sim.time
-      @file.write("time #{@sim.time}\n")
+      @file.write("time #{@sim.time - @converge_time}\n")
     end
 
     @file.write(sprintf(fmt_str, *args))
+  end
+
+  def set_converge_point
+    @converge_time = @sim.time
   end
 
   def flush()
@@ -193,23 +206,24 @@ def choose_search_method(types)
 end
 
 opts = GetoptLong.new(
-        ['--help',               '-h', GetoptLong::NO_ARGUMENT],
-        ['--filename',           '-o', GetoptLong::REQUIRED_ARGUMENT],
-        ['--sim-max-length',     '-l', GetoptLong::REQUIRED_ARGUMENT],
-        ['--address-space',      '-a', GetoptLong::REQUIRED_ARGUMENT],
-        ['--num-nodes',          '-n', GetoptLong::REQUIRED_ARGUMENT],
-        ['--all-joins-first',    '-z', GetoptLong::NO_ARGUMENT],
-        ['--mean-join-time',     '-j', GetoptLong::REQUIRED_ARGUMENT],
-        ['--mean-failure-time',  '-x', GetoptLong::REQUIRED_ARGUMENT],
-        ['--mean-leave-time',    '-q', GetoptLong::REQUIRED_ARGUMENT],
-        ['--mean-rejoin-time',   '-r', GetoptLong::REQUIRED_ARGUMENT],
-        ['--mean-search-time',   '-s', GetoptLong::REQUIRED_ARGUMENT],
-        ['--search-types',       '-t', GetoptLong::REQUIRED_ARGUMENT],
-        ['--static-failure',     '-f', GetoptLong::REQUIRED_ARGUMENT] )
+        ['--help',                   '-h', GetoptLong::NO_ARGUMENT],
+        ['--filename',               '-o', GetoptLong::REQUIRED_ARGUMENT],
+        ['--sim-max-length',         '-l', GetoptLong::REQUIRED_ARGUMENT],
+        ['--address-space',          '-a', GetoptLong::REQUIRED_ARGUMENT],
+        ['--num-nodes',              '-n', GetoptLong::REQUIRED_ARGUMENT],
+        ['--all-joins-first',        '-z', GetoptLong::NO_ARGUMENT],
+        ['--mean-join-time',         '-j', GetoptLong::REQUIRED_ARGUMENT],
+        ['--mean-failure-time',      '-x', GetoptLong::REQUIRED_ARGUMENT],
+        ['--mean-leave-time',        '-q', GetoptLong::REQUIRED_ARGUMENT],
+        ['--mean-rejoin-time',       '-r', GetoptLong::REQUIRED_ARGUMENT],
+        ['--mean-search-time',       '-s', GetoptLong::REQUIRED_ARGUMENT],
+        ['--search-types',           '-t', GetoptLong::REQUIRED_ARGUMENT],
+        ['--static-failure',         '-f', GetoptLong::REQUIRED_ARGUMENT],
+        ['--converge-before-search', '-c', GetoptLong::NO_ARGUMENT])
 
 Settings = Struct.new("Settings", :addr_space, :join_first, 
                                   :mjt, :mft, :mlt, :mrt, :mst, 
-                                  :search_types, :static_failure)
+                                  :search_types, :static_failure, :converge)
 class Settings
   def to_s
    "# Settings---\n# addr_space: #{addr_space}\n# join_first?: #{join_first}\n" +
@@ -220,7 +234,7 @@ class Settings
 end
 
 settings = Settings.new(0, false, 0, 0, 0, 0, 0, 
-                        DEFAULT_SEARCH_TYPE, DEFAULT_STATIC_FAILURE)
+                        DEFAULT_SEARCH_TYPE, DEFAULT_STATIC_FAILURE, false)
 
 nodes = 0
 filename = nil
@@ -253,6 +267,9 @@ opts.each do | opt, arg |
     settings.search_types = arg
   when '--static-failure'
     settings.static_failure = arg
+  when '--converge-before-search'
+    settings.converge = true
+    settings.join_first = true
   end
 end
 
@@ -341,6 +358,10 @@ class NodeFactory < GoSim::Entity
                           $R.poisson(@settings.mjt).round, nil)
     elsif(@settings.join_first)
       spawn_nodes
+      if(@settings.converge)
+        @wl.printf("converge\n")
+        @wl.set_converge_point()
+      end
     end
   end
 

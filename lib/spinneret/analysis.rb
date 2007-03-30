@@ -12,13 +12,13 @@ module Spinneret
 
       #Register as a observer, in order to get reset messages
       @sim.add_observer(self)
-      @trials = {}
 
       @config = Configuration.instance
+      @config.analyzer.stability_handlers ||= []
+
       @pad = Scratchpad::instance
 
       ecast = GoSim::Data::EventCast.instance
-
       ecast.add_handler(:dht_search_begin) do | id |
 
       end
@@ -36,11 +36,6 @@ module Spinneret
     end
 
     def enable
-      @config.analyzer.stability_handler ||= method(:default_stable_handler) 
-
-      @trials = {}
-      @convergence = Hash.new([])
-
       @timeout = set_timeout(@config.analyzer.measurement_period, true) { run_phase }
 
       @enabled = true
@@ -62,9 +57,9 @@ module Spinneret
       #network_converged?
       search_analysis
 
-      @config.analyzer.stability_handler.call()
+      convergence = network_converged?
+      @config.analyzer.stability_handlers.each { | h | h.call(convergence) }
 
-      @trials = {}
       @successful_dht_searches = 0
       @failed_dht_searches = 0
       @successful_kwalk_searches = 0
@@ -86,8 +81,6 @@ module Spinneret
       # temp
       #@uids = Hash.new(0)
 
-      @high_indegree = Hash.new(0)
-      @trials = {}
       @successful_dht_searches = 0
       @failed_dht_searches = 0
       @successful_kwalk_searches = 0
@@ -170,6 +163,7 @@ module Spinneret
     end
 
     # Assumes that all link tables use identical distance functions
+=begin
     def network_converged?
       num_converged = 0
       converged = true
@@ -186,6 +180,45 @@ module Spinneret
       GoSim::Data::DataSet[:converge_measure].log(:update, num_converged)
 
       return converged
+    end
+=end
+
+    def network_converged?
+      trials = 0
+      success = 0
+
+      @pad.nodes.each do | cur_peer |
+        search = @pad.nodes.rand
+        hops = 0
+        trials += 1
+
+        while 1
+          lt = cur_peer.link_table
+          next_peer = lt.closest_peer(search.nid)
+
+          if(lt.distance(search.nid, cur_peer.nid) <=
+             lt.distance(search.nid, next_peer.nid))
+            #We didn't get any closer
+            success += 1 if(cur_peer.nid == search.nid)
+            break
+          end
+
+          hops += 1
+          cur_peer = @pad.nodes.find {|n| n.nid == next_peer.nid}
+
+        end
+      end
+
+      GoSim::Data::DataSet[:converge_measure].log(:update, 
+                                                  (trials-success)/trials)
+
+      puts "#{trials} (#{success})"
+
+      error_rate = @config.link_table.max_peers / Math.log2(@config.link_table.address_space)
+
+      error_rate = 1.0 if error_rate > 1.0
+
+      return (trials - success <= (1.0 - error_rate) * trials)
     end
 
     def nodes_alive

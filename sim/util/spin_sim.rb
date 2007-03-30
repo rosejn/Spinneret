@@ -7,19 +7,12 @@ module Spin
       @sim = GoSim::Simulation.instance
     end
 
-    def handle
+    def handle(state)
       a = Spinneret::Analyzer.instance
-
-      if @converge_time == -1
-        # We still need to call network_converged in order for the stats print
-        a.network_converged?
-
-        return nil
-      end
 
       time = @sim.time
 
-      if a.network_converged?
+      if state
         log "Converged"
         @start ||= time
         if(time - @start  >= @converge_time)
@@ -32,12 +25,28 @@ module Spin
     end
   end
 
+  class SearchConvergeHandler
+    def initialize(wl)
+      @wl = wl
+      @sim = GoSim::Simulation.instance
+    end
+
+    def handle(state)
+      puts "#{@sim.time} converged? #{state}"
+
+      if state
+        @wl.unpause()
+      end
+    end
+  end
+
   class Simulation
     include Singleton
 
     def initialize
       @pad = Scratchpad::instance
       @config = Configuration::instance
+      @wl_settings = nil
 
       # Create data sets for collection and viz
       GoSim::Data::DataSet.new(:node)
@@ -48,7 +57,7 @@ module Spin
       GoSim::Data::DataSetWriter.instance.add_view_mod("spin_viz")
 
       @generators = {}
-      @generators[:init] = Proc.new do | opts | 
+      @generators[:init] = WorkloadGenerator.new(nil, true, Proc.new do | opts | 
         nid = opts.to_i
         rand_node = @pad.nodes.rand
         peer_addr = nil
@@ -59,7 +68,13 @@ module Spin
         # Create
         @pad.nodes << Spinneret::Node.new(nid, peer_addr)
         @pad.nodes.last
-      end
+      end)
+
+      @generators[:converge] = WorkloadGenerator.new(/converge/, false, Proc.new do
+        @wl_settings.pause()
+        handler = SearchConvergeHandler.new(@wl_settings).method(:handle)
+        @config.analyzer.stability_handlers << handler
+      end)
 
       @running = false
     end
@@ -89,8 +104,7 @@ module Spin
       return if @running
       @running = true
 
-      @config.analyzer.stability_handler = 
-        Spin::ConvergeHandler.new(@converge).method(:handle)
+      @config.analyzer.stability_handlers << ConvergeHandler.new(@converge).method(:handle)
 
       puts "Beginning simulation...\n"
       if(@sim_length != 0)

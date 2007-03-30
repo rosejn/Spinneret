@@ -49,32 +49,38 @@ module Spinneret
     #
     # NOTE: This is not a thread-safe method.
     def peers
-      @table_lock.synchronize { @nid_peers.values }
+#      @table_lock.synchronize { @nid_peers.values }
+      @nid_peers.values 
     end
 
     # Array of node ids
     def nids
-      @table_lock.synchronize { @nid_peers.keys }
+#      @table_lock.synchronize { @nid_peers.keys }
+      @nid_peers.keys
     end
 
     # The total number of nodes in the table.
     def size
-      @table_lock.synchronize { @nid_peers.size }
+#      @table_lock.synchronize { @nid_peers.size }
+      @nid_peers.size
     end
 
     # Whether the table currently contains a specific nid.
     def has_nid?(nid)
-      @table_lock.synchronize { @nid_peers.has_key?(nid) }
+#      @table_lock.synchronize { @nid_peers.has_key?(nid) }
+      @nid_peers.has_key?(nid)
     end
 
     # Whether the table currently contains a specific peer.
     def has_peer?(peer)
-      @table_lock.synchronize { @nid_peers.has_key?(peer.nid) }
+#      @table_lock.synchronize { @nid_peers.has_key?(peer.nid) }
+      @nid_peers.has_key?(peer.nid)
     end
 
     # Get a peer by node id
     def get_peer(nid)
-      @table_lock.synchronize { @nid_peers[nid] }
+      #@table_lock.synchronize { @nid_peers[nid] }
+      @nid_peers[nid]
     end
 
     def get_peer_by_addr(addr)
@@ -83,7 +89,8 @@ module Spinneret
 
     # Peer iterator
     def each
-      @table_lock.synchronize { @nid_peers.each { |nid, peer| yield peer } }
+      #@table_lock.synchronize { @nid_peers.each { |nid, peer| yield peer } }
+      @nid_peers.each { |nid, peer| yield peer }
     end
 
     # String representation (list of node ids)
@@ -111,25 +118,26 @@ module Spinneret
 
     # Get the node in the table which is closest to <dest_nid>.
     def closest_peer(dest_nid)
-      @table_lock.synchronize do
+#      @table_lock.synchronize do
         peers.min do | a, b |
           distance(dest_nid, a.nid) <=> distance(dest_nid, b.nid)     
         end
-      end
+#      end
     end
 
     # Get the <n> closest peers to <dest_nid>
     def closest_peers(dest_nid, n)
-      @table_lock.synchronize do
+#      @table_lock.synchronize do
         peers.sort do |a,b| 
           distance(dest_nid, a.nid) <=> distance(dest_nid, b.nid)     
         end[0, n]
-      end
+#      end
     end
 
     # Get a random node from the table.
     def random_peer
-      @table_lock.synchronize { peers[rand(size)] }
+      #@table_lock.synchronize { peers[rand(size)] }
+      peers[rand(size)]
     end
 
     # Choose <num> random nodes from the table.  If there are not as many nodes
@@ -138,7 +146,8 @@ module Spinneret
     # contain the same node twice.
     def random_peers(num_peers, allow_duplicates = false)
       peers = nil
-      @table_lock.synchronize { peers = @nid_peers.values if num_peers >= size }
+      #@table_lock.synchronize { peers = @nid_peers.values if num_peers >= size }
+      peers = @nid_peers.values if num_peers >= size 
       return peers unless peers.nil?
 
       peers = []
@@ -175,11 +184,11 @@ module Spinneret
 
       # If we have already heard about this node check and possibly update the timestamp
       if has_peer?(peer)
-        @table_lock.synchronize do
+#        @table_lock.synchronize do
           if peer.last_seen > @nid_peers[peer.nid].last_seen
             @nid_peers[peer.nid].last_seen = peer.last_seen
           end
-        end
+#        end
         peer = @nid_peers[peer.nid]
       else
         begin
@@ -195,12 +204,12 @@ module Spinneret
           raise e
         end
 
-        @table_lock.synchronize do
+#        @table_lock.synchronize do
           @nid_peers[peer.nid] = peer
 
           GoSim::Data::DataSet[:link].log(:add, @nid, peer.nid)
           trim if @nid_peers.size > @config.max_peers
-        end
+#        end
       end
 
       peer
@@ -210,21 +219,22 @@ module Spinneret
     #
     # [*id*] The id of the peer to be removed
     def remove_peer(id)
-      @table_lock.synchronize { @nid_peers.delete(id) }
+      #@table_lock.synchronize { @nid_peers.delete(id) }
+      @nid_peers.delete(id)
       GoSim::Data::DataSet[:link].log(:remove, @nid, id)
     end
 
     def errback_node_removal(failure)
       orig_req = failure.result
 
-      @table_lock.synchronize do
+#      @table_lock.synchronize do
         failed = @nid_peers.find { | key, node | node.addr == orig_req.dest }
         if failed   # Node may have already been removed
           failed = failed[1]
           log { "Failure from nid #{failed.nid}, deleting from table.\n" }
           remove_peer(failed.nid)
         end
-      end
+ #     end
     end
 
     # Array of peers sorted by distance from me.
