@@ -28,7 +28,7 @@ module Spinneret
       @table_lock = Monitor.new
       @nid_peers = {}
 
-      @peer_factory = PeerFactory.new(nil, method(:errback_node_removal))
+      @peer_factory = PeerFactory.new(node, nil, method(:errback_node_removal))
     end
 
     # Remove all peers from the link table
@@ -334,7 +334,8 @@ module Spinneret
   end
 
   class PeerFactory
-    def initialize(default_cb, default_eb)
+    def initialize(node, default_cb, default_eb)
+      @node = node
       @cb, @eb = default_cb, default_eb 
     end
 
@@ -360,6 +361,7 @@ module Spinneret
 
       @nid = @remote_node.nid if @remote_node
       @distance = -1 # TODO: Decide if this needs to be address space
+      @parent_node = local_node
 
       seen
     end

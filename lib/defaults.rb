@@ -7,6 +7,7 @@ module Spinneret
     #n.maintenance_algorithm = Maintenance::Pull
     #n.maintenance_algorithm = Maintenance::Push
     n.maintenance_algorithm = Maintenance::PushPull
+    n.maintenance_opportunistic_alwayson = true
     n.maintenance_size = 5
     n.maintenance_rate = 1000
 

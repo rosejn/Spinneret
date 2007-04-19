@@ -70,6 +70,10 @@
 #        -f 60000:0.5
 #    would create a static failure of 50% of all nodes at time 60000 (60
 #    seconds).  Defaults to 0:0.0
+#
+# -. time, --end-of-trace-flush time
+#    Force the simulator to exit time units after the end of the trace.
+# 
 
 ######
 # The basic FSM for this generator is as follows:
@@ -219,22 +223,26 @@ opts = GetoptLong.new(
         ['--mean-search-time',       '-s', GetoptLong::REQUIRED_ARGUMENT],
         ['--search-types',           '-t', GetoptLong::REQUIRED_ARGUMENT],
         ['--static-failure',         '-f', GetoptLong::REQUIRED_ARGUMENT],
-        ['--converge-before-search', '-c', GetoptLong::NO_ARGUMENT])
+        ['--converge-before-search', '-c', GetoptLong::NO_ARGUMENT],
+        ['--end-of-trace-flush',     '-.', GetoptLong::REQUIRED_ARGUMENT])
 
 Settings = Struct.new("Settings", :addr_space, :join_first, 
                                   :mjt, :mft, :mlt, :mrt, :mst, 
-                                  :search_types, :static_failure, :converge)
+                                  :search_types, :static_failure, :converge,
+                                  :flush_end)
 class Settings
   def to_s
    "# Settings---\n# addr_space: #{addr_space}\n# join_first?: #{join_first}\n" +
    "# mjt: #{mjt}\n# mft: #{mft}\n# mft: #{mlt}\n# mrt: #{mrt}\n" + 
    "# mst: #{mst}\n# search_types: #{search_types}\n" +
-   "# static_failure: #{static_failure}\n"
+   "# static_failure: #{static_failure}\n# converge: #{converge}\n" +
+   "# flush_end: #{flush_end}\n"
   end
 end
 
 settings = Settings.new(0, false, 0, 0, 0, 0, 0, 
-                        DEFAULT_SEARCH_TYPE, DEFAULT_STATIC_FAILURE, false)
+                        DEFAULT_SEARCH_TYPE, DEFAULT_STATIC_FAILURE, 
+                        false, -1)
 
 nodes = 0
 filename = nil
@@ -270,7 +278,15 @@ opts.each do | opt, arg |
   when '--converge-before-search'
     settings.converge = true
     settings.join_first = true
+  when '--end-of-trace-flush'
+    settings.flush_end = arg.to_i
   end
+end
+
+if(settings.flush_end >= 0 && length == 0)
+  puts "Must specify --sim-max-length when using the --end-of-trace-flush " +
+       "option\n"
+  exit(0)
 end
 
 if(settings.addr_space == 0)
@@ -298,7 +314,6 @@ end
 filename ||= File.join('workloads', "a#{settings.addr_space}-n#{nodes}-j#{settings.mjt}.wl")
 
 file = Zlib::GzipWriter.open(filename)
-#file = File.open(filename, "w")
 file.write(settings)
 file.write("# num_nodes: #{nodes}\n")
 file.write("# sim_length: #{length}\n")
@@ -441,4 +456,9 @@ if length != 0
 else
   GoSim::Simulation.run()
 end
+
+if(settings.flush_end >= 0)
+  WLPrinter::instance.printf("flush %d", settings.flush_end)
+end
+
 WLPrinter.instance.flush()

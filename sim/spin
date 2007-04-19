@@ -1,5 +1,6 @@
 #!/usr/bin/env ruby
- 
+
+
 # == Synopsis
 #
 # spin: Run a spinneret simulation
@@ -135,7 +136,8 @@ pad.nodes = nodes = []
 def maintenance_help
   puts "Valid maintenance types are:"
   Spinneret::Maintenance.constants.each { |cls| puts "  #{cls.to_s}" }
-  puts "Note that capitalization *is* important."
+  puts "Note that capitalization *is* important and that Opportunistic is"
+  puts "note a valid maintenance mode by itself."
 end
 
 if config.node.maintenance_algorithm == "help"
@@ -177,6 +179,6 @@ else
   Spin::Simulation::instance.run
 end
 
-GoSim::Data::DataSetWriter.instance.close
+at_exit { GoSim::Data::DataSetWriter.instance.close }
 
 
