@@ -52,6 +52,7 @@
 #
 
 require 'rdoc/usage'
+require 'yaml'
 require 'rubygems'
 require 'fastthread'
 $:.unshift(File.dirname(__FILE__) + '/../lib')
@@ -67,6 +68,7 @@ srand 0
 opts = GetoptLong.new(
         ['--help',                   '-h', GetoptLong::NO_ARGUMENT],
         ['--verbose',                '-v', GetoptLong::NO_ARGUMENT],
+        ['--config',                 '-f', GetoptLong::REQUIRED_ARGUMENT],
         ['--converge-quit',          '-c', GetoptLong::REQUIRED_ARGUMENT],
         ['--output-dir',             '-d', GetoptLong::REQUIRED_ARGUMENT],
         ['--workload',               '-w', GetoptLong::REQUIRED_ARGUMENT],
@@ -85,12 +87,29 @@ sim_length = 0
 converge_quit = -1
 workload = topology = nil
 
+# Load the hash names into the hierarchical config structure
+def load_config(config_hash)
+  config_hash.each do |name, value|
+    levels = name.split('.')
+    final = levels.pop
+
+    set_point = levels.inject($config) {|conf, val| conf.send(val) }
+    set_point.send(final + '=', value)
+  end
+end
+
+
 opts.each do | opt, arg |
   case opt
   when '--help'
     RDoc::usage
   when '--verbose'
     GoSim::Simulation.instance.verbose
+  when '--config'
+    load_config(YAML::load(arg))
+
+    # Pull out these options once we are confident with the config file
+    # style...
   when '--converge-quit'
     converge_quit = arg.to_i
   when '--output-dir'

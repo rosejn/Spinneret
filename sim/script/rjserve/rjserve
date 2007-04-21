@@ -11,12 +11,15 @@
 # -n number, --num-threads number
 #     Number of threads to run processing inserted jobs.  Defualts to 1.
 
+$:.unshift(File.dirname(__FILE__))
+
 require 'rdoc/usage'
 require 'drb'
 require 'thread'
 require 'job_types'
 
-SERVER_ADDR = ":7005"
+SERVER_ADDR = "localhost:7005"
+ENV['PATH'] = ".:" + ENV['PATH']
 
 opts = GetoptLong.new(['--num-threads', '-n', GetoptLong::REQUIRED_ARGUMENT],
 		      ['--address',     '-a', GetoptLong::REQUIRED_ARGUMENT])
@@ -90,10 +93,10 @@ class RJobServer
 
 end
 
-printf("Ruby job starting up on %s...", server_addr)
+printf("RJServe running on %s...", server_addr)
 server = RJobServer.new
 DRb.start_service("druby://#{server_addr}", server)
-printf("done.  Waiting for jobs.\n")
+printf(" done.  Waiting for jobs.\n")
 
 procs = []
 while(1)

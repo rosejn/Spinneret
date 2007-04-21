@@ -1,0 +1,177 @@
+#!/usr/bin/env ruby
+
+$:.unshift "../lib"
+$:.unshift "script/rjserve"
+
+require 'rdoc/usage'
+require 'fileutils'
+require 'spinneret'
+require 'drb'
+require 'job_types'
+
+class Exploration
+  DEFAULT_ADDR = 'localhost:7005'
+
+  @@server_address = DEFAULT_ADDR
+  
+  def self.server_addr(addr)
+    @@server_address = addr
+  end
+
+  def self.load(filename)
+    e = new
+    
+    # 2nd filename and line number for error reporting
+    e.instance_eval(File.read(filename) + "\nsend_experiment()",
+                    filename, 0) 
+    e
+  end
+
+  def initialize
+    @current_experiment = nil
+    @params = {}
+    
+    #Connect to the job server object
+    DRb.start_service
+    @job_queue = DRbObject.new(nil, "druby://#{@@server_address}")
+  end
+
+  def defaults(vals)
+    @default_params = vals
+  end
+
+  def add_param(name, vals)
+    @params[name] = vals
+  end
+
+  def to_s
+    @default_params.each do |param, vals|
+      puts "#{param}: #{vals.inspect}"
+    end
+
+    @params.each do |param, vals|
+      puts "#{param}: #{vals.inspect}"
+    end
+  end
+
+=begin
+  def method_missing(meth_name, *args)
+    add_parameter(meth_name, args)
+  end
+=end
+
+  def set(name, list)
+    add_param(name, list)
+  end
+
+  def static(name, val)
+    add_param(name, val)
+  end
+
+  def linear(name, start, stop, stride = 1)
+    vals = []
+    v = start
+    while v < stop
+      vals << v
+      v = v + stride
+    end
+
+    add_param(name, vals)
+  end
+
+  def log(name, start, stop, n = 2)
+    vals = []
+    v = start
+    while v < stop
+      vals << v
+      v *= n
+    end
+
+    add_param(name, vals)
+  end
+
+  def new_experiment(name)
+    send_experiment unless @current_experiment.nil?
+    @current_experiment = name
+    @params = {}
+
+    puts "    Creating new experiment: #{name}"
+  end
+
+  def job(exec)
+    job = RJServe::Jobs::ShellExecute.new()
+    job.parse_opt('-jc', exec)
+    job
+  end
+
+  def make_fresh_dir(path)
+    "rm -rf #{path} && mkdir -p #{path}"
+  end
+
+  def dump_config(dir, params)
+    "echo \"#{YAML::dump(params)}\" > #{File.join(dir, "config")}"
+  end
+
+  def job_dir(param_set)
+    base = @current_experiment.gsub(' ', '_')
+    name = ""
+
+    param_set.each {|param, val| name << "__#{param}-#{val}" }
+
+    File.join(base, name[2..-1])
+  end
+
+  def send_experiment
+    params = build_param_list(@params.to_a)
+
+    num_jobs = 0 
+    params.each do |param_set|
+      jc = RJServe::Jobs::JobChain.new
+      dir = job_dir(param_set)
+
+      jc << job( make_fresh_dir(dir) )
+      jc << job( dump_config(dir, @default_params.merge(param_set)) )
+      jc << job( "spin --config #{File.join(dir, "config")}" )
+
+      num_jobs += 1
+      @job_queue.add_job(jc)
+    end
+
+    puts "\t\t#{num_jobs} runs sent!\n"
+  end
+
+  def build_param_list(params)
+    name, vals = params.pop
+    vals = [vals].flatten
+
+    if params.empty?
+      results = vals.map {|v| {name => v}}
+    else
+      current = build_param_list(params)
+
+      results = []
+      vals.each do |v|
+        current.each do |pars|
+          p = pars.dup
+          p[name] = v
+          results << p
+        end
+      end
+    end
+
+    results
+  end
+end
+
+class Dispatch
+  def initialize(server_addr)
+  end
+end
+
+# Process all the config files passed to the application
+puts "Commencing with Space Exploration:\n\n"
+
+ARGV.each do |config| 
+  puts "  Loading parameter file: #{config}"
+  Exploration.load(config)
+end 
