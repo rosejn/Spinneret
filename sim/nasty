@@ -70,7 +70,7 @@ maintenance_amount = [1, 3, 5, 10, 20]
 link_table_size = [10, 25, 50, 100] 
 address = "localhost:7005"
 workload_dir = "workloads/bootstrap_*"
-converge = 0
+converge = -2
 
 opts.each do | opt, arg |
   case opt
@@ -117,14 +117,17 @@ clear_and_make(bs_dir)
 
 SYNC_ROUNDS = 75
 
+
 # Bootstrap Simulations
 Dir.glob(workload_dir) do | workload |
+=begin
   if workload =~ /\w+_n(\d+)_j(\d+)\.wlgz/
     nodes, join_time = $1.to_i, $2.to_i
   else
     puts "Invalid workload #{workload}"
     next
   end
+=end
 
   m_algs.each do | alg |
     maintenance_rate.each do | m_rate |
@@ -134,13 +137,15 @@ Dir.glob(workload_dir) do | workload |
 
           job_dir = File.join(bs_dir, workload, m_rate.to_s, m_amount.to_s, table_size.to_s, alg)
           jc << clear_and_make(job_dir)
-          time = nodes * join_time + (table_size / m_amount * SYNC_ROUNDS * m_rate) / m_amount
+          #time = nodes * join_time + (table_size / m_amount * SYNC_ROUNDS * m_rate) / m_amount
+          time = 1000 * 1 + (table_size / m_amount * SYNC_ROUNDS * m_rate) / m_amount
           job_str = "spin -w #{workload} -s #{m_amount} -t #{table_size} -m #{alg} -r #{m_rate} -d #{job_dir}"
+          puts job_str
 
           if(converge >= -1)
             job_str += " -c #{converge}"
           else
-            job_str += " -l #{time}"
+            job_str += " -l #{time*1000}"
           end
 
           jc << create_job(job_str)

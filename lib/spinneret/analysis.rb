@@ -214,11 +214,18 @@ module Spinneret
 
       puts "#{trials} (#{success})"
 
-      error_rate = @config.link_table.max_peers / Math.log2(@config.link_table.address_space)
+      error_rate = @config.link_table.max_peers / (Math.log2(@config.link_table.address_space) * 2)
 
       error_rate = 1.0 if error_rate > 1.0
 
-      return (trials - success <= (1.0 - error_rate) * trials)
+      measure = (trials - success <= (1.05 - error_rate) * trials)
+      append_data_file("converge_measure") do | f |
+        f << "#{@sim.time} #{trials - success}"
+        f << " (converged)"   if measure
+        f << "\n"
+      end
+
+      return measure
     end
 
     def nodes_alive

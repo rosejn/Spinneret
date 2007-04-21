@@ -1,6 +1,6 @@
 module Spinneret
 
-  class Node < GoSim::Net::Node
+  class Node < GoSim::Net::RPCNode
     include Base
     include KeywordProcessor
 
@@ -18,6 +18,7 @@ module Spinneret
       @config = Configuration::instance.node
 
       extend(@config.maintenance_algorithm)
+      extend(Maintenance::Opportunistic)
 
       @nid = nid || @link_table.random_id
       @link_table = LinkTable.new(self)

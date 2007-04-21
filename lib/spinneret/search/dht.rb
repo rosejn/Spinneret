@@ -31,7 +31,6 @@ module Search
         set_timeout(DHT_QUERY_TIMEOUT) {
           if @local_queries[uid] == false
             GoSim::Data::EventCast::instance::publish(:dht_search_finish, uid, false, 0)
-#            Analyzer::instance::failed_dht_search(uid)
           end
           @local_queries.delete(uid)
         }
@@ -114,7 +113,6 @@ module Search
       log {"DHT got a query response..."}
       if @local_queries[uid] == false
         GoSim::Data::EventCast::instance::publish(:dht_search_finish, uid, true, ttl)
-#        Analyzer::instance::successful_dht_search(uid)
       end
       @local_queries[uid] = true
     end
