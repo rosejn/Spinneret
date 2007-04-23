@@ -126,12 +126,16 @@ puts $PROGRAM_NAME
 if $PROGRAM_NAME[/rjserve/]
 
   opts = GetoptLong.new(['--num-procs', '-n', GetoptLong::REQUIRED_ARGUMENT],
+                        ['--help',      '-h', GetoptLong::NO_ARGUMENT],
                         ['--port',      '-p', GetoptLong::REQUIRED_ARGUMENT])
 
   opts.each do | opt, arg |
     case opt
     when '--num-procs'
       $num_procs = arg.to_i    
+
+    when '--help'
+      RDoc::usage
 
     when '--port'
       port_num = arg.to_i
