@@ -1,5 +1,26 @@
 #!/usr/bin/env ruby
 
+# == Synopsis
+#
+# Spex, the SPace-EXplorer, will load the given space exploration
+# file (.sx) and execute the spin simulation driver for all experiments
+# created.  If supplied with a job server spex can load jobs onto a remote
+# computer.  
+#
+# == Usage
+#
+# -h, --help:
+#    Show this help
+#
+# -j host[:port] or --rjserver host[:port]
+#    Give the ip address and port of the job server.  Defaults to #
+#    localhost:7005.
+#
+# = Example:
+#   spex -j megabox.net foo.sx 
+#   spex -j megabox.net:7005 foo.sx 
+
+
 $:.unshift "../lib"
 $:.unshift "script/rjserve"
 
@@ -10,20 +31,13 @@ require 'drb'
 require 'job_types'
 
 class Exploration
-  DEFAULT_ADDR = 'localhost:7005'
-
-  @@server_address = DEFAULT_ADDR
-  
-  def self.server_addr(addr)
-    @@server_address = addr
-  end
-
   def self.load(filename)
     e = new
     
     # 2nd filename and line number for error reporting
     e.instance_eval(File.read(filename) + "\nsend_experiment()",
                     filename, 0) 
+    e.finalize
     e
   end
 
@@ -31,9 +45,16 @@ class Exploration
     @current_experiment = nil
     @params = {}
     
-    #Connect to the job server object
-    DRb.start_service
-    @job_queue = DRbObject.new(nil, "druby://#{@@server_address}")
+    # Create or connect to the job server object
+    if $server_addr.nil?
+      require 'rjserve'
+      @job_queue = RJobServer.new
+      @remote = false
+    else
+      DRb.start_service
+      @job_queue = DRbObject.new(nil, "druby://#{$server_addr + server_port.to_s}")
+      @remote = true
+    end
   end
 
   def defaults(vals)
@@ -42,6 +63,13 @@ class Exploration
 
   def add_param(name, vals)
     @params[name] = vals
+  end
+
+  # If we are processing locally wait until all the jobs complete.
+  def finalize
+    if not @remote
+      @job_queue.wait_for_jobs
+    end
   end
 
   def to_s
@@ -53,12 +81,6 @@ class Exploration
       puts "#{param}: #{vals.inspect}"
     end
   end
-
-=begin
-  def method_missing(meth_name, *args)
-    add_parameter(meth_name, args)
-  end
-=end
 
   def set(name, list)
     add_param(name, list)
@@ -128,6 +150,7 @@ class Exploration
     params.each do |param_set|
       jc = RJServe::Jobs::JobChain.new
       dir = job_dir(param_set)
+      param_set['analyzer.output_path'] = dir
 
       jc << job( make_fresh_dir(dir) )
       jc << job( dump_config(dir, @default_params.merge(param_set)) )
@@ -163,15 +186,27 @@ class Exploration
   end
 end
 
-class Dispatch
-  def initialize(server_addr)
+opts = GetoptLong.new(
+        ['--help',                   '-h', GetoptLong::NO_ARGUMENT],
+        ['--rjserver',               '-j', GetoptLong::OPTIONAL_ARGUMENT] )
+
+opts.each do | opt, arg |
+  case opt
+  when '--help'
+    RDoc::usage
+  when '--rjserver'
+    $server_addr = 'localhost'
+    $server_port = 7005
+
+    $server_addr, $server_port = arg.split(':') if arg
   end
 end
+
+RDoc::usage if ARGV.empty?
 
 # Process all the config files passed to the application
 puts "Commencing with Space Exploration:\n\n"
 
-ARGV.each do |config| 
-  puts "  Loading parameter file: #{config}"
-  Exploration.load(config)
-end 
+config = ARGV[0]
+puts "  Loading parameter file: #{config}"
+Exploration.load(config)
