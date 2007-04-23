@@ -31,6 +31,10 @@ module Spinneret
           @failed_dht_searches += 1
         end
       end
+      
+      ecast.add_handler(:local_converge_report) do | nid, status |
+        @local_converged_nodes[nid] = true  if status == true
+      end
 
       internal_init
     end
@@ -60,11 +64,14 @@ module Spinneret
       convergence = network_converged?
       @config.analyzer.stability_handlers.each { | h | h.call(convergence) }
 
+      puts "Nodes reporting local convergence #{@local_converged_nodes.length}"
+
       @successful_dht_searches = 0
       @failed_dht_searches = 0
       @successful_kwalk_searches = 0
       @failed_kwalk_searches = 0
       @hops = 0
+      @local_converged_nodes = {}
     end
 
     #What happens to @nodes here?  For now the reference better remain the
@@ -86,6 +93,7 @@ module Spinneret
       @successful_kwalk_searches = 0
       @failed_kwalk_searches = 0
       @hops = 0
+      @local_converged_nodes = {}
       setup_rgl_graph
     end
 
@@ -214,7 +222,7 @@ module Spinneret
 
       puts "#{trials} (#{success})"
 
-      error_rate = @config.link_table.max_peers / (Math.log2(@config.link_table.address_space) * 2)
+      error_rate = @config.link_table.max_peers / (Math.log2(@config.link_table.address_space) * 1.5)
 
       error_rate = 1.0 if error_rate > 1.0
 
