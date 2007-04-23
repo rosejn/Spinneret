@@ -93,7 +93,7 @@ class Exploration
   def linear(name, start, stop, stride = 1)
     vals = []
     v = start
-    while v < stop
+    while v <= stop
       vals << v
       v = v + stride
     end
@@ -104,7 +104,7 @@ class Exploration
   def log(name, start, stop, n = 2)
     vals = []
     v = start
-    while v < stop
+    while v <= stop
       vals << v
       v *= n
     end
@@ -186,9 +186,6 @@ class Exploration
   end
 end
 
-$server_addr = 'localhost'
-$server_port = 7005
-
 opts = GetoptLong.new(
         ['--help',                   '-h', GetoptLong::NO_ARGUMENT],
         ['--rjserver',               '-j', GetoptLong::OPTIONAL_ARGUMENT] )
@@ -198,6 +195,9 @@ opts.each do | opt, arg |
   when '--help'
     RDoc::usage
   when '--rjserver'
+    $server_addr = 'localhost' # If passed with no args we default to localhost
+    $server_port = 7005
+
     $server_addr, $server_port = arg.split(':') if arg
     $server_port ||= 7005 # In case a port wasn't specified
   end

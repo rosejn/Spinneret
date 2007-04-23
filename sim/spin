@@ -61,8 +61,8 @@ $:.unshift(File.dirname(__FILE__) + '/../lib')
 require 'spinneret'
 require 'English'
 
-require 'util/workload_parser'
-require 'util/spin_sim'
+require 'script/workload_parser'
+require 'script/spin_sim'
 
 srand 0
 

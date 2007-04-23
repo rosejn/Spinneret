@@ -25,7 +25,7 @@ module Jobs
     end
 
     def to_s
-      return "SE: #{@command}"
+      return "Exec: #{@command}"
     end
   end
 
@@ -53,7 +53,7 @@ module Jobs
     end
 
     def to_s
-      return "JC: " + @job_chain.join { | j | (j.to_s + "; ") }
+      return "Job Chain: " + @job_chain.join { | j | (j.to_s + "\n") } + "-----------------------------------\n\n"
     end
   end
 end
