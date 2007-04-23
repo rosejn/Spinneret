@@ -146,11 +146,9 @@ if $PROGRAM_NAME[/rjserve/]
     end
   end
 
-  server_addr = 'localhost' + ':' + port_num.to_s
-
-  printf("RJServe running on %s...", server_addr)
+  printf("RJServe running on port %s...", port_num)
   server = RJobServer.new
-  DRb.start_service("druby://#{server_addr}", server)
+  DRb.start_service("druby://:#{port_num}", server)
   printf(" done.  Waiting for jobs.\n")
 
   DRb.thread.join # Don't exit just yet!
