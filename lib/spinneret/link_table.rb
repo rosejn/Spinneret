@@ -3,8 +3,6 @@ require 'thread'
 
 require 'gsl'
 
-#require 'breakpoint'
-
 module Spinneret   
 
   # A management class sitting on top of the link table.
@@ -337,8 +335,6 @@ module Spinneret
         return [0.0, 0.0]
       end
     end
-
-    require 'breakpoint'
 
     def converged?
       @converge_measure << converge_measure
