@@ -55,7 +55,6 @@
 require 'rdoc/usage'
 require 'yaml'
 require 'rubygems'
-require 'fastthread'
 $:.unshift(File.dirname(__FILE__) + '/../lib')
 
 require 'spinneret'
