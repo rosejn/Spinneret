@@ -6,10 +6,21 @@
 #
 # == Usage
 #
-# rjserve [-n #]
+# -h, --help:
+#    Show this help
 #
 # -n number, --num-procs number
 #     Number of processes used to run inserted jobs.  Defualts to 1.
+#
+# -p number, --port number
+#     Specify the local port number to serve jobs on.
+#
+# = Example:
+#
+#   ./rjserve -n 3
+#   ./rjserve -p 7777 -n 4
+#
+
 $:.unshift(File.dirname(__FILE__))
 $:.unshift(File.join(File.dirname(__FILE__), 'script', 'rjserve'))
 
@@ -18,7 +29,6 @@ require 'drb'
 require 'thread'
 require 'job_types'
 
-SERVER_ADDR = "localhost:7005"
 ENV['PATH'] = ".:" + ENV['PATH']
 
 $num_procs = 1
@@ -109,25 +119,30 @@ class RJobServer
   end
 end
 
+port_num = 7005
+
 # If run standalone startup a DRb service.
 puts $PROGRAM_NAME 
 if $PROGRAM_NAME[/rjserve/]
 
   opts = GetoptLong.new(['--num-procs', '-n', GetoptLong::REQUIRED_ARGUMENT],
-                        ['--address',     '-a', GetoptLong::REQUIRED_ARGUMENT])
+                        ['--port',      '-p', GetoptLong::REQUIRED_ARGUMENT])
 
-  server_addr = SERVER_ADDR
   opts.each do | opt, arg |
     case opt
     when '--num-procs'
       $num_procs = arg.to_i    
-    when '--address'
-      server_addr = arg
+
+    when '--port'
+      port_num = arg.to_i
+
     else
       RDoc::usage
       exit(0)
     end
   end
+
+  server_addr = 'localhost' + ':' + port_num.to_s
 
   printf("RJServe running on %s...", server_addr)
   server = RJobServer.new
