@@ -55,7 +55,6 @@
 require 'rdoc/usage'
 require 'yaml'
 require 'rubygems'
-require 'fastthread'
 $:.unshift(File.dirname(__FILE__) + '/../lib')
 
 require 'spinneret'
@@ -175,7 +174,7 @@ workload_path = File.join(File.dirname(__FILE__),
 
 Spin::Simulation::instance.setup(workload_path, $config.sim_length, $config.converge_quit)
 
-if(__FILE__ != $PROGRAM_NAME)
+if(__FILE__ != $PROGRAM_NAME && File::basename($PROGRAM_NAME) != "rdebug")
   # Do stuff for goviz version - this activates the simulation seperately,
   # intigrating with the GTK mainloop
   require 'util/spin_viz'

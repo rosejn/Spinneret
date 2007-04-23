@@ -19,6 +19,7 @@ module Spinneret
 
       extend(@config.maintenance_algorithm)
       extend(Maintenance::Opportunistic)
+      setup_aspects
 
       @nid = nid || @link_table.random_id
       @link_table = LinkTable.new(self)
@@ -44,7 +45,15 @@ module Spinneret
     end
 
     def start_maintenance
-      @maint_timeout = set_timeout(@config.maintenance_rate, true) { do_maintenance }
+      @maint_timeout = set_timeout(@config.maintenance_rate, true) do
+        status = true
+        if !@link_table.converged?
+          #puts "#{@sim.time}: #{@nid} not converged."
+          status = false
+          do_maintenance  
+        end
+        GoSim::Data::EventCast::instance.publish(:local_converge_report, @nid, status)
+      end
     end
     
     def to_s

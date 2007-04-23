@@ -28,6 +28,7 @@ require 'rdoc/usage'
 require 'drb'
 require 'thread'
 require 'job_types'
+require 'socket'
 
 ENV['PATH'] = ".:" + ENV['PATH']
 
@@ -73,6 +74,7 @@ class RJobServer
     @queue_mutex.synchronize do
       @queue.clear
     end
+    puts "Cleared job queue..."
   end
 
   def clear_entries(uid)
@@ -146,10 +148,10 @@ if $PROGRAM_NAME[/rjserve/]
     end
   end
 
-  printf("RJServe running on port %s...", port_num)
+  print "Starting RJServe on port #{port_num}..." 
   server = RJobServer.new
   DRb.start_service("druby://:#{port_num}", server)
-  printf(" done.  Waiting for jobs.\n")
+  puts " done.  Waiting for jobs.\n"
 
   DRb.thread.join # Don't exit just yet!
 end

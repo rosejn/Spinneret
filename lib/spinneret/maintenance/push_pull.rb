@@ -7,6 +7,7 @@ module Maintenance
     NUM_NEIGHBOR_REQUESTS = 1
 
     def do_maintenance
+      #puts "#{@sim.time} #{@nid} doing maintenance"
       peers = @link_table.random_peers(NUM_NEIGHBOR_REQUESTS)
       peers.each do |peer|
         addrs = @link_table.random_peers(@config.maintenance_size / 2).map {|p| p.addr }

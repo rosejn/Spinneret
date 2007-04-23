@@ -1,3 +1,6 @@
+require 'gnome2'
+require 'gosim'
+
 module Spin
   module Visualization
     class Manager
