@@ -52,7 +52,7 @@ class Exploration
       @remote = false
     else
       DRb.start_service
-      @job_queue = DRbObject.new(nil, "druby://#{$server_addr + server_port.to_s}")
+      @job_queue = DRbObject.new(nil, "druby://#{$server_addr + ':' + $server_port.to_s}")
       @remote = true
     end
   end
@@ -186,6 +186,9 @@ class Exploration
   end
 end
 
+$server_addr = 'localhost'
+$server_port = 7005
+
 opts = GetoptLong.new(
         ['--help',                   '-h', GetoptLong::NO_ARGUMENT],
         ['--rjserver',               '-j', GetoptLong::OPTIONAL_ARGUMENT] )
@@ -195,10 +198,8 @@ opts.each do | opt, arg |
   when '--help'
     RDoc::usage
   when '--rjserver'
-    $server_addr = 'localhost'
-    $server_port = 7005
-
     $server_addr, $server_port = arg.split(':') if arg
+    $server_port ||= 7005 # In case a port wasn't specified
   end
 end
 
