@@ -53,6 +53,7 @@
 #
 
 require 'rdoc/usage'
+require 'yaml'
 require 'rubygems'
 require 'fastthread'
 $:.unshift(File.dirname(__FILE__) + '/../lib')
@@ -60,14 +61,15 @@ $:.unshift(File.dirname(__FILE__) + '/../lib')
 require 'spinneret'
 require 'English'
 
-require 'util/workload_parser'
-require 'util/spin_sim'
+require 'script/workload_parser'
+require 'script/spin_sim'
 
 srand 0
 
 opts = GetoptLong.new(
         ['--help',                   '-h', GetoptLong::NO_ARGUMENT],
         ['--verbose',                '-v', GetoptLong::NO_ARGUMENT],
+        ['--config',                 '-f', GetoptLong::REQUIRED_ARGUMENT],
         ['--converge-quit',          '-c', GetoptLong::REQUIRED_ARGUMENT],
         ['--output-dir',             '-d', GetoptLong::REQUIRED_ARGUMENT],
         ['--workload',               '-w', GetoptLong::REQUIRED_ARGUMENT],
@@ -79,12 +81,23 @@ opts = GetoptLong.new(
         ['--maintenance-rate',       '-r', GetoptLong::REQUIRED_ARGUMENT],
         ['--analysis-measurement',   '-y', GetoptLong::REQUIRED_ARGUMENT] )
 
-pad = Scratchpad::instance
-config = Configuration::instance
+$pad = Scratchpad::instance
+$config = Configuration::instance
 
-sim_length = 0
-converge_quit = -1
-workload = topology = nil
+$config.sim_length = 0
+$config.workload = nil
+$config.converge_quit = -1
+
+# Load the hash names into the hierarchical config structure
+def load_config(config_hash)
+  config_hash.each do |name, value|
+    levels = name.split('.')
+    final = levels.pop
+
+    set_point = levels.inject($config) {|conf, val| conf.send(val) }
+    set_point.send(final + '=', value)
+  end
+end
 
 opts.each do | opt, arg |
   case opt
@@ -92,45 +105,33 @@ opts.each do | opt, arg |
     RDoc::usage
   when '--verbose'
     GoSim::Simulation.instance.verbose
+  when '--config'
+    load_config(YAML::load(File.read(arg)))
+
   when '--converge-quit'
-    converge_quit = arg.to_i
+    $config.converge_quit = arg.to_i
   when '--output-dir'
-    config.analyzer.output_path = arg
+    $config.analyzer.output_path = arg
   when '--workload'
-    workload = arg
+    $config.workload = arg
   when '--max-length'
-    sim_length = arg.to_i
+    $config.sim_length = arg.to_i
   when '--address-space'
-    config.link_table.address_sapce = arg.to_i
+    $config.link_table.address_sapce = arg.to_i
   when '--maintenance'
-    config.node.maintenance_algorithm = arg
+    $config.node.maintenance_algorithm = arg
   when '--maintenance-size'
-    config.node.maintenance_size = arg.to_i
+    $config.node.maintenance_size = arg.to_i
   when '--maintenance-table-size'
-    config.link_table.max_peers = arg.to_i
+    $config.link_table.max_peers = arg.to_i
   when '--maintenance-rate'
-    config.node.maintenance_rate = arg.to_i
+    $config.node.maintenance_rate = arg.to_i
   when '--analysis-measurement'
-    config.analyzer.measurement_period = arg.to_i
+    $config.analyzer.measurement_period = arg.to_i
   end
 end
 
-if((workload.nil? && topology.nil?) || 
-   (workload.nil? && config.link_table.address_space == 0))
-  puts "Not enough arguments:"
-  puts "\tPlease specify either --workload and/or --topology"
-  puts "\tNote that --topology must be accompanied by --address-space\n\n"
-  RDoc::usage
-
-  exit(0)
-end
-
-if(topology)
-  puts "Topologies are not currently supported.\n"
-  exit(0)
-end
-
-pad.nodes = nodes = []
+$pad.nodes = nodes = []
 
 # make sure the maintenance type is valid
 def maintenance_help
@@ -140,22 +141,22 @@ def maintenance_help
   puts "note a valid maintenance mode by itself."
 end
 
-if config.node.maintenance_algorithm == "help"
+if $config.node.maintenance_algorithm == "help"
   maintenance_help(); 
   exit(0) 
 end
 
 # Upcap the first character, but do not lower case the others like .capitalize
 # would
-if config.node.maintenance_algorithm.class != Module
-  m = config.node.maintenance_algorithm
+if $config.node.maintenance_algorithm.class != Module
+  m = $config.node.maintenance_algorithm
   m = (m[0].chr.upcase + m[1..-1]).to_sym
   if !Spinneret::Maintenance.const_defined?(m)
     puts "Invalid maintenance type \'#{m.to_s}\'."
     maintenance_help()
     exit(1)
   else
-    config.node.maintenance_algorithm = Spinneret::Maintenance.const_get(m)
+    $config.node.maintenance_algorithm = Spinneret::Maintenance.const_get(m)
   end
 end
 
@@ -169,7 +170,10 @@ end
 
 Spinneret::Analyzer::instance.enable # Add the Analysis generation
 #Spinneret::Analyzer::instance.disable
-Spin::Simulation::instance.setup(workload, sim_length, converge_quit)
+workload_path = File.join(File.dirname(__FILE__), 
+                          'workloads', $config.workload + '.wlgz')
+
+Spin::Simulation::instance.setup(workload_path, $config.sim_length, $config.converge_quit)
 
 if(__FILE__ != $PROGRAM_NAME && File::basename($PROGRAM_NAME) != "rdebug")
   # Do stuff for goviz version - this activates the simulation seperately,

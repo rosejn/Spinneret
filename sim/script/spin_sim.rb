@@ -18,7 +18,8 @@ module Spin
         log "Converged"
         @start ||= time
         if(time - @start  >= @converge_time)
-          log "Quiting due to convergence.\n"
+          puts "Quiting due to convergence.\n"
+          puts "-------------------------------------------"
           @sim.stop
           exit(0)
         end
