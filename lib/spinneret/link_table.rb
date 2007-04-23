@@ -337,6 +337,8 @@ module Spinneret
     end
 
     def converged?
+      return if @nid_peers.empty?
+
       @converge_measure << converge_measure
       @converge_measure.shift  if @converge_measure.length > CONVERGE_SAMPLE_LENGTH
 
@@ -359,6 +361,7 @@ module Spinneret
       #return false if @config.max_peers > @nid_peers.length
 
       sorted_peers = peers_by_distance()
+
       mu_e = (Math::log2(@config.address_space) - 
               Math::log2(distance(sorted_peers[0].nid, @nid))) / @config.max_peers
 
