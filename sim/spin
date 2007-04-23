@@ -171,7 +171,7 @@ Spinneret::Analyzer::instance.enable # Add the Analysis generation
 #Spinneret::Analyzer::instance.disable
 Spin::Simulation::instance.setup(workload, sim_length, converge_quit)
 
-if(__FILE__ != $PROGRAM_NAME)
+if(__FILE__ != $PROGRAM_NAME && File::basename($PROGRAM_NAME) != "rdebug")
   # Do stuff for goviz version - this activates the simulation seperately,
   # intigrating with the GTK mainloop
   require 'util/spin_viz'

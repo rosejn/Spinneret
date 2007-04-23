@@ -14,9 +14,11 @@ module Spinneret
 
     attr_reader :nid
 
+    CONVERGE_SAMPLE_LENGTH = 10
+
     # Create a new LinkTable.
     def initialize(node)
-      @config = Configuration.instance.link_table
+      @config = Configuration::instance.link_table
 
       @node = node
       @nid = @node.nid
@@ -29,6 +31,9 @@ module Spinneret
       @nid_peers = {}
 
       @peer_factory = PeerFactory.new(node, nil, method(:errback_node_removal))
+
+      @converge_measure = []
+      @converge_means = []
     end
 
     # Remove all peers from the link table
@@ -313,6 +318,7 @@ module Spinneret
       return GSL::Fit::linear(x, y)
     end
 
+    # ??
     def density
       return 1.0/2.0**line_fit[0]
     end
@@ -330,6 +336,45 @@ module Spinneret
       else
         return [0.0, 0.0]
       end
+    end
+
+    require 'breakpoint'
+
+    def converged?
+      @converge_measure << converge_measure
+      @converge_measure.shift  if @converge_measure.length > CONVERGE_SAMPLE_LENGTH
+
+      @converge_means << @converge_measure[-1].normal_fit
+      @converge_means.shift  if @converge_means.length > CONVERGE_SAMPLE_LENGTH
+
+      if @converge_means.length == CONVERGE_SAMPLE_LENGTH
+        #p @converge_means[-1][0], @converge_means[0][0]
+        #cutoff = Configuration::instance.node.maintenance_size / @config.max_peers.to_f / Scratchpad::instance.nodes.length
+        #return (@converge_means[-1][0] - @converge_means[0][0]).abs < cutoff
+        return (@converge_means[-1][0] - @converge_means[0][0]).abs < 0.001
+      else
+        false
+      end
+    end
+
+    private
+
+    def converge_measure
+      #return false if @config.max_peers > @nid_peers.length
+
+      sorted_peers = peers_by_distance()
+      mu_e = (Math::log2(@config.address_space) - 
+              Math::log2(distance(sorted_peers[0].nid, @nid))) / @config.max_peers
+
+      mu_N = normal_fit()
+
+      return [(mu_N[0] - mu_e).abs, mu_N[1]]
+
+      conv = (mu_N[0] - mu_e).abs < 0.1 && mu_N[1] < 0.2
+
+      #puts "#{@nid} #{mu_e} #{mu_N[0]} #{mu_N[1]}"  if !conv
+
+      return conv
     end
   end
 
