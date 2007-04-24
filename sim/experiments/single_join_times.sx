@@ -1,0 +1,21 @@
+defaults {
+  # Node
+  'node.maintenance_algorithm' = Maintenance::PushPull,
+  'node.maintenance_opportunistic_alwayson' => true,
+  'node.maintenance_size' => 5,
+  'node.maintenance_rate' => 1000,
+
+  # Link Table
+  'link_table.max_peers' => 15,
+  'link_table.address_space' => 10000,
+
+  # Analyzer
+  'analyzer.measurement_period' => 10000,
+  'analyzer.output_path' => 'output'
+}
+
+experiment 'single_join_timings'
+
+set workload ["join_after_converge-100.wl.gz", "join_after_converge-1000.wl.gz", "join_after_converge-1000.wl.gz"]
+
+static "link_table.max_peers", 64

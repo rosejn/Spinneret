@@ -1,0 +1,22 @@
+defaults {
+  # Node
+  'node.maintenance_algorithm' = Maintenance::PushPull,
+  'node.maintenance_opportunistic_alwayson' => true,
+  'node.maintenance_size' => 5,
+  'node.maintenance_rate' => 1000,
+
+  # Link Table
+  'link_table.max_peers' => 15,
+  'link_table.address_space' => 10000,
+
+  # Analyzer
+  'analyzer.measurement_period' => 10000,
+  'analyzer.output_path' => 'output'
+}
+
+new_experiment 'table_size_and_distribution'
+set 'workload', ['1000_j10_s-all-20000_c-off.wl.gz', '10000_j10_s-all-20000_c-off.wl.gz']
+
+set    'link_table.size_function', [:homogeneous, :powerlaw, :normal]
+log    'link_table.max_peers', 8, 256, 2
+static 'converge_quit', 60000
