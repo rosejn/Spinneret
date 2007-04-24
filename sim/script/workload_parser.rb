@@ -39,9 +39,9 @@ class WorkloadParser < GoSim::Entity
   end
 
   def parse(e)
-    return if @paused
-
     while(1)
+      break if @paused
+
       line = @file.readline
       case line
       when COMMENT_RE

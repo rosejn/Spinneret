@@ -216,8 +216,7 @@ opts = GetoptLong.new(
         ['--address-space',          '-a', GetoptLong::REQUIRED_ARGUMENT],
         ['--num-nodes',              '-n', GetoptLong::REQUIRED_ARGUMENT],
         ['--all-joins-first',        '-z', GetoptLong::NO_ARGUMENT],
-        ['--mean-join-time',         '-j', GetoptLong::REQUIRED_ARGUMENT],
-        ['--mean-failure-time',      '-x', GetoptLong::REQUIRED_ARGUMENT],
+        ['--mean-session-time',      '-x', GetoptLong::REQUIRED_ARGUMENT],
         ['--mean-leave-time',        '-q', GetoptLong::REQUIRED_ARGUMENT],
         ['--mean-rejoin-time',       '-r', GetoptLong::REQUIRED_ARGUMENT],
         ['--mean-search-time',       '-s', GetoptLong::REQUIRED_ARGUMENT],
@@ -227,20 +226,20 @@ opts = GetoptLong.new(
         ['--end-of-trace-flush',     '-.', GetoptLong::REQUIRED_ARGUMENT])
 
 Settings = Struct.new("Settings", :addr_space, :join_first, 
-                                  :mjt, :mft, :mlt, :mrt, :mst, 
+                                  :mxt, :mjt, :mft, :mlt, :mrt, :mst, 
                                   :search_types, :static_failure, :converge,
                                   :flush_end)
 class Settings
   def to_s
    "# Settings---\n# addr_space: #{addr_space}\n# join_first?: #{join_first}\n" +
-   "# mjt: #{mjt}\n# mft: #{mft}\n# mft: #{mlt}\n# mrt: #{mrt}\n" + 
+   "# mxt: #{mxt}\n# mlt: #{mlt}\n# mrt: #{mrt}\n" + 
    "# mst: #{mst}\n# search_types: #{search_types}\n" +
    "# static_failure: #{static_failure}\n# converge: #{converge}\n" +
    "# flush_end: #{flush_end}\n"
   end
 end
 
-settings = Settings.new(0, false, 0, 0, 0, 0, 0, 
+settings = Settings.new(0, false, 0, 0, 0, 0, 0, 0, 
                         DEFAULT_SEARCH_TYPE, DEFAULT_STATIC_FAILURE, 
                         false, -1)
 
@@ -261,10 +260,8 @@ opts.each do | opt, arg |
     nodes = arg.to_i
   when '--all-joins-first'
     settings.join_first = true
-  when '--mean-join-time'
-    settings.mjt = arg.to_f
-  when '--mean-failure-time'
-    settings.mft = arg.to_f
+  when '--mean-session-time'
+    settings.mxt = arg.to_f
   when '--mean-leave-time'
     settings.mlt = arg.to_f
   when '--mean-rejoin-time'
@@ -296,6 +293,11 @@ end
 
 if(settings.join_first && nodes == 0)
   printf("Must specify --num-nodes when using the --all-joins-first option.\n")
+  exit(0)
+end
+
+if(settings.mxt && nodes == 0)
+  puts "Must provide the number of nodes to use --mean-session-time"
   exit(0)
 end
 
@@ -344,6 +346,10 @@ class NodeFactory < GoSim::Entity
 
     @num_nodes, @settings = num_nodes, settings
     @num_nodes = -1  if @num_nodes == 0   # Generating an inifinite number
+
+    # Calculate mjt and mft
+    @settings.mft = @settings.mxt
+    @settings.mjt = @settings.mft / num_nodes
 
     NodeList.instance.nodes = []
     @wl = WLPrinter.instance

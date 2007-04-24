@@ -78,7 +78,21 @@ module Spin
 
       @generators = {}
       @generators[:init] = WorkloadGenerator.new(nil, true, Proc.new do | opts | 
-        nid = opts.to_i
+        if(opts.include? ",")
+          nid, record_join_time = opts.split(",")
+          nid = nid.strip
+          record_join_time = record_join_time.strip
+          if record_join_time == "false"
+            record_join_time = false
+          elsif record_join_time == "true"
+            record_join_time = true
+          end
+        else
+          nid = opts
+          record_join_time = false
+        end
+        nid = nid.to_i
+
         rand_node = @pad.nodes.rand
         peer_addr = nil
         if !rand_node.nil?
@@ -86,14 +100,16 @@ module Spin
         end
 
         # Create
-        @pad.nodes << Spinneret::Node.new(nid, peer_addr)
+        @pad.nodes << Spinneret::Node.new(nid, peer_addr, record_join_time)
         @pad.nodes.last
       end)
 
       @generators[:converge] = WorkloadGenerator.new(/converge/, false, Proc.new do
         @wl_settings.pause()
-        handler = SearchConvergeHandler.new(@wl_settings).method(:handle)
-        @config.analyzer.stability_handlers << handler
+        if @handler.nil?
+          @handler = SearchConvergeHandler.new(@wl_settings).method(:handle)
+          @config.analyzer.stability_handlers << @handler
+        end
       end)
 
       @generators[:flush] = WorkloadGenerator.new(/flush (\d+)/, false, 

@@ -12,9 +12,10 @@ module Spinneret
 
     # Create a new node
     # [*nid*] The unique network id for this node.
-    def initialize(nid, start_peer_addr = nil)
+    def initialize(nid, start_peer_addr = nil, report_converge_time = false)
       super()
 
+      @report_join = report_converge_time
       @start_peer_addr = start_peer_addr
       @config = Configuration::instance.node
       @pad = Scratchpad::instance
@@ -40,6 +41,7 @@ module Spinneret
       return if @start_peer_addr.nil?
 
       log {"#{@nid} - adding start peer #{@start_peer_addr}"}
+      @start_join = @sim.time  if @report_join
 
       peer = @link_table.store_peer(@start_peer_addr)
       run_join_query(@nid, [peer], 0)
@@ -56,6 +58,12 @@ module Spinneret
           #puts "#{@sim.time}: #{@nid} not converged."
           status = false
           do_maintenance  
+        else
+          if @report_join
+            time = @sim.time - @start_join
+            GoSim::Data::EventCast::instance.publish(:join_time, @nid, time)
+            @report_join = false
+          end
         end
         GoSim::Data::EventCast::instance.publish(:local_converge_report, @nid, status)
       end
