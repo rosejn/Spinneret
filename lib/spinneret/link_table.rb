@@ -410,6 +410,10 @@ module Spinneret
       seen
     end
 
+    def method_missing(method, *args)
+
+    end
+
     def seen
       @last_seen = GoSim::Simulation::instance.time
     end

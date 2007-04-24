@@ -17,6 +17,7 @@ module Spinneret
 
       @start_peer_addr = start_peer_addr
       @config = Configuration::instance.node
+      @pad = Scratchpad::instance
 
       extend(@config.maintenance_algorithm)
       extend(Maintenance::Opportunistic)
@@ -71,7 +72,7 @@ module Spinneret
     def failure(arg)
       alive(false)
       GoSim::Data::DataSet[:node].log(:failure, @nid)
-      Scratchpad::instance.nodes.delete(self)
+      @pad.nodes.delete(self)
     end
     alias :leave :failure
 
@@ -82,6 +83,15 @@ module Spinneret
 
     def id
       return nid
+    end
+
+    # Wrap rpc send and receive so we can count messages
+    def handle_rpc_request(request)
+      @pad.message_count += 1
+    end
+
+    def handle_rpc_response(response)
+      @pad.message_count += 1
     end
   end
 end
