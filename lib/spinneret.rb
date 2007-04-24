@@ -62,6 +62,7 @@ require 'spinneret/maintenance/opportunistic'
 require 'spinneret/search/search_base'
 require 'spinneret/search/kwalker'
 require 'spinneret/search/dht'
+require 'spinneret/search/join_query'
 
 # Configuration Defaults
 require 'defaults'

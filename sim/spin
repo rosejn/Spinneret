@@ -169,8 +169,9 @@ end
 
 Spinneret::Analyzer::instance.enable # Add the Analysis generation
 #Spinneret::Analyzer::instance.disable
-workload_path = File.join(File.dirname(__FILE__), 
-                          'workloads', $config.workload + '.wlgz')
+#workload_path = File.join(File.dirname(__FILE__), 
+#                          'workloads', $config.workload + '.wlgz')
+workload_path = $config.workload 
 
 Spin::Simulation::instance.setup(workload_path, $config.sim_length, $config.converge_quit)
 

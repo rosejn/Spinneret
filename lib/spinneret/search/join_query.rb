@@ -1,34 +1,49 @@
 module Spinneret
 module Search
 
-  JOIN_TTL          = 20
+  JOIN_TTL = 20
 
   module JoinQuery
-    def run_join_query(id, start_addr)
+    def run_join_query(id, peers, idx, ttl = JOIN_TTL)
 #     GoSim::Data::DataSet[:dht_search].log(:new, @uid, dest_addr, nil, @nid)
-      peer = @link_table.store_peer(start_addr)
-      while(ttl > 0)
-        peers = peer.join_query(query)
-        peers.each { | p | @link_table.store_peer(p.addr) }
+      if(ttl > 0)
+        d = peers[idx].join_query(id)
 
-        break if !closer?(id, peers[0])
+        d.add_callback do | new_peers |
+          new_peers.each { | p | @link_table.store_peer(p.addr) }
+          if(new_peers.empty?)
+            run_join_query(id, peers, idx + 1, ttl)  if peers.length > idx + 1
+          elsif(closer_than?(id, new_peers[0], peers[idx]))
+          #    puts "#{@nid}: #{new_peers[0].nid} ~ #{peers[idx].nid}"
+            run_join_query(id, new_peers, 0, ttl - 1)
+          else
+            peers[idx].table_pull().add_callback do | tbl | 
+              tbl.each { | n | @link_table.store_peer(n) }
+            end
+          end
+        end
 
-        peer = peers[0]
+        d.add_errback do | x |
+          run_join_query(id, peers, idx + 1, ttl)  if peers.length > idx + 1
+        end
 
-        ttl -= 1
       end
     end
 
     # Do a logarithmic query where at each hop we jump to the closest node
     # possible in the current link table.
-    def join_query(query, peer, ttl = JOIN_TTL)
-      log "node: #{@nid} - join_query( q = #{query})"
+    def join_query(query)
+      log { "node: #{@nid} - join_query( q = #{query})" }
 
-      return @link_table.closest_peers(query, 3)
+      @link_table.closest_peers(query, 3)
     end
 
-    def closer?(query, peer)
-      @link_table.distance(query, peer.nid) < @link_table.distance(@nid, query)
+    def table_pull
+      return @link_table.peers.map { | p | p.addr }
+    end
+
+    def closer_than?(q, peer1, peer2)
+      @link_table.distance(q, peer1.nid) < @link_table.distance(q, peer2.nid)
     end
 
   end

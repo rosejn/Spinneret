@@ -6,6 +6,7 @@ module Spinneret
 
     include Search::DHT
     include Search::KWalker
+    include Search::JoinQuery
 
     attr_reader  :nid, :link_table
 
@@ -29,15 +30,18 @@ module Spinneret
       # Log
       #puts "New Node #{@nid}"
       GoSim::Data::DataSet[:node].log(:new, @nid, @addr)
-      
-      if @start_peer_addr
-        log {"#{@nid} - adding start peer #{@start_peer_addr}"}
 
-        @link_table.store_peer(@start_peer_addr)
-        do_maintenance
-      end
+      join()
+      start_maintenance()
+    end
 
-      start_maintenance
+    def join
+      return if @start_peer_addr.nil?
+
+      log {"#{@nid} - adding start peer #{@start_peer_addr}"}
+
+      peer = @link_table.store_peer(@start_peer_addr)
+      run_join_query(@nid, [peer], 0)
     end
 
     def stop_maintenance
