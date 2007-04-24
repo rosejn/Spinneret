@@ -35,6 +35,12 @@ module Spinneret
         @local_converged_nodes[nid] = true  if status == true
       end
 
+      ecast.add_handler(:join_time) do | nid, time |
+        append_data_file("join_time") do |f|
+          f << "#{nid} #{time}\n"
+        end
+      end
+
       internal_init
     end
 
@@ -64,7 +70,8 @@ module Spinneret
       convergence = network_converged?
       @config.analyzer.stability_handlers.each { | h | h.call(convergence) }
 
-      puts "Nodes reporting local convergence #{@local_converged_nodes.length}"
+      puts "Nodes reporting local convergence: " +
+           "#{@local_converged_nodes.length}/#{@pad.nodes.length}"
 
       @successful_dht_searches = 0
       @failed_dht_searches = 0
@@ -201,7 +208,8 @@ module Spinneret
       trials = 0
       success = 0
 
-      @pad.nodes.each do | cur_peer |
+      100.times do
+        cur_peer = @pad.nodes.rand
         search = @pad.nodes.rand
         hops = 0
         trials += 1
@@ -231,15 +239,26 @@ module Spinneret
 
       puts "#{trials} (#{success})"
 
-      error_rate = @config.link_table.max_peers / (Math.log2(@config.link_table.address_space) * 1.5)
+#      error_rate = @config.link_table.max_peers / (Math.log2(@config.link_table.address_space))
+      error_rate = @config.link_table.max_peers / (Math.log2(Scratchpad::instance.nodes.length))
 
       error_rate = 1.0 if error_rate > 1.0
 
       measure = (trials - success <= (1.05 - error_rate) * trials)
       append_data_file("converge_measure") do | f |
         f << "#{@sim.time} #{trials - success}"
-        f << " (converged)"   if measure
+        f << " (global converged)"   if measure
         f << "\n"
+      end
+
+      # Check for complete local convergence - there will be no improvement to
+      # global convergence if this is the case.
+      if measure == false
+        local_converged = 0
+        @pad.nodes.each do | cur_peer |
+          local_converged += 1 if cur_peer.link_table.converged?
+        end
+        measure = (local_converged == @pad.nodes.length)
       end
 
       return measure
