@@ -34,6 +34,9 @@ class TestAnalysis < Test::Unit::TestCase
     @sim.run(5000)
 
     analyzer = Spinneret::Analyzer::instance.enable
+
+    return if analyzer.graph.nil?
+
     assert_equal(true, analyzer.is_connected?)
     assert_equal(1, analyzer.connected_components)
 

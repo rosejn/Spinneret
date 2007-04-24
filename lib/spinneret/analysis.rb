@@ -53,7 +53,7 @@ module Spinneret
     def run_phase
       network_size
       analyze_search
-      indegree_calc
+      #indegree_calc
       #sum_of_squares_stats
       #table_sizes
       #outdegree_calc
