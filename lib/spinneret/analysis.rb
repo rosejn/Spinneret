@@ -1,5 +1,4 @@
 module Spinneret
-
   class Analyzer < GoSim::Entity
     include Base
     include KeywordProcessor
@@ -52,6 +51,7 @@ module Spinneret
     end
 
     def run_phase
+      network_size
       analyze_search
       indegree_calc
       #sum_of_squares_stats
@@ -94,7 +94,7 @@ module Spinneret
       @failed_kwalk_searches = 0
       @hops = 0
       @local_converged_nodes = {}
-      setup_rgl_graph
+      #setup_rgl_graph
     end
 
     def search_analysis
@@ -154,6 +154,12 @@ module Spinneret
       end
     end
 
+    def network_size
+      append_data_file ("network_size") do |f|
+        f << "#{@sim.time} #{@pad.nodes.size}\n"
+      end
+    end
+
     def default_stable_handler
       if network_converged?
         log "Network is stable..."  
@@ -200,9 +206,12 @@ module Spinneret
         hops = 0
         trials += 1
 
-        while 1
+        while cur_peer
           lt = cur_peer.link_table
           next_peer = lt.closest_peer(search.nid)
+
+          # Handle case where nothing is in table.
+          break if next_peer.nil?
 
           if(lt.distance(search.nid, cur_peer.nid) <=
              lt.distance(search.nid, next_peer.nid))
