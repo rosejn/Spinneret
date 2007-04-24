@@ -67,7 +67,9 @@ module Spinneret
     def failure(arg)
       alive(false)
       GoSim::Data::DataSet[:node].log(:failure, @nid)
+      Scratchpad::instance.nodes.delete(self)
     end
+    alias :leave :failure
 
     def handle_failed_packet(pkt)
       puts "Node #{nid}: got failed packet! #{pkt.inspect}"

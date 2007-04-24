@@ -136,34 +136,50 @@ class Exploration
 
   def job_dir(param_set)
     base = @current_experiment.gsub(' ', '_')
+
+    # Just use the base directory if no parameters are passed
+    return base if param_set.empty?
+
+    puts "base: " + base
+    puts "param_set: " + param_set.inspect
+
     name = ""
-
     param_set.each {|param, val| name << "__#{param}-#{val}" }
-
     File.join(base, name[2..-1])
   end
 
   def send_experiment
     params = build_param_list(@params.to_a)
 
-    num_jobs = 0 
-    params.each do |param_set|
-      jc = RJServe::Jobs::JobChain.new
-      dir = job_dir(param_set)
-      param_set['analyzer.output_path'] = dir
+    @num_jobs = 0 
 
-      jc << job( make_fresh_dir(dir) )
-      jc << job( dump_config(dir, @default_params.merge(param_set)) )
-      jc << job( "spin --config #{File.join(dir, "config")}" )
-
-      num_jobs += 1
-      @job_queue.add_job(jc)
+    # Run a single test with defaults if no parameters are being explored
+    if params.empty?
+      send_job({})
+    else
+      params.each {|param_set| send_job(param_set) }
     end
 
-    puts "\t\t#{num_jobs} runs sent!\n"
+    puts "\t\t#{@num_jobs} runs sent!\n"
+  end
+
+  def send_job(param_set)
+    jc = RJServe::Jobs::JobChain.new
+    dir = job_dir(param_set)
+    puts "output dir: " + dir
+    param_set['analyzer.output_path'] = dir
+
+    jc << job( make_fresh_dir(dir) )
+    jc << job( dump_config(dir, @default_params.merge(param_set)) )
+    jc << job( "spin --config #{File.join(dir, "config")}" )
+
+    @num_jobs += 1
+    @job_queue.add_job(jc)
   end
 
   def build_param_list(params)
+    return [] if params.empty?
+
     name, vals = params.pop
     vals = [vals].flatten
 
