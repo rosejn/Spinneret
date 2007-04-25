@@ -20,9 +20,11 @@ module Spinneret
       @config = Configuration::instance.node
       @pad = Scratchpad::instance
 
+      analysis_setup_aspects() 
+
       extend(@config.maintenance_algorithm)
       extend(Maintenance::Opportunistic)
-      setup_aspects
+      opportunistic_setup_aspects()
 
       @nid = nid || @link_table.random_id
       @link_table = LinkTable.new(self)
@@ -35,6 +37,13 @@ module Spinneret
 
       join()
       start_maintenance()
+    end
+      
+    def analysis_setup_aspects
+      insert_send_aspect do | method, outgoing |
+        GoSim::Data::EventCast::instance.publish(:packet_sent, @nid, method)
+        outgoing
+      end
     end
 
     def join
@@ -93,13 +102,5 @@ module Spinneret
       return nid
     end
 
-    # Wrap rpc send and receive so we can count messages
-    def handle_rpc_request(request)
-      @pad.message_count += 1
-    end
-
-    def handle_rpc_response(response)
-      @pad.message_count += 1
-    end
   end
 end

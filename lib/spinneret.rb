@@ -64,9 +64,6 @@ require 'spinneret/search/kwalker'
 require 'spinneret/search/dht'
 require 'spinneret/search/join_query'
 
-# Configuration Defaults
-require 'defaults'
-
 # Internals
 require 'spinneret/math_ext'
 require 'spinneret/link_table'
@@ -74,3 +71,7 @@ require 'spinneret/node'
 require 'spinneret/analysis'
 require 'spinneret/distance_functions'
 require 'spinneret/scratchpad'
+
+# Configuration Defaults
+require 'defaults'
+

@@ -3,7 +3,7 @@ module Maintenance
   module Opportunistic
     OpPacket = Struct.new(:neighbors, :args)
 
-    def setup_aspects
+    def opportunistic_setup_aspects
 #=begin
       insert_send_aspect do | method, outgoing |
         if((@config.maintenance_opportunistic_alwayson || @link_table.converged?) &&

@@ -41,6 +41,10 @@ module Spinneret
         end
       end
 
+      ecast.add_handler(:packet_sent) do | nid, method |
+        @sent_packets[method] += 1
+      end
+
       internal_init
     end
 
@@ -66,6 +70,7 @@ module Spinneret
       #log "Not connected!\n" if !is_connected?
       #network_converged?
       search_analysis
+      packet_counts
 
       convergence = network_converged?
       @config.analyzer.stability_handlers.each { | h | h.call(convergence) }
@@ -79,6 +84,7 @@ module Spinneret
       @failed_kwalk_searches = 0
       @hops = 0
       @local_converged_nodes = {}
+      @sent_packets.each { | key, value | @sent_packets[key] = 0 } 
     end
 
     #What happens to @nodes here?  For now the reference better remain the
@@ -101,6 +107,7 @@ module Spinneret
       @failed_kwalk_searches = 0
       @hops = 0
       @local_converged_nodes = {}
+      @sent_packets = Hash.new(0)
       #setup_rgl_graph
     end
 
@@ -112,6 +119,14 @@ module Spinneret
           avg = @hops/@successful_dht_searches.to_f
         end
         f << "#{@sim.time} #{avg}\n"
+      end
+    end
+    
+    def packet_counts
+      @sent_packets.each do | type, count |
+        append_data_file("packet_" + type.to_s) do | f |
+          f << "#{@sim.time} #{count}\n"
+        end
       end
     end
 
