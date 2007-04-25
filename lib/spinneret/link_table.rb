@@ -27,6 +27,7 @@ module Spinneret
 
       @table_lock = Monitor.new
       @nid_peers = {}
+      @max_peers = @config.size_function.call(@config.max_peers)
 
       @peer_factory = PeerFactory.new(node, nil, method(:errback_node_removal))
 
@@ -374,6 +375,26 @@ module Spinneret
       #puts "#{@nid} #{mu_e} #{mu_N[0]} #{mu_N[1]}"  if !conv
 
       return conv
+    end
+
+    # Various table size functions to play with different distributions across
+    # the entire network.
+    def self.homogeneous(num)
+      return num
+    end
+
+    def self.powerlaw(num)
+      @@r ||= GSL::Rng.alloc("mt19937")
+      k = 2.0
+      x_m = (num * k - num) / k.to_f
+
+      return @@r.pareto(k, x_m)
+    end
+
+    def self.normal(num)
+      @@r ||= GSL::Rng.alloc("mt19937")
+      sigma = num / 4.0
+      x = num + @@r.gaussian(sigma)
     end
   end
 

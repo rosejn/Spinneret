@@ -119,6 +119,7 @@ class Exploration
 
     puts "    Creating new experiment: #{name}"
   end
+  alias :experiment :new_experiment
 
   def job(exec)
     job = RJServe::Jobs::ShellExecute.new()

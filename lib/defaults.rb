@@ -17,6 +17,7 @@ module Spinneret
     lt.address_space = 10000
     lt.distance_func = nil  #set by simulation after final address space 
     #is known
+    lt.size_function = LinkTable.method(:homogeneous)
 
     # Analyzer
     an = c.analyzer = OpenStruct.new

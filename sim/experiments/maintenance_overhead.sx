@@ -1,18 +1,4 @@
-defaults {
-  # Node
-  'node.maintenance_algorithm' = Maintenance::PushPull,
-  'node.maintenance_opportunistic_alwayson' => true,
-  'node.maintenance_size' => 5,
-  'node.maintenance_rate' => 1000,
-
-  # Link Table
-  'link_table.max_peers' => 15,
-  'link_table.address_space' => 10000,
-
-  # Analyzer
-  'analyzer.measurement_period' => 10000,
-  'analyzer.output_path' => 'output'
-}
+require 'shared_defaults'
 
 new_experiment 'maintenance_overhead_search_rates'
 set 'workload', ['1000_mxt480000_s-all-2000.wl.gz', '1000_mxt480000_s-all-20000.wl.gz', '1000_mxt480000_s-all-40000.wl.gz', '1000_mxt480000_s-all-120000.wl.gz']
