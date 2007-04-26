@@ -151,6 +151,8 @@ module Spin
       puts "Beginning simulation...\n"
       if(@sim_length != 0)
         GoSim::Simulation.run(@sim_length)
+      elsif(@settings.length != 0)
+        GoSim::Simulation.run(@settings.length)
       elsif(@wl_settings.sim_length.to_i != 0 && @wl_settings.flush_end.to_i < 0)
         GoSim::Simulation.run(@wl_settings.sim_length.to_i)
       else
