@@ -62,8 +62,13 @@ require 'English'
 
 require 'script/workload_parser'
 require 'script/spin_sim'
+#require 'script/mem_prof'
+
+#MemoryProfiler.start
 
 srand 0
+
+GoSim::Data::DataSet::silent()
 
 opts = GetoptLong.new(
         ['--help',                   '-h', GetoptLong::NO_ARGUMENT],

@@ -13,4 +13,4 @@ experiment 'maintenance_overhead_churn_rates'
 set 'workload', ['1000_mxt60000_s-all-20000.wl.gz', '1000_mxt120000_s-all-20000.wl.gz', '1000_mxt240000_s-all-20000.wl.gz', '1000_mxt480000_s-all-20000.wl.gz', '1000_mxt960000_s-all-20000.wl.gz', '1000_mxt1920000_s-all-20000.wl.gz', '1000_mxt3840000_s-all-20000.wl.gz'].map {|w| "workloads/" + w }
 
 static 'link_table.max_peers', 64
-static 'length', 1920000 + 5 * 60000
+static 'length', 3840000 + 5 * 60000

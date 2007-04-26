@@ -12,8 +12,19 @@ module Search
 
   module DHT
     def search_dht(dest_addr)
-      GoSim::Data::DataSet[:dht_search].log(:new, @uid, dest_addr, nil, @nid)
-      dht_query(SearchBase::get_new_uid, dest_addr.to_i) 
+      return if !alive?
+
+      uid = SearchBase::get_new_uid
+      GoSim::Data::DataSet[:dht_search].log(:new, uid, dest_addr, nil, @nid)
+      dht_query(uid, dest_addr.to_i) 
+    end
+
+    def handle_dht_timeout(timer, uid)
+      if @local_queries[uid] == false
+        GoSim::Data::EventCast::instance::publish(:dht_search_finish, 
+                                                  uid, false, 0)
+      end
+      @local_queries.delete(uid)
     end
 
     # Do a logarithmic query where at each hop we jump to the closest node
@@ -21,19 +32,14 @@ module Search
     def dht_query(uid, query, src_addr = @addr, immed_src = nil, ttl = DHT_TTL)
       log "node: #{@nid} - dht_query( q = #{query})"
       if !immed_src.nil?
-        GoSim::Data::DataSet[:dht_search].log(:update, @uid, query, immed_src, @nid) 
+        GoSim::Data::DataSet[:dht_search].log(:update, uid, query, immed_src, @nid) 
       end
 
       # Are we a local query?
       if(src_addr == @addr)
         @local_queries ||= []
         @local_queries[uid] = false
-        set_timeout(DHT_QUERY_TIMEOUT) {
-          if @local_queries[uid] == false
-            GoSim::Data::EventCast::instance::publish(:dht_search_finish, uid, false, 0)
-          end
-          @local_queries.delete(uid)
-        }
+        set_timeout(DHT_QUERY_TIMEOUT, false, uid, method(:handle_dht_timeout))
       end
 
       unless us_or_dead?(uid, query, src_addr, ttl)
@@ -58,7 +64,7 @@ module Search
     def dht_burst_query(uid, query, src_addr, immed_src, ttl)
       log {"node: #{@nid} - dht_burst_query( q = #{query})"}
 
-      GoSim::Data::DataSet[:dht_search].log(:update, @uid, query, immed_src, @nid) 
+      GoSim::Data::DataSet[:dht_search].log(:update, uid, query, immed_src, @nid) 
 
       unless us_or_dead?(uid, query, src_addr, ttl)
         peers = @link_table.closest_peers(query, DHT_BURST_SIZE)

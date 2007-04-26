@@ -348,8 +348,8 @@ class NodeFactory < GoSim::Entity
     @num_nodes = -1  if @num_nodes == 0   # Generating an inifinite number
 
     # Calculate mjt and mft
-    @settings.mft = @settings.mxt
-    @settings.mjt = @settings.mft / num_nodes
+    @settings.mlt = @settings.mxt
+    @settings.mjt = @settings.mlt / num_nodes
 
     NodeList.instance.nodes = []
     @wl = WLPrinter.instance
@@ -357,6 +357,10 @@ class NodeFactory < GoSim::Entity
 
     @sim.schedule_event(:node_gen, @sid, 
                         $R.poisson(@settings.mjt).round, nil)
+  end
+
+  def node_ids
+    return NodeList.instance.nodes.map { | x | x.id }
   end
 
   def node_gen(e)
@@ -367,17 +371,17 @@ class NodeFactory < GoSim::Entity
       exit(1)
     end
 
-    while(@node_ids.include?(node_id = rand(@settings.addr_space)))  
+    if(nodes.length < @num_nodes || @settings.mxt == 0)
+      nids = node_ids()
+      while(nids.include?(node_id = rand(@settings.addr_space)))  
+      end
+      @wl.printf("%d init %d\n", node_id, node_id)
+      nodes << NodeObj.new(node_id, @settings)  if !@settings.join_first
     end
-    @wl.printf("%d init %d\n", node_id, node_id)
-    nodes << NodeObj.new(node_id, @settings)  if !@settings.join_first
-    @node_ids << node_id
 
-    @num_nodes -= 1
-    if(@num_nodes != 0)
-      @sim.schedule_event(:node_gen, @sid, 
-                          $R.poisson(@settings.mjt).round, nil)
-    elsif(@settings.join_first)
+    @sim.schedule_event(:node_gen, @sid, 
+                        $R.poisson(@settings.mjt).round, nil)
+    if(nodes.length == @num_nodes && @settings.join_first)
       spawn_nodes
       if(@settings.converge)
         @wl.printf("converge\n")
@@ -435,6 +439,7 @@ class NodeObj < GoSim::Entity
     return  if @left == true
 
     @wl.printf("%d failure\n", @id)
+
     @left = true
     if @settings.mrt != 0 && e.nil?
       @sim.schedule_event(:recover, @sid, 

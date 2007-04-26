@@ -17,8 +17,8 @@ module Maintenance
       end
 
       insert_receive_aspect do | method, incoming |
-        if method != :neighbor_request && incoming.class == OpPacket
-          incoming.neighbors.each {|p| @link_table.store_peer(p)}
+        if method != :neighbor_request && incoming.class == OpPacket 
+          incoming.neighbors.each {|p| @link_table.store_peer(p)}  if alive?
           incoming.args
         else
           incoming

@@ -369,12 +369,6 @@ module Spinneret
       mu_N = normal_fit()
 
       return [(mu_N[0] - mu_e).abs, mu_N[1]]
-
-      conv = (mu_N[0] - mu_e).abs < 0.1 && mu_N[1] < 0.2
-
-      #puts "#{@nid} #{mu_e} #{mu_N[0]} #{mu_N[1]}"  if !conv
-
-      return conv
     end
 
     # Various table size functions to play with different distributions across

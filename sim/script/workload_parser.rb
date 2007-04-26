@@ -39,7 +39,7 @@ class WorkloadParser < GoSim::Entity
   end
 
   def parse(e)
-    while(1)
+    while(true)
       break if @paused
 
       line = @file.readline

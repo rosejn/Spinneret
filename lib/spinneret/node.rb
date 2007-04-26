@@ -96,6 +96,9 @@ module Spinneret
       alive(false)
       GoSim::Data::DataSet[:node].log(:failure, @nid)
       @pad.nodes.delete(self)
+      @maint_timeout.cancel
+      @link_table = nil
+      #@sim.unregister_entity(@sid, self)
     end
     alias :leave :failure
 

@@ -141,8 +141,8 @@ module Spinneret
 
       append_data_file("search_success_pct") do |f|
         f.write("#{@sim.time} #{@successful_dht_searches} " +
-                "#{@failed_dht_searches} #{@successful_kwalk_searches} " +
-                "#{@failed_kwalk_searches}\n")
+                "#{@failed_dht_searches} #{@successful_kwalker_searches} " +
+                "#{@failed_kwalker_searches}\n")
       end
     end
     
@@ -201,7 +201,7 @@ module Spinneret
     end
 
     def network_size
-      append_data_file ("network_size") do |f|
+      append_data_file("network_size") do |f|
         f << "#{@sim.time} #{@pad.nodes.size}\n"
       end
     end
