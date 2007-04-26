@@ -8,7 +8,7 @@ module Search
     KW_TTL           = 20
     KW_QUERY_TIMEOUT = 30000
 
-    def handle_search_kwalk(dest_addr, src_addr = @addr, 
+    def search_kwalk(dest_addr, src_addr = @addr, 
                             k = KW_NUM_WALKERS, ttl = KW_TTL)
       new_uid = SearchBase::get_new_uid()
       kwalker_query(new_uid, dest_addr.to_i, src_addr, k, ttl)
@@ -25,17 +25,16 @@ module Search
         @local_queries[uid] = false
         set_timeout(KW_QUERY_TIMEOUT) {
           if @local_queries[uid] == false
-            Analyzer::instance::failed_kwalk_search(uid)
+            GoSim::Data::EventCast::instance::publish(:kwalker_search_finish,
+                                                      uid, false, 0)
           end
-          set_timeout(Analyzer::instance::measurement_period * 2) {
-            @local_queries.delete(uid)
-          }
+          @local_queries.delete(uid)
         }
       end
 
       if(query == @nid)
         peer = @link_table.get_peer_by_addr(src_addr)
-        peer.kwalker_response(uid, @addr)
+        peer.kwalker_response(uid, @addr, ttl)
       elsif ttl == 0
         return
       else 
@@ -54,17 +53,14 @@ module Search
       end
     end
 
-    def handle_kwalker_query(pkt)
-      kwalker_query(pkt.uid, pkt.query, pkt.src_addr, 1, pkt.ttl, false)
-    end
-
     # TODO: What do we want to do with search responses?
-    def kwalker_response(uid, peer_addr)
+    def kwalker_response(uid, peer_addr, ttl)
       @local_queries ||= []
 
       log {"KWalker got a query response..."}
       if @local_queries[uid] == false
-        Analyzer::instance::successful_kwalk_search(uid)
+        GoSim::Data::EventCast::instance::publish(:kwalker_search_finish,
+                                                  uid, false, ttl)
       end
       @local_queries[uid] = true
     end

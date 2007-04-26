@@ -25,12 +25,21 @@ module Spinneret
       ecast.add_handler(:dht_search_finish) do | id, state, hops |
         if state
           @successful_dht_searches += 1
-          @hops += hops
+          @dht_hops += hops
         else
           @failed_dht_searches += 1
         end
       end
-      
+
+      ecast.add_handler(:kwalker_search_finish) do | id, state, hops |
+        if state
+          @successful_kwalker_searches += 1
+          @kwalker_hops += hops
+        else
+          @failed_kwalker_searches += 1
+        end
+      end
+
       ecast.add_handler(:local_converge_report) do | nid, status |
         @local_converged_nodes[nid] = true  if status == true
       end
@@ -62,13 +71,11 @@ module Spinneret
 
     def run_phase
       network_size
-      analyze_search
       #indegree_calc
       #sum_of_squares_stats
       #table_sizes
       #outdegree_calc
       #log "Not connected!\n" if !is_connected?
-      #network_converged?
       search_analysis
       packet_counts
 
@@ -80,9 +87,10 @@ module Spinneret
 
       @successful_dht_searches = 0
       @failed_dht_searches = 0
-      @successful_kwalk_searches = 0
-      @failed_kwalk_searches = 0
-      @hops = 0
+      @dht_hops = 0
+      @successful_kwalker_searches = 0
+      @failed_kwalker_searches = 0
+      @kwalker_hops = 0
       @local_converged_nodes = {}
       @sent_packets.each { | key, value | @sent_packets[key] = 0 } 
     end
@@ -103,22 +111,38 @@ module Spinneret
 
       @successful_dht_searches = 0
       @failed_dht_searches = 0
-      @successful_kwalk_searches = 0
-      @failed_kwalk_searches = 0
-      @hops = 0
+      @dht_hops = 0
+      @successful_kwalker_searches = 0
+      @failed_kwalker_searches = 0
+      @kwalker_hops = 0
       @local_converged_nodes = {}
       @sent_packets = Hash.new(0)
       #setup_rgl_graph
     end
 
     def search_analysis
-      append_data_file("hop_average") do | f |
+      append_data_file("dht_hop_average") do | f |
         if @successful_dht_searches == 0
           avg = 0
         else
-          avg = @hops/@successful_dht_searches.to_f
+          avg = @dht_hops/@successful_dht_searches.to_f
         end
         f << "#{@sim.time} #{avg}\n"
+      end
+
+      append_data_file("kwalker_hop_average") do | f |
+        if @successful_kwalker_searches == 0
+          avg = 0
+        else
+          avg = @kwalker_hops/@successful_kwalker_searches.to_f
+        end
+        f << "#{@sim.time} #{avg}\n"
+      end
+
+      append_data_file("search_success_pct") do |f|
+        f.write("#{@sim.time} #{@successful_dht_searches} " +
+                "#{@failed_dht_searches} #{@successful_kwalk_searches} " +
+                "#{@failed_kwalk_searches}\n")
       end
     end
     
@@ -187,14 +211,6 @@ module Spinneret
         log "Network is stable..."  
       else
         log "Network is not stable..."
-      end
-    end
-
-    def analyze_search
-      append_data_file("search_success_pct") do |f|
-        f.write("#{@sim.time} #{@successful_dht_searches} " +
-                "#{@failed_dht_searches} #{@successful_kwalk_searches} " +
-                "#{@failed_kwalk_searches}\n")
       end
     end
 

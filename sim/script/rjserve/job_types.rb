@@ -17,7 +17,10 @@ module Jobs
     end
 
     def run
-      `#{@command}`
+      IO.popen(@command) do | f | 
+        s = f.read 
+        puts s if !s.nil?
+      end
     end
 
     def runnable?
