@@ -145,7 +145,13 @@ class Exploration
     puts "param_set: " + param_set.inspect
 
     name = ""
-    param_set.each {|param, val| name << "__#{param}-#{val}" }
+    param_set.each do | param, val |
+      if val.class == Method
+        val = $1  if val.to_s =~ /#<Method: ([\.:\w]+)>/
+      end
+
+      name << "__#{param}-#{val}" 
+    end
     File.join(base, name[2..-1])
   end
 

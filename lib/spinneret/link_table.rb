@@ -27,7 +27,7 @@ module Spinneret
 
       @table_lock = Monitor.new
       @nid_peers = {}
-      @max_peers = @config.size_function.call(@config.max_peers)
+      @max_peers = send(@config.size_function).call(@config.max_peers)
 
       @peer_factory = PeerFactory.new(node, nil, method(:errback_node_removal))
 

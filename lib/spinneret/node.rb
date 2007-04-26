@@ -67,15 +67,21 @@ module Spinneret
           #puts "#{@sim.time}: #{@nid} not converged."
           status = false
           do_maintenance  
-        else
-          if @report_join
-            time = @sim.time - @start_join
-            GoSim::Data::EventCast::instance.publish(:join_time, @nid, time)
-            @report_join = false
-          end
         end
         GoSim::Data::EventCast::instance.publish(:local_converge_report, @nid, status)
       end
+
+      if @report_join
+        timeout = set_timeout(1000, true) do
+          if @link_table.converged?
+            time = @sim.time - @start_join
+            GoSim::Data::EventCast::instance.publish(:join_time, @nid, time)
+            @report_join = false
+            timeout.cancel
+          end
+        end
+      end
+
     end
     
     def to_s

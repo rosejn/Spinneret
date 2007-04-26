@@ -5,6 +5,8 @@ defaults $defaults
 experiment 'table_size_and_distribution'
 set 'workload', ['1000_j10_s-all-20000_c-off.wl.gz', '10000_j10_s-all-20000_c-off.wl.gz'].map {|w| "workloads/" + w}
 
-set    'link_table.size_function', [LinkTable.method(:homogeneous), LinkTable.method(:powerlaw), LinkTable.method(:normal)]
+set    'link_table.size_function', [:homogeneous,
+                                    :powerlaw,
+                                    :normal]
 log    'link_table.max_peers', 8, 256, 2
 static 'converge_quit', 60000
