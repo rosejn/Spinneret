@@ -10,13 +10,13 @@ class KWalkerNode < Spinneret::Node
   attr_reader :got_response, :packet_counter
 
   # TODO: What do we want to do with search responses?
-  def kwalker_response(uid, peer_addr)
+  def kwalker_response(uid, peer_addr, ttl)
     @got_response ||= []
     @got_response << peer_addr
   end
 
   def schedule_search(src_id, query_id, time)
-    set_timeout(time) { handle_search_kwalk(query_id, src_id, 1, 10) }
+    set_timeout(time) { search_kwalk(query_id, src_id, 1, 10) }
   end
 
   def send_packet(*args)
