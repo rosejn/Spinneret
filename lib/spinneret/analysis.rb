@@ -83,7 +83,7 @@ module Spinneret
       @config.analyzer.stability_handlers.each { | h | h.call(convergence) }
 
       append_data_file("local_convergance") do | f |
-        f << "#{@sim.time} #{@local_converged_nodes.length}"
+        f << "#{@sim.time} #{@local_converged_nodes.length}\n"
       end
 
       @successful_dht_searches = 0
@@ -401,30 +401,6 @@ module Spinneret
       cur_path = File.join(@config.analyzer.output_path, "cur_indegree_dist")
       File.delete(cur_path) if File.symlink?(cur_path)
       File.symlink(datafile_path("indegree_dist"), cur_path)
-    end
-
-    def successful_dht_search(uid)
-      #log "Recved uid #{uid} again"  if @uids[uid] == true
-      #@uids[uid] = true
-      @successful_dht_searches += 1
-    end
-
-    def failed_dht_search(uid)
-      #log "Recved uid #{uid} again"  if @uids[uid] == true
-      #@uids[uid] = true
-      @failed_dht_searches += 1
-    end
-
-    def successful_kwalk_search(uid)
-      #log "Recved uid #{uid} again"  if @uids[uid] == true
-      #@uids[uid] = true
-      @successful_kwalk_searches += 1
-    end
-
-    def failed_kwalk_search(uid)
-      #log "Recved uid #{uid} again"  if @uids[uid] == true
-      #@uids[uid] = true
-      @failed_kwalk_searches += 1
     end
 
     def datafile_path(category)
