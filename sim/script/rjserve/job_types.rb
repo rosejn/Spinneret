@@ -17,9 +17,11 @@ module Jobs
     end
 
     def run
-      IO.popen(@command) do | f | 
-        s = f.read 
-        puts s if !s.nil?
+      IO.popen(@command) do | p | 
+        File.open("rj_serve_out", "a") do | f |
+          output = p.read
+          f << output  if output
+        end
       end
     end
 

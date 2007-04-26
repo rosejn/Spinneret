@@ -82,8 +82,9 @@ module Spinneret
       convergence = network_converged?
       @config.analyzer.stability_handlers.each { | h | h.call(convergence) }
 
-      puts "Nodes reporting local convergence: " +
-           "#{@local_converged_nodes.length}/#{@pad.nodes.length}"
+      append_data_file("local_convergance") do | f |
+        f << "#{@sim.time} #{@local_converged_nodes.length}"
+      end
 
       @successful_dht_searches = 0
       @failed_dht_searches = 0
