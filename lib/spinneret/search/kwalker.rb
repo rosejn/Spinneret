@@ -10,7 +10,7 @@ module Search
 
     def search_kwalk(dest_addr, src_addr = @addr, 
                             k = KW_NUM_WALKERS, ttl = KW_TTL)
-      return if !alive?
+      return if !@topo.alive?(@addr)
 
       new_uid = SearchBase::get_new_uid()
       kwalker_query(new_uid, dest_addr.to_i, src_addr, k, ttl)

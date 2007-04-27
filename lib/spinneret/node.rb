@@ -98,7 +98,9 @@ module Spinneret
       @pad.nodes.delete(self)
       @maint_timeout.cancel
       @link_table = nil
-      #@sim.unregister_entity(@sid, self)
+      set_timeout(10000) {
+        die
+      }
     end
     alias :leave :failure
 

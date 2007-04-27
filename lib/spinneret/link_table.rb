@@ -418,7 +418,7 @@ module Spinneret
     def initialize(local_node, remote_addr)
       super
 
-      @nid = @remote_node.nid if @remote_node
+      @nid = remote_node.nid if remote_node
       @distance = -1 # TODO: Decide if this needs to be address space
       @parent_node = local_node
 

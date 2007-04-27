@@ -269,8 +269,6 @@ module Spinneret
       GoSim::Data::DataSet[:converge_measure].log(:update, 
                                                   (trials-success)/trials)
 
-      puts "#{trials} (#{success})"
-
 #      error_rate = @config.link_table.max_peers / (Math.log2(@config.link_table.address_space))
       error_rate = @config.link_table.max_peers / (Math.log2(Scratchpad::instance.nodes.length))
 
@@ -290,8 +288,10 @@ module Spinneret
         @pad.nodes.each do | cur_peer |
           local_converged += 1 if cur_peer.link_table.converged?
         end
-        measure = (local_converged == @pad.nodes.length)
+        measure = (local_converged >= @pad.nodes.length * 0.98)
       end
+
+      puts "#{trials} (#{success}) [lcl #{local_converged}] = #{measure}"
 
       return measure
     end

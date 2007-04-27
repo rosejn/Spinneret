@@ -12,7 +12,7 @@ module Search
 
   module DHT
     def search_dht(dest_addr)
-      return if !alive?
+      return if !@topo.alive?(@addr)
 
       uid = SearchBase::get_new_uid
       GoSim::Data::DataSet[:dht_search].log(:new, uid, dest_addr, nil, @nid)

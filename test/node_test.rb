@@ -46,6 +46,6 @@ class TestNode < Test::Unit::TestCase
     @sim.schedule_event(:alive, nodes[0].addr, 25000, false)
     @sim.run(50000)
 
-    assert_equal(false, nodes[0].alive?)
+    assert_equal(false, GoSim::Net::Topology::instance.alive?(nodes[0].addr))
   end
 end

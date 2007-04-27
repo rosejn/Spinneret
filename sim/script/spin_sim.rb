@@ -4,19 +4,22 @@ module Spin
 
     def initialize(time)
       @converge_time = time
+    
+      puts "Converge quit set to #{time}"
+
       @sim = GoSim::Simulation.instance
     end
 
     def handle(state)
       return if @converge_time < 0
 
-      a = Spinneret::Analyzer.instance
-
       time = @sim.time
 
+      puts "converged? #{state}"
+
       if state
-        log "Converged"
         @start ||= time
+        puts "#{@start} #{time}"
         if(time - @start  >= @converge_time)
           puts "Quiting due to convergence.\n"
           puts "-------------------------------------------"
