@@ -99,7 +99,7 @@ module Search
         log {"#{@nid} - query: #{query} successful!"}
         dest = @link_table.get_peer_by_addr(src_addr)
         log {"DHT Search successfull for #{@nid} (#{uid})"}
-        dest.dht_response(uid, @nid, DHT_TTL - ttl)
+        dest.dht_response(uid, @nid, DHT_TTL - ttl)  unless dest.nil?
         true
 
       elsif ttl == 0

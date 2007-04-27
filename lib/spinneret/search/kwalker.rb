@@ -36,7 +36,7 @@ module Search
 
       if(query == @nid)
         peer = @link_table.get_peer_by_addr(src_addr)
-        peer.kwalker_response(uid, @addr, ttl)
+        peer.kwalker_response(uid, @addr, ttl)  unless peer.nil?
       elsif ttl == 0
         return
       else 
