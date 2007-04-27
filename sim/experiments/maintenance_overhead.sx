@@ -6,11 +6,11 @@ experiment 'maintenance_overhead_search_rates'
 set 'workload', ['1000_mxt480000_s-all-2000.wl.gz', '1000_mxt480000_s-all-20000.wl.gz', '1000_mxt480000_s-all-40000.wl.gz', '1000_mxt480000_s-all-120000.wl.gz'].map {|w| "workloads/" + w }
 
 log 'link_table.max_peers', 32, 96, 1.5
-static 'length', 480000 + 5 * 60000
+static 'sim_length', 480000 + 5 * 60000
 
 # Bamboo used searches ever 10000 ticks
 experiment 'maintenance_overhead_churn_rates'
 set 'workload', ['1000_mxt60000_s-all-20000.wl.gz', '1000_mxt120000_s-all-20000.wl.gz', '1000_mxt240000_s-all-20000.wl.gz', '1000_mxt480000_s-all-20000.wl.gz', '1000_mxt960000_s-all-20000.wl.gz', '1000_mxt1920000_s-all-20000.wl.gz', '1000_mxt3840000_s-all-20000.wl.gz'].map {|w| "workloads/" + w }
 
 static 'link_table.max_peers', 64
-static 'length', 3840000 + 5 * 60000
+static 'sim_length', 3840000 + 5 * 60000
