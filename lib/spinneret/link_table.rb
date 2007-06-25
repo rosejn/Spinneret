@@ -9,6 +9,7 @@ module Spinneret
   class LinkTable
     include Base
     include KeywordProcessor
+    include LinkTableDistributions
 
     attr_reader :nid
 
@@ -27,7 +28,7 @@ module Spinneret
 
       @table_lock = Monitor.new
       @nid_peers = {}
-      @max_peers = LinkTable::send(@config.size_function, @config.max_peers)
+      @max_peers = self.send(@config.size_function, @config.max_peers)
 
       @peer_factory = PeerFactory.new(node, nil, method(:errback_node_removal))
 
@@ -212,7 +213,7 @@ module Spinneret
           @nid_peers[peer.nid] = peer
 
           GoSim::Data::DataSet[:link].log(:add, @nid, peer.nid)
-          trim if @nid_peers.size > @config.max_peers
+          trim if @nid_peers.size > @max_peers
 #        end
       end
 
@@ -250,14 +251,14 @@ module Spinneret
     def sum_of_squares
       d = 0
       pbd = peers_by_distance
-      @config.max_peers.times do |index|
+      @max_peers.times do |index|
         if pbd[index]
           d += (@ideal_table[index] - pbd[index].distance) ** 2
         else
           d += @ideal_table[index] ** 2
         end
       end
-      d / @config.max_peers
+      d / @max_peers
     end
 
     private
@@ -348,7 +349,7 @@ module Spinneret
 
       if @converge_means.length == CONVERGE_SAMPLE_LENGTH
         #p @converge_means[-1][0], @converge_means[0][0]
-        #cutoff = Configuration::instance.node.maintenance_size / @config.max_peers.to_f / Scratchpad::instance.nodes.length
+        #cutoff = Configuration::instance.node.maintenance_size / @max_peers.to_f / Scratchpad::instance.nodes.length
         #return (@converge_means[-1][0] - @converge_means[0][0]).abs < cutoff
         return (@converge_means[-1][0] - @converge_means[0][0]).abs < 0.001
       else
@@ -359,36 +360,16 @@ module Spinneret
     private
 
     def converge_measure
-      #return false if @config.max_peers > @nid_peers.length
+      #return false if @max_peers > @nid_peers.length
 
       sorted_peers = peers_by_distance()
 
       mu_e = (Math::log2(@config.address_space) - 
-              Math::log2(distance(sorted_peers[0].nid, @nid))) / @config.max_peers
+              Math::log2(distance(sorted_peers[0].nid, @nid))) / @max_peers
 
       mu_N = normal_fit()
 
       return [(mu_N[0] - mu_e).abs, mu_N[1]]
-    end
-
-    # Various table size functions to play with different distributions across
-    # the entire network.
-    def self.homogeneous(num)
-      return num
-    end
-
-    def self.powerlaw(num)
-      @@r ||= GSL::Rng.alloc("mt19937")
-      k = 2.0
-      x_m = (num * k - num) / k.to_f
-
-      return @@r.pareto(k, x_m)
-    end
-
-    def self.normal(num)
-      @@r ||= GSL::Rng.alloc("mt19937")
-      sigma = num / 4.0
-      x = num + @@r.gaussian(sigma)
     end
   end
 

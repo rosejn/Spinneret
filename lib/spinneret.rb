@@ -51,6 +51,9 @@ class Configuration < OpenStruct
   include Singleton
 end
 
+# Globally needed additions
+require 'spinneret/math_ext'
+
 # Maintenance algorithms
 require 'spinneret/maintenance/pull'
 #require 'spinneret/maintenance/pull_uni'
@@ -65,7 +68,6 @@ require 'spinneret/search/dht'
 require 'spinneret/search/join_query'
 
 # Internals
-require 'spinneret/math_ext'
 require 'spinneret/link_table'
 require 'spinneret/node'
 require 'spinneret/analysis'

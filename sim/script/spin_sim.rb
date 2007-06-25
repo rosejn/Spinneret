@@ -24,7 +24,7 @@ module Spin
           puts "Quiting due to convergence.\n"
           puts "-------------------------------------------"
           @sim.stop
-          exit(0)
+  #        exit(0)
         end
       else
         @start = nil

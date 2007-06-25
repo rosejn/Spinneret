@@ -4,6 +4,30 @@ module Math
   end
 end
 
+module LinkTableDistributions
+  # Various table size functions to play with different distributions across
+  # the entire network.
+  def homogeneous(num)
+    return num.round
+  end
+
+  def powerlaw(num)
+    @@r ||= GSL::Rng.alloc("mt19937")
+
+    k = 2.0
+    x_m = (num * k - num) / k.to_f
+
+    return @@r.pareto(k, x_m).round
+  end
+
+  def normal(num)
+    @@r ||= GSL::Rng.alloc("mt19937")
+
+    sigma = num / 4.0
+    x = (num + @@r.gaussian(sigma)).round
+  end
+end  
+
 class Numeric
   def deltafrom(target, delta)
     return (self - delta) <= target && target <= (self + delta)

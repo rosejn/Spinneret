@@ -38,11 +38,19 @@
 #    The number of peers the given maintenance protocol should use during
 #    exchange.  This may not map well onto all protocols.  Defaults to 5.
 #
-# -t num, --maintenance-table-size num
-#    The size of the link table.  Defaults to LinkTable::MAX_PEERS.
-#
 # -r num, --maintenance-rate num
 #    The rate of maintenance.  Defaults to Node::DEFAULT_MAINTENANCE_PERIOD
+#
+# -t num, --linktable-mean-size num
+#    The size of the link table.  Defaults to LinkTable::MAX_PEERS.
+#
+# -x type, --linktable-size-dist type
+#    The distribution function to use when determining link table size.
+#    Current options are:
+#       homogeneous
+#       powerlaw
+#       normal 
+#    Defaults to 'normal'.
 #
 # -c time, --converge-quit time
 #    If the network has been converged for greater than time ticks, stop the
@@ -82,8 +90,9 @@ opts = GetoptLong.new(
         ['--address-space',          '-a', GetoptLong::REQUIRED_ARGUMENT],
         ['--maintenance',            '-m', GetoptLong::REQUIRED_ARGUMENT],
         ['--maintenance-size',       '-s', GetoptLong::REQUIRED_ARGUMENT],
-        ['--maintenance-table-size', '-t', GetoptLong::REQUIRED_ARGUMENT],
         ['--maintenance-rate',       '-r', GetoptLong::REQUIRED_ARGUMENT],
+        ['--linktable-mean-size',    '-t', GetoptLong::REQUIRED_ARGUMENT],
+        ['--linktable-size-dist',    '-x', GetoptLong::REQUIRED_ARGUMENT],
         ['--analysis-measurement',   '-y', GetoptLong::REQUIRED_ARGUMENT] )
 
 $pad = Scratchpad::instance
@@ -127,8 +136,14 @@ opts.each do | opt, arg |
     $config.node.maintenance_algorithm = arg
   when '--maintenance-size'
     $config.node.maintenance_size = arg.to_i
-  when '--maintenance-table-size'
+  when '--linktable-mean-size'
     $config.link_table.max_peers = arg.to_i
+  when '--linktable-size-dist'
+    if !['homogeneous', 'powerlaw', 'normal'].include?(arg)
+      puts "Invalid distribution function"
+      exit(1)
+    end
+    $config.link_table.size_function = arg
   when '--maintenance-rate'
     $config.node.maintenance_rate = arg.to_i
   when '--analysis-measurement'
@@ -149,6 +164,11 @@ end
 if $config.node.maintenance_algorithm == "help"
   maintenance_help(); 
   exit(0) 
+end
+
+if $config.workload.nil?
+  RDoc::usage
+  exit(0)
 end
 
 # Upcap the first character, but do not lower case the others like .capitalize

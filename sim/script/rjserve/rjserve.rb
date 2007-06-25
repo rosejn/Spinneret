@@ -28,6 +28,7 @@ require 'rdoc/usage'
 require 'drb'
 require 'thread'
 require 'job_types'
+require 'rjserve_helpers'
 require 'socket'
 
 ENV['PATH'] = ".:" + ENV['PATH']
@@ -121,7 +122,7 @@ class RJobServer
   end
 end
 
-port_num = 7005
+port_num = RJServe::DEFAULT_PORT
 
 # If run standalone startup a DRb service.
 puts $PROGRAM_NAME 

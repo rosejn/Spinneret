@@ -48,6 +48,7 @@ require 'rdoc/usage'
 require 'drb'
 
 require 'job_types'
+require 'rjserve_helpers'
 
 opts = GetoptLong.new(['--server-address', '-a', GetoptLong::REQUIRED_ARGUMENT],
                       ['--job-type',       '-j', GetoptLong::REQUIRED_ARGUMENT],
@@ -64,7 +65,7 @@ def find_class(mod, name)
   return mod.const_get(maintenance)
 end
 
-address = ":7005"
+address = ":" + DEFAULT_PORT.to_s
 list = kill = false
 delete = []
 job = RJServe::Jobs::ShellExecute.new()
@@ -107,7 +108,6 @@ if (!job.runnable?) && (!list && delete.empty? && !kill)
   exit(0)
 end
 
-DRb.start_service
 job_queue = DRbObject.new(nil, "druby://#{address}")
 
 if list
