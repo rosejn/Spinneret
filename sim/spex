@@ -29,6 +29,7 @@ require 'fileutils'
 require 'spinneret'
 require 'drb'
 require 'job_types'
+require 'rjserve_helpers'
 
 class Exploration
   def self.load(filename)
@@ -46,6 +47,7 @@ class Exploration
     @params = {}
     
     # Create or connect to the job server object
+=begin
     if $server_addr.nil?
       require 'rjserve'
       @job_queue = RJobServer.new
@@ -55,6 +57,8 @@ class Exploration
       @job_queue = DRbObject.new(nil, "druby://#{$server_addr + ':' + $server_port.to_s}")
       @remote = true
     end
+=end
+    @remote = true
   end
 
   def defaults(vals)
@@ -155,16 +159,22 @@ class Exploration
     @num_jobs = 0 
 
     # Run a single test with defaults if no parameters are being explored
+    jobs = []
     if params.empty?
-      send_job({})
+      jobs << marshal_job({})
     else
-      params.each {|param_set| send_job(param_set) }
+      params.each do | param_set |
+        jobs << marshal_job(param_set)
+      end
     end
+
+    resolver = RJServe::Helpers::Resolv.new
+    resolver.round_robin { jobs.shift }
 
     puts "\t\t#{@num_jobs} runs sent!\n"
   end
 
-  def send_job(param_set)
+  def marshal_job(param_set)
     jc = RJServe::Jobs::JobChain.new
     dir = job_dir(param_set)
     puts "output dir: " + dir
@@ -175,7 +185,8 @@ class Exploration
     jc << job( "spin --config #{File.join(dir, "config")}" )
 
     @num_jobs += 1
-    @job_queue.add_job(jc)
+
+    return jc
   end
 
   def build_param_list(params)

@@ -65,7 +65,7 @@ def find_class(mod, name)
   return mod.const_get(maintenance)
 end
 
-address = ":" + DEFAULT_PORT.to_s
+address = ":" + RJServe::DEFAULT_PORT.to_s
 list = kill = false
 delete = []
 job = RJServe::Jobs::ShellExecute.new()
