@@ -156,10 +156,6 @@ module Spinneret
     end
 
     def setup_rgl_graph
-      require 'rgl/base'
-      require 'rgl/implicit'
-      require 'rgl/connected_components'
-
       @node_hash = {}
 
       @graph = RGL::ImplicitGraph.new do |g|
