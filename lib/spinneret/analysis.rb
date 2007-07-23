@@ -86,6 +86,10 @@ module Spinneret
         f << "#{@sim.time} #{@local_converged_nodes.length}\n"
       end
 
+      graph_tool(gzip(write_data_file("net_graph", "dot") do | f |
+        f << @graph.to_dot
+      end))
+      
       @successful_dht_searches = 0
       @failed_dht_searches = 0
       @dht_hops = 0
@@ -118,7 +122,25 @@ module Spinneret
       @kwalker_hops = 0
       @local_converged_nodes = {}
       @sent_packets = Hash.new(0)
-      #setup_rgl_graph
+      setup_rgl_graph
+    end
+
+    def setup_rgl_graph
+      scratchpad = Scratchpad::instance
+
+      @graph = RGL::ImplicitGraph.new do |g|
+        g.vertex_iterator { |block|
+          @pad.nodes.each {|n| block.call(n) }
+        }
+
+        g.adjacent_iterator { |node, block|
+          node.link_table.peers.each do |peer|
+            block.call(scratchpad.nodes.detect { | n | n.nid == peer.nid })
+          end
+        }
+
+        g.directed = true
+      end
     end
 
     def search_analysis
@@ -152,24 +174,6 @@ module Spinneret
         append_data_file("packet_" + type.to_s) do | f |
           f << "#{@sim.time} #{count}\n"
         end
-      end
-    end
-
-    def setup_rgl_graph
-      @node_hash = {}
-
-      @graph = RGL::ImplicitGraph.new do |g|
-          g.vertex_iterator { |block|
-            @pad.nodes.each {|n| block.call(n) }
-          }
-
-          g.adjacent_iterator { |node, block|
-            node.link_table.peers.each do |peer|
-              block.call(@node_hash[peer.nid])
-            end
-          }
-
-          g.directed = true
       end
     end
 
@@ -399,20 +403,36 @@ module Spinneret
       File.symlink(datafile_path("indegree_dist"), cur_path)
     end
 
-    def datafile_path(category)
-      File.join(@config.analyzer.output_path, @sim.time.to_s + '_' + category)
+    def datafile_path(category, type)
+      File.join(@config.analyzer.output_path, 
+                @sim.time.to_s + '_' + category + "." + type)
     end
 
-    def write_data_file(category, &block)
-      File.open(datafile_path(category), "w") do | f |
+    def write_data_file(category, type = "", &block)
+      filename = datafile_path(category, type)
+      File.open(filename, "w") do | f |
         yield(f)
       end
+
+      return filename
     end
 
     def append_data_file(filename, &block)
       File.open(File.join(@config.analyzer.output_path, filename), "a") do | f |
         yield(f)
       end
+    end
+
+    def gzip(filename)
+      `gzip #{filename}`
+      filename
+    end
+
+    def graph_tool(filename)
+      base_path = File.dirname(filename)
+      file_root = File.basename(filename, ".dot.gz")
+      command = "graph-tool --load #{filename} --extended-clustering-coefficient=\"c|3\" --average-vertex-property=\"c3|#{File.join(base_path, file_root) + ".c3"}\" --average-vertex-property=\"c2|#{File.join(base_path, file_root) + ".c2"}\" --average-vertex-property=\"c1|#{File.join(base_path, file_root) + ".c1"}\" --average-distance=\"#{File.join(base_path, file_root) + ".avg_dist"}\" --label-components=\"comp\" --vertex-histogram=\"comp|#{File.join(base_path, file_root) + ".comp"}\"" 
+      `#{command}`
     end
   end
 end
