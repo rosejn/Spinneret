@@ -425,13 +425,14 @@ module Spinneret
 
     def gzip(filename)
       `gzip #{filename}`
-      filename
+      filename + ".gz"
     end
 
     def graph_tool(filename)
       base_path = File.dirname(filename)
       file_root = File.basename(filename, ".dot.gz")
-      command = "graph-tool --load #{filename} --extended-clustering-coefficient=\"c|3\" --average-vertex-property=\"c3|#{File.join(base_path, file_root) + ".c3"}\" --average-vertex-property=\"c2|#{File.join(base_path, file_root) + ".c2"}\" --average-vertex-property=\"c1|#{File.join(base_path, file_root) + ".c1"}\" --average-distance=\"#{File.join(base_path, file_root) + ".avg_dist"}\" --label-components=\"comp\" --vertex-histogram=\"comp|#{File.join(base_path, file_root) + ".comp"}\"" 
+      command = "graph-tool --load #{filename} --extended-clustering-coefficient=\"c|3\" --average-vertex-property=\"c3|#{File.join(base_path, file_root) + ".c3"}\" --average-vertex-property=\"c2|#{File.join(base_path, file_root) + ".c2"}\" --average-vertex-property=\"c1|#{File.join(base_path, file_root) + ".c1"}\" --average-distance=\"#{File.join(base_path, file_root) + ".avg_dist"}\" --label-components=\"comp\" --vertex-histogram=\"comp|#{File.join(base_path, file_root) + ".comp"}\" --vertex-histogram=\"in-degree|#{File.join(base_path, file_root) + ".in"}\" --vertex-histogram=\"out-degree|#{File.join(base_path, file_root) + ".out"}\""
+      puts "Executing #{command}"
       `#{command}`
     end
   end

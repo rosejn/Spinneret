@@ -77,7 +77,6 @@ class WorkloadParser < GoSim::Entity
       g = @generators[key]
       obj = g.method.call(args_str) 
       @obj_map[obj.id] = obj.sid if g.needs_map
-
   end
 
   def method_missing(name)
