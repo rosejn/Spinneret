@@ -1,0 +1,5 @@
+graph-tool --load 2000000_net_graph.dot.gz --edit-vertex-property="indg|int|v.in_degree()" --vertex-range-filter="indg|15 19" --save test.dot
+graph-tool --load 2000000_net_graph.dot.gz --edit-graph-property="addr_space|int|100000" --edit-edge-property="hi_in|int|e.target().in_degree()-15" --edge-range-filter="hi_in|1 50" --edit-vertex-property="outdg|int|v.out_degree()" --vertex-range-filter="outdg|1 500" --edit-edge-property="weight|float|file:../script/dist.py" --save test.dot
+graph-tool --load 1000000_net_graph.dot.gz --edit-graph-property="addr_space|int|100000" --edit-vertex-property="indg|int|v.in_degree()" --edit-graph-property="min_indg|int|5" --edit-graph-property="max_indg|int|15" --edit-edge-property="low_in|int|e.target().in_degree()-6" --edge-range-filter="low_in|-10 0" --edit-vertex-property="color|string|file:../script/color.py" --save low_out.dot
+
+

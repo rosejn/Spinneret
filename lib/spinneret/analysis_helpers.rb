@@ -59,13 +59,14 @@ module Graph
               (num_edges * (num_edges - 1)).to_f
   end
 
-  def to_dot
+  def to_dot(graph_attrs)
     v = vertices()
     s = "digraph G {\n"
+    graph_attrs.each {|name, val| s << "#{name}=\"#{val}\";\n"}
     v.each do | k |
+      s << "#{k.nid} [id=\"#{k.nid}\"];\n"
       s << dot_node(k)
     end
-
     s << "}\n"
   end
 

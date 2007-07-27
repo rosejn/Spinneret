@@ -121,7 +121,6 @@ opts.each do | opt, arg |
     GoSim::Simulation.instance.verbose
   when '--config'
     load_config(YAML::load(File.read(arg)))
-
   when '--converge-quit'
     $config.converge_quit = arg.to_i
   when '--output-dir'
@@ -204,7 +203,7 @@ Spin::Simulation::instance.setup(workload_path, $config.sim_length, $config.conv
 if(__FILE__ != $PROGRAM_NAME && File::basename($PROGRAM_NAME) != "rdebug")
   # Do stuff for goviz version - this activates the simulation seperately,
   # intigrating with the GTK mainloop
-  require 'util/spin_viz'
+  require 'script/spin_viz'
 else
   Spin::Simulation::instance.run
 end

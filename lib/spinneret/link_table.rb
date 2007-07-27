@@ -34,6 +34,8 @@ module Spinneret
 
       @converge_measure = []
       @converge_means = []
+
+      @cut_granularity = @config.address_space / (@config.max_peers)
     end
 
     # Remove all peers from the link table
@@ -109,8 +111,8 @@ module Spinneret
         str += RED  if peers[idx].nid == smallest
         str += peers[idx].nid.to_s
         str += CLEAR  if peers[idx].nid == smallest
-        str += " <-- " +
-               sprintf("%.3f", (peers[idx + 1].distance - peers[idx].distance)) + " --> "
+        str += " <- " +
+               sprintf("%.3f", (peers[idx + 1].distance - peers[idx].distance)) + " -> "
       end
       str += peers[peers.length - 1].nid.to_s
 
@@ -186,6 +188,8 @@ module Spinneret
 
       peer = @peer_factory.new_peer(@node, peer_addr)
       return nil if peer.nid.nil?
+
+      #puts "#{@node.addr}: considering #{peer_addr} (#{Math.log2(distance(@node.addr, peer_addr))})." 
 
       # If we have already heard about this node check and possibly update the timestamp
       if has_peer?(peer)
@@ -269,7 +273,7 @@ module Spinneret
       sorted_peers = peers_by_distance()
 
       i_min = 1
-      v_min = 2**31
+      v_min = 2**160
 
       i = 1
       last_idx = sorted_peers.size - 1
@@ -278,7 +282,10 @@ module Spinneret
         b = sorted_peers[i]
         c = sorted_peers[i+1]
 
-        dist = (b.distance - a.distance) + (c.distance - b.distance)
+        #dist = (b.distance - a.distance) + (c.distance - b.distance)
+        dist = ((b.distance - a.distance) + (c.distance - b.distance))
+
+        #dist = @cut_granularity if dist < @cut_granularity
 
         if(dist < v_min)
           i_min = i

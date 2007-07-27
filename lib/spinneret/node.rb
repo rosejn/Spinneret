@@ -63,11 +63,11 @@ module Spinneret
     def start_maintenance
       @maint_timeout = set_timeout(@config.maintenance_rate, true) do
         status = true
-        if !@link_table.converged?
+        #if !@link_table.converged? 
           #puts "#{@sim.time}: #{@nid} not converged."
           status = false
           do_maintenance  
-        end
+        #end
         GoSim::Data::EventCast::instance.publish(:local_converge_report, @nid, status)
       end
 

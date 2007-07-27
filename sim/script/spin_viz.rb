@@ -8,9 +8,11 @@ module Spin
 
       SEARCHES = 0
 
-      attr_reader :map, :spin_conf, :nodes
+      attr_reader :map, :spin_conf, :nodes, :use_graphics
 
-      def initialize
+      def initialize(use_graphics = false)
+        @use_graphics = use_graphics
+
         @view = GoSim::View.instance
 
         @view.add_reset_handler { Spin::Simulation.instance.reset }
@@ -116,12 +118,14 @@ module Spin
         n = nodes.to_a.sort { | x, y | x[0] <=> y[0] }.map { | x | x[1] }
 
         n.each_with_index do | node, idx |
-          pos =  idx / (25).to_f 
+          pos =  idx / n.length.to_f 
           rad = (pos * 2 * Math::PI - (Math::PI + Math::PI / 2))
           x = -1.0 * Math::cos(rad) * 250 + 300
           y = -1.0 * Math::sin(rad) * 250 + 300
           node.set_pos(x, y)
         end
+
+        n.each { | node | node.redraw_links() }
       end
 
       def handle_node_update(status, nid, *args)
@@ -333,6 +337,13 @@ module Spin
         @x, @y = x, y
       end
 
+      def redraw_links()
+        @links.each_key do | dest |
+          remove_link(dest)
+          add_link(dest)
+        end
+      end
+
       def initialize(manager, id)
         @manager = manager
         @id = id
@@ -348,27 +359,44 @@ module Spin
         pos(id)
 
         super(@map.root, :x => @x, :y => @y) 
-#        @size = 10
-#        @circle = Gnome::CanvasEllipse.new(self, 
-#              :fill_color => NODE_FILL, :outline_color => NODE_OUTLINE, 
-#              :x1 => 0, :x2 => @size,
-#              :y1 => 0, :y2 => @size)
+
+        draw_rep()
+
+        @selected = false
+        @failed = false
+
+        signal_connect("event") do | item, event |
+          if event.event_type == Gdk::Event::BUTTON_PRESS && event.button == 1
+            @selected ? deselect : select
+          end
+        end
+      end
+
+      def draw_rep()
+        if(@manager.use_graphics)
+          @@last_rep ||= 0
+          im = Gdk::Pixbuf.new(REPS[@@last_rep])
+          @@last_rep = (@@last_rep + 1) % REPS.length
+          @width = im.width
+          @height = im.height
+          image = Gnome::CanvasPixbuf.new(self,
+                                          :pixbuf => im,
+                                          :x => 0,
+                                          :y => 0,
+                                          :width => im.width,
+                                          :height => im.height,
+                                          :anchor => Gtk::ANCHOR_NORTH_WEST)
 
 
-        @@last_rep ||= 0
-        #im = Gdk::Pixbuf.new(REPS[rand(REPS.length)])
-        im = Gdk::Pixbuf.new(REPS[@@last_rep])
-        @@last_rep = (@@last_rep + 1) % REPS.length
-        @width = im.width
-        @height = im.height
-        image = Gnome::CanvasPixbuf.new(self,
-                                      :pixbuf => im,
-                                      :x => 0,
-                                      :y => 0,
-                                      :width => im.width,
-                                      :height => im.height,
-                                      :anchor => Gtk::ANCHOR_NORTH_WEST)
-        
+        else
+          @size = 10
+          @circle = Gnome::CanvasEllipse.new(self, 
+                                             :fill_color => NODE_FILL,
+                                             :outline_color => NODE_OUTLINE, 
+                                             :x1 => 0, :x2 => @size,
+                                             :y1 => 0, :y2 => @size)
+          @width = @height = @size
+        end
 
         mid = @width / 2
         @label = Gnome::CanvasText.new(self, 
@@ -379,22 +407,13 @@ module Spin
                                        :text => "#{@id.to_s}")# (#{@neighbor_locs.size})")
         w = @label.text_width
         @box = Gnome::CanvasRect.new(self, :x1 => mid - (w / 2 + 4), :y1 => @height + 2,
-                                :x2 => mid + w / 2 + 4,  
-                                :y2 => @height + @label.text_height + 2,
-                                :fill_color => BOX_FILL,
-                                :outline_color => BOX_FILL)
+                                     :x2 => mid + w / 2 + 4,  
+                                     :y2 => @height + @label.text_height + 2,
+                                     :fill_color => BOX_FILL,
+                                     :outline_color => BOX_FILL)
         @box.raise_to_top
         @label.raise_to_top
         @box.show
-
-        @selected = false
-        @failed = false
-
-        signal_connect("event") do | item, event |
-          if event.event_type == Gdk::Event::BUTTON_PRESS && event.button == 1
-            @selected ? deselect : select
-          end
-        end
       end
 
       def add_link(dest_nid)
@@ -414,18 +433,20 @@ module Spin
       def select
         raise_to_top
         @selected = true
-        #@circle.set(:fill_color => NODE_SELECTED_FILL)
+        if(!@manager.use_graphics)
+          @circle.set(:fill_color => NODE_SELECTED_FILL)
+        end
+
         @label.show
-#        @box.show
         @box.set(:outline_color => BOX_OUTLINE)
         @links.each_value { | l | l.show }  if !@failed
       end
 
       def deselect
         @selected = false
-        #@circle.set(:fill_color => NODE_FILL)
-        #@label.hide
-#        @box.hide
+        if(!@manager.use_graphics)
+          @circle.set(:fill_color => NODE_FILL)
+        end
         @box.set(:outline_color => BOX_FILL)
         @links.each_value { | l  | l.hide }
       end

@@ -87,7 +87,7 @@ module Spinneret
       end
 
       graph_tool(gzip(write_data_file("net_graph", "dot") do | f |
-        f << @graph.to_dot
+        f << @graph.to_dot([["addr_space", @config.link_table.address_space]])
       end))
       
       @successful_dht_searches = 0
