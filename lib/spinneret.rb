@@ -1,5 +1,3 @@
-$LOAD_PATH.unshift("/home/rosejn/projects/gosim/lib")
-
 #require 'breakpoint'  # Fixin' up
 require 'benchmark'    # Checkin out
 #require 'profile'     # Speedin' up
