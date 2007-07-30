@@ -1,7 +1,7 @@
 module Spin
   module Visualization
     class TextBox
-      DEFAULT_BOX_COLORS = {:text => 'black', 
+      DEFAULT_BOX_COLORS = {:background => 'black', 
                             :unselected => 'black', 
                             :selected => 'darkgray'}
 
@@ -17,33 +17,44 @@ module Spin
         @text = text
         @color = color
 
-        internal_draw()
+        @shown = false
+        #internal_draw()
       end
 
       def set_value(text)
-        @label.hide
-        @box.hide
+        #@label.hide
+        #@label.set(:text => text)
+        #@box.hide
         @text = text
+        hide()
         internal_draw()
       end
 
       def select
-        @box.set(:outline_color => @rect_colors[:selected])
+        @box.set(:outline_color => @rect_colors[:selected]) if @shown && @box
       end
 
-
       def unselect
-        @box.set(:outline_color => @rect_colors[:unselected])
+        @box.set(:outline_color => @rect_colors[:unselected]) if @shown && @box
       end
 
       def hide
-        @box.hide
-        @label.hide
+        #puts "textbox hide"
+        @box.hide    unless @box.nil?
+        @box = nil
+        @label.hide  unless @label.nil?
+        @label = nil
+        #@label.set(:text => "")
+        #@label.hide.lower_to_bottom
       end
 
       def show
-        @box.show
-        @label.show
+        #puts "textbox show"
+        #@box.raise_to_top.show
+        #@label.set(:text => @text)
+        #@label.raise_to_top
+        @shown = true
+        internal_draw
       end
 
       def height
@@ -63,7 +74,7 @@ module Spin
         @box = Gnome::CanvasRect.new(@root, :x1 => @x - (w / 2 + 4), :y1 => @y,
                                      :x2 => @x + w / 2 + 4,  
                                      :y2 => @y + @label.text_height,
-                                     :fill_color => @rect_colors[:text],
+                                     :fill_color => @rect_colors[:background],
                                      :outline_color => @rect_colors[:unselected])
         @box.raise_to_top
         @label.raise_to_top

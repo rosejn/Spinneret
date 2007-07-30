@@ -1,25 +1,57 @@
+require 'ostruct'
+
 module Spin
   module Visualization
+
+    class VizSettings < OpenStruct
+      include Singleton
+
+    end
+
+    def Visualization.set_defaults
+      settings = VizSettings::instance
+
+      settings.node = OpenStruct.new
+      settings.node.show_indegree = false
+      settings.node.show_outdegree = false
+      settings.node.show_label = true
+      settings.node.representation = :vector
+
+      settings.query = OpenStruct.new
+      settings.query.query_list = []
+
+      settings.go_sim = OpenStruct.new
+      settings.go_sim.view = GoSim::View::instance
+      settings.go_sim.controls = settings.go_sim.view.controls
+      settings.go_sim.log = settings.go_sim.view.log
+      settings.go_sim.root = settings.go_sim.view.space_map.root
+
+      settings.debug = false
+    end
+
     class Manager
       include Singleton
 
       SEARCHES = 0
 
-      attr_reader :map, :spin_conf, :nodes, :use_graphics
+      attr_reader :map, :spin_conf, :nodes
 
       def initialize(use_graphics = false)
-        @use_graphics = use_graphics
+        @settings = VizSettings::instance
+        Visualization::set_defaults()
+
+        settings.node.representation = :bitmap if use_graphics
 
         @view = GoSim::View.instance
-
         @view.add_reset_handler { Spin::Simulation.instance.reset }
+        @view.add_render_controler { render_all() }
 
         @controls = @view.controls
         @log = @view.log
 
         @map = @view.space_map
-        @nodes = {}
 
+        @nodes = {}
         @queries = {}
 
         # Register to handle various datasets
@@ -29,7 +61,6 @@ module Spin
                                          &method(:handle_dht_search_update))
         GoSim::Data::DataSet.add_handler(:converge_measure,
                                          &method(:handle_converge_update))
-
         #Setup data view
         create_data_pane()
       end
@@ -69,8 +100,6 @@ module Spin
           y = -1.0 * Math::sin(rad) * 250 + 300
           node.set_pos(x, y)
         end
-
-        n.each { | node | node.redraw_links() }
       end
 
       def handle_node_update(status, nid, *args)
@@ -86,13 +115,11 @@ module Spin
       def handle_link_update(status, nid1, nid2, *args)
         case status
         when :add
-          @nodes[nid1].add_link(nid2)
-          @nodes[nid1].out_degree += 1
-          @nodes[nid2].in_degree += 1
+          @nodes[nid1].add_out_edge(nid2)
+          @nodes[nid2].add_in_edge(nid1)
         when :remove
-          @nodes[nid1].remove_link(nid2)
-          @nodes[nid1].out_degree -= 1
-          @nodes[nid2].in_degree -= 1
+          @nodes[nid1].remove_out_edge(nid2)
+          @nodes[nid2].remove_in_edge(nid1)
         end
       end
 
@@ -100,6 +127,12 @@ module Spin
 
       OUT_EDGE_DENSITY = 0
       IN_EDGE_DENSITY  = 1
+
+      def render_all
+        @nodes.each_value    { |n| n.render() }  unless @nodes.nil?
+        @searches.each_value { |s| s.render() }  unless @searches.nil?
+      end
+      alias :force_render :render_all
 
       def init_ui_vars
         @out_edges = false
@@ -110,17 +143,15 @@ module Spin
       end
 
       def out_edge_info_handler(widget, event)
-        @out_edge_info = !@out_edge_info
-
-        @nodes.each_value { | n | (@out_edge_info ? n.show_out_degree : 
-                                                    n.hide_out_degree ) }
+        @settings.node.show_outdegree = !@settings.node.show_outdegree
+        @nodes.each_value { |n| n.dirty :out_degree_info }  unless @nodes.nil?
+        force_render()
       end
 
       def in_edge_info_handler(widget, event)
-        @in_edge_info = !@in_edge_info
-
-        @nodes.each_value { | n | (@in_edge_info ? n.show_in_degree : 
-                                                   n.hide_in_degree ) }
+        @settings.node.show_indegree = !@settings.node.show_indegree
+        @nodes.each_value { |n| n.dirty :in_degree_info }  unless @nodes.nil?
+        force_render()
       end
 
       def join_order_info_handler(widget, event)
