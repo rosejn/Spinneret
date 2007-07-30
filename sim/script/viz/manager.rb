@@ -31,59 +31,7 @@ module Spin
                                          &method(:handle_converge_update))
 
         #Setup data view
-        @data_treeview = @view.data
-        data_model = Gtk::ListStore.new(String, Integer)
-        convergence = data_model.append
-        convergence[0] = "convergence"
-        convergence[1] = 0
-        text_renderer = Gtk::CellRendererText.new
-#        text_renderer.foreground = "Red"
-        text_renderer.scale = 2
-        @data_treeview.append_column(Gtk::TreeViewColumn.new("Field",
-                                                      text_renderer,
-                                                      {:text => 0}))
-        @data_treeview.append_column(Gtk::TreeViewColumn.new("Value",
-                                                      text_renderer,
-                                                      {:text => 1}))
-        @data_treeview.model = data_model
-
-
-        # Add custom controls
-        edge_toggle = Gtk::ToggleButton.new("Toggle Nodes")
-        edge_toggle.signal_connect("clicked") do
-          if edge_toggle.active?
-            @nodes.values.each { | n | n.select }
-          else
-            @nodes.values.each { | n | n.deselect }
-          end
-        end
-
-        scrolled_win = Gtk::ScrolledWindow.new
-        scrolled_win.set_policy(Gtk::POLICY_AUTOMATIC, Gtk::POLICY_AUTOMATIC)
-
-        @model = Gtk::ListStore.new(String)
-        column = Gtk::TreeViewColumn.new("Searches",
-                                         Gtk::CellRendererText.new, {:text => 0})
-        @treeview = Gtk::TreeView.new(@model)
-        @treeview.append_column(column)
-#        @treeview.selection.set_mode(Gtk::SELECTION_SINGLE)
-        scrolled_win.add_with_viewport(@treeview)
-        @cur_selected = nil
-        
-        @treeview.selection.signal_connect("changed") do | selection |
-          hide_search(@cur_selected)  if !@cur_selected.nil?
-          selection.selected_each do | model, path, iter |
-            @cur_selected = iter.get_value(SEARCHES)
-            show_search(@cur_selected)
-          end
-        end
-
-        box = Gtk::VBox.new
-        box.pack_start(edge_toggle)
-        box.pack_start(scrolled_win, true, true, 0)
-
-        @controls.add(box)
-        @controls.show_all
+        create_data_pane()
       end
 
       def show_search(id)
@@ -139,11 +87,100 @@ module Spin
         case status
         when :add
           @nodes[nid1].add_link(nid2)
+          @nodes[nid1].out_degree += 1
+          @nodes[nid2].in_degree += 1
         when :remove
           @nodes[nid1].remove_link(nid2)
+          @nodes[nid1].out_degree -= 1
+          @nodes[nid2].in_degree -= 1
         end
       end
-    end
 
+      private
+
+      OUT_EDGE_DENSITY = 0
+      IN_EDGE_DENSITY  = 1
+
+      def init_ui_vars
+        @out_edges = false
+        @in_edges = false
+        @join_order = false
+
+        @color_mode = OUT_EDGE_DENSITY
+      end
+
+      def out_edge_info_handler(widget, event)
+        @out_edge_info = !@out_edge_info
+
+        @nodes.each_value { | n | (@out_edge_info ? n.show_out_degree : 
+                                                    n.hide_out_degree ) }
+      end
+
+      def in_edge_info_handler(widget, event)
+        @in_edge_info = !@in_edge_info
+
+        @nodes.each_value { | n | (@in_edge_info ? n.show_in_degree : 
+                                                   n.hide_in_degree ) }
+      end
+
+      def join_order_info_handler(widget, event)
+        @join_info = !@join_info
+      end
+
+      def out_edge_density_info_handler(widget, event)
+        @color_mode = OUT_EDGE_DENSITY
+      end
+
+      def in_edge_density_info_handler(widget, event)
+        @color_mode = IN_EDGE_DENSITY
+      end
+
+      def create_data_pane
+        init_ui_vars()
+
+        global_box = Gtk::VBox.new(false)
+
+        check_box = Gtk::VBox.new(false)
+        check_box.border_width = 5
+
+        label = Gtk::Label.new
+        label.set_markup("<b>Visual Info</b>")
+        label.set_alignment(0,0)
+        check_box.add(label)
+        check_box.add(Gtk::HSeparator.new())
+        button = Gtk::CheckButton.new("_out-edges")
+        button.signal_connect("clicked") { |w, e| out_edge_info_handler(w, e) }
+        check_box.add(button)
+        button = Gtk::CheckButton.new("_in-edges")
+        button.signal_connect("clicked") { |w, e| in_edge_info_handler(w, e) }
+        check_box.add(button)
+        button = Gtk::CheckButton.new("_join order")
+        button.signal_connect("clicked") { |w, e| join_order_info_handler(w, e) }
+        check_box.add(button)
+
+        global_box.add(check_box)
+
+        check_box = Gtk::VBox.new(false)
+        check_box.border_width = 5
+
+        label = Gtk::Label.new
+        label.set_markup("<b>Color Info</b>")
+        label.set_alignment(0,0)
+        check_box.add(label)
+        check_box.add(Gtk::HSeparator.new())
+        group = button = Gtk::RadioButton.new("out-edge _density")
+        button.signal_connect("clicked") { |w, e| out_edge_density_info_handler(w, e) }
+        check_box.add(button)
+        button = Gtk::RadioButton.new(group, "in-_edge density")
+        button.signal_connect("clicked") { |w, e| in_edge_density_info_handler(w, e) }
+        check_box.add(button)
+
+        global_box.add(check_box)
+        
+        @controls.add(global_box)
+        @controls.show_all
+      end
+
+    end  # Manager
   end  # Visualization
 end  # Spin

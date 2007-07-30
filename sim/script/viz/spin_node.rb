@@ -41,7 +41,6 @@ module Spin
         @paths.each { | p | p.hide }
         @shown = false
       end
-
     end
 
 
@@ -56,9 +55,20 @@ module Spin
       BOX_FILL = 'black'
       BOX_OUTLINE = 'darkgray'
 
-      attr_reader :x, :y, :edges, :height, :width
+      attr_reader   :x, :y, :edges, :height, :width
+      attr_accessor :out_degree, :in_degree
 
       @@nodes = {}
+
+      def out_degree=(num)
+        @out_degree = num
+        @out_degree_box.set_value("od: #{num}")
+      end
+
+      def in_degree=(num)
+        @in_degree = num
+        @in_degree_box.set_value("id: #{num}")
+      end
 
       def pos(id)
         pos =  id / 1000.to_f
@@ -81,6 +91,8 @@ module Spin
       end
 
       def initialize(manager, id)
+        @in_degree = @out_degree = 0
+
         @manager = manager
         @id = id
         @map = @manager.map
@@ -106,6 +118,12 @@ module Spin
             @selected ? deselect : select
           end
         end
+
+        show_out_degree()
+        hide_out_degree()
+
+        show_in_degree()
+        hide_in_degree()
       end
 
       def draw_rep()
@@ -134,22 +152,7 @@ module Spin
           @width = @height = @size
         end
 
-        mid = @width / 2
-        @label = Gnome::CanvasText.new(self, 
-                                       :x => mid, :y => @height + 2, 
-                                       :fill_color => LABEL_FILL,
-                                       :anchor => Gtk::ANCHOR_NORTH,
-                                       :size_points => 8,
-                                       :text => "#{@id.to_s}")# (#{@neighbor_locs.size})")
-        w = @label.text_width
-        @box = Gnome::CanvasRect.new(self, :x1 => mid - (w / 2 + 4), :y1 => @height + 2,
-                                     :x2 => mid + w / 2 + 4,  
-                                     :y2 => @height + @label.text_height + 2,
-                                     :fill_color => BOX_FILL,
-                                     :outline_color => BOX_FILL)
-        @box.raise_to_top
-        @label.raise_to_top
-        @box.show
+        @label = TextBox.new(self, "#{@id.to_s}", @width / 2, @height + 2)
       end
 
       def add_link(dest_nid)
@@ -167,23 +170,27 @@ module Spin
       end
 
       def select
-        raise_to_top
         @selected = true
+
+        raise_to_top
+        @label.select
+
         if(!@manager.use_graphics)
           @circle.set(:fill_color => NODE_SELECTED_FILL)
         end
 
-        @label.show
-        @box.set(:outline_color => BOX_OUTLINE)
         @links.each_value { | l | l.show }  if !@failed
       end
 
       def deselect
         @selected = false
+
+        @label.unselect
+
         if(!@manager.use_graphics)
           @circle.set(:fill_color => NODE_FILL)
         end
-        @box.set(:outline_color => BOX_FILL)
+
         @links.each_value { | l  | l.hide }
       end
 
@@ -199,18 +206,29 @@ module Spin
         @links.each_value { | l  | l.hide }
       end
 
-=begin
-      def refresh
-        @label.set(:text => "#{@id.to_s} (#{@neighbor_locs.size})")
-        if @selected
-          hide_links
-          draw_links
-        end
+
+      def show_out_degree
+        @out_degree_box ||= TextBox.new(self, "od: #{@out_degree.to_s}", 
+                                      @width / 2 + 40, @height - 10)
+        @out_degree_box.show
       end
-=end
+
+      def hide_out_degree
+        @out_degree_box.hide
+      end
+
+      def show_in_degree
+        @in_degree_box ||= TextBox.new(self, "id: #{@in_degree.to_s}", 
+                                      @width / 2 + 40, @height + 10)
+        @in_degree_box.show
+      end
+
+      def hide_in_degree
+        @in_degree_box.hide
+      end
 
     end
 
-  end
-end
+  end  #Vis
+end  # Spin
 
