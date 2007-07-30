@@ -16,6 +16,7 @@ module Spin
       settings.node.show_outdegree = false
       settings.node.show_label = true
       settings.node.representation = :vector
+      settings.node.move_update = false
 
       settings.query = OpenStruct.new
       settings.query.query_list = []
@@ -26,7 +27,7 @@ module Spin
       settings.go_sim.log = settings.go_sim.view.log
       settings.go_sim.root = settings.go_sim.view.space_map.root
 
-      settings.debug = false
+      settings.debug = true
     end
 
     class Manager
@@ -44,7 +45,13 @@ module Spin
 
         @view = GoSim::View.instance
         @view.add_reset_handler { Spin::Simulation.instance.reset }
-        @view.add_render_controler { render_all() }
+        @view.add_render_controler do
+          render_all()
+          @settings.node.move_update = false
+        end
+
+        # Turn off graph tool analysis, as it takes a fair amount of time
+        Configuration::instance.analyzer.graph_tool = false
 
         @controls = @view.controls
         @log = @view.log
@@ -74,7 +81,7 @@ module Spin
       end
 
       def handle_converge_update(status, value)
-        @data_treeview.model.iter_first.set_value(1, value)
+        #@data_treeview.model.iter_first.set_value(1, value)
       end
 
       def handle_dht_search_update(status, uid, id, prev_nid, cur_nid)
@@ -100,13 +107,15 @@ module Spin
           y = -1.0 * Math::sin(rad) * 250 + 300
           node.set_pos(x, y)
         end
+
+        @settings.node.move_update = true
       end
 
       def handle_node_update(status, nid, *args)
         case status
         when :new
           @nodes[nid] = Node.new(self, nid)
-          repos_nodes
+          repos_nodes()
         when :failure
           @nodes[nid].fail
         end

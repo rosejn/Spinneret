@@ -23,6 +23,7 @@ module Spinneret
     an = c.analyzer = OpenStruct.new
     an.measurement_period = 10000
     an.output_path = 'output'
+    an.graph_tool = true
   end
 
   set_defaults

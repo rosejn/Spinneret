@@ -48,12 +48,18 @@ module Spin
 
         signal_connect("event") do | item, event |
           if event.event_type == Gdk::Event::BUTTON_PRESS 
-            @selected ? deselect : select
+            # First we set edge state so that the render in select and deselect
+            # correct edge displays
             if event.button == 1
               @show_out_edges = !@show_out_edges
-            elsif event.button == 2
+            elsif event.button == 3
               @show_in_edges = !@show_in_edges
+            else
+              @show_out_edges = @show_in_edges = false
             end
+
+            # Push graphics change
+            @selected ? deselect : select
           end
         end
       end
@@ -64,18 +70,19 @@ module Spin
         add_render_item :position,        &method(:position_render)
         add_render_item :out_degree_info, &method(:out_degree_info_render)
         add_render_item :in_degree_info,  &method(:in_degree_info_render)
+        add_render_item :edges,           &method(:edges_render)
       end
 
       def select
         @selected = true
         @label.select
-        dirty :selected; render
+        dirty :selected, :edges; render
       end
 
       def deselect
         @selected = false
         @label.unselect
-        dirty :selected; render
+        dirty :selected, :edges; render
       end
 
       def fail
@@ -86,32 +93,31 @@ module Spin
       def set_pos(x, y)
         @new_x, @new_y = x, y
 
-        dirty :position
-        dirty :edges
+        dirty :position, :edges
       end
 
       def add_out_edge(node)
         add_link(@out_edges, node)
         @out_degree += 1
-        dirty :out_degree_info
+        dirty :out_degree_info, :edges
       end
 
       def remove_out_edge(node)
         remove_link(@out_edges, node)
         @out_degree -= 1
-        dirty :out_degree_info
+        dirty :out_degree_info, :edges
       end
 
       def add_in_edge(node)
         add_link(@in_edges, node, "Blue")
         @in_degree += 1
-        dirty :in_degree_info
+        dirty :in_degree_info, :edges
       end
 
       def remove_in_edge(node)
         remove_link(@in_edges, node)
         @in_degree -= 1
-        dirty :in_degree_info
+        dirty :in_degree_info, :edges
       end
 
       private
@@ -182,8 +188,14 @@ module Spin
 
       # Damn this needs to be reimplemented
       def redraw_links()
-        [@out_edges, @in_edges].each do | c | 
-          c.each_key { | dest | remove_link(c, dest); add_link(c, dest) }
+        @out_edges.each_key do | dest | 
+          remove_link(@out_edges, dest); 
+          add_link(@out_edges, dest) 
+        end
+
+        @in_edges.each_key do | dest |
+          remove_link(@in_edges, dest); 
+          add_link(@in_edges, dest, "Blue")
         end
       end
 
@@ -207,6 +219,8 @@ module Spin
 
       def position_render
         move(@new_x - @x, @new_y - @y)
+        @x = @new_x
+        @y = @new_y
       end
 
       def node_fail_render
@@ -234,6 +248,23 @@ module Spin
           @in_degree_box.set_value("in: #{@in_degree}")
         else
           @in_degree_box.hide()
+        end
+      end
+
+      def edges_render
+        #puts "#{@selected} : #{@show_out_edges} : #{@show_in_edges}"
+        
+        # Have we had end point changes?
+        redraw_links()  if @settings.move_update 
+
+        if(@selected)
+          if(@show_out_edges)
+            @out_edges.each_value { | e | e.show() }
+          elsif(@show_in_edges)
+            @in_edges.each_value { | e | e.show() }
+          end
+        else
+          [@out_edges, @in_edges].each { | c | c.each_value { |e| e.hide() } }
         end
       end
 

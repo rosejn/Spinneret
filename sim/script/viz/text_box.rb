@@ -18,13 +18,9 @@ module Spin
         @color = color
 
         @shown = false
-        #internal_draw()
       end
 
       def set_value(text)
-        #@label.hide
-        #@label.set(:text => text)
-        #@box.hide
         @text = text
         hide()
         internal_draw()

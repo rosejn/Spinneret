@@ -86,9 +86,11 @@ module Spinneret
         f << "#{@sim.time} #{@local_converged_nodes.length}\n"
       end
 
-      graph_tool(gzip(write_data_file("net_graph", "dot") do | f |
-        f << @graph.to_dot([["addr_space", @config.link_table.address_space]])
-      end))
+      if @config.analyzer.graph_tool
+        graph_tool(gzip(write_data_file("net_graph", "dot") do | f |
+          f << @graph.to_dot([["addr_space", @config.link_table.address_space]])
+        end))
+      end
       
       @successful_dht_searches = 0
       @failed_dht_searches = 0
