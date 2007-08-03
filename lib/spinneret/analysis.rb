@@ -186,7 +186,7 @@ module Spinneret
     end
 
     def connected_components
-      @pad.nodes.each {|n| @node_hash[n.nid] = n }
+      #@pad.nodes.each {|n| @node_hash[n.nid] = n }
       @graph.strongly_connected_components.num_comp
     end
 

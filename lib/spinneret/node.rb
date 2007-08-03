@@ -1,7 +1,7 @@
 module Spinneret
 
   class Node < GoSim::Net::RPCNode
-    include Base
+    include GoSim::Base
     include KeywordProcessor
 
     include Search::DHT

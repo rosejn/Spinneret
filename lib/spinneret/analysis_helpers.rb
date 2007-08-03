@@ -2,6 +2,7 @@ require 'rgl/base'
 require 'rgl/adjacency'
 require 'rgl/traversal'
 require 'rgl/implicit'
+require 'rgl/connected_components'
 
 include RGL
 

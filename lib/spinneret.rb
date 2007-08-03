@@ -59,6 +59,9 @@ require 'spinneret/maintenance/push'
 require 'spinneret/maintenance/push_pull'
 require 'spinneret/maintenance/opportunistic'
 
+# Trim algorithms
+require 'spinneret/link_table/base'
+
 # Search algorithms
 require 'spinneret/search/search_base'
 require 'spinneret/search/kwalker'

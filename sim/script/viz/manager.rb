@@ -14,6 +14,7 @@ module Spin
       settings.node = OpenStruct.new
       settings.node.show_indegree = false
       settings.node.show_outdegree = false
+      settings.node.show_join_order = false
       settings.node.show_label = true
       settings.node.representation = :vector
       settings.node.move_update = false
@@ -50,6 +51,9 @@ module Spin
           @settings.node.move_update = false
         end
 
+        # !!! Note - this needs to only happen if we are in live mode, else it
+        # will fail.  Need to add a way to check if we are live or in trace
+        # mode.
         # Turn off graph tool analysis, as it takes a fair amount of time
         Configuration::instance.analyzer.graph_tool = false
 
@@ -70,7 +74,12 @@ module Spin
                                          &method(:handle_converge_update))
         #Setup data view
         create_data_pane()
+
+        # Global simulation state
+        @node_join_num = 0
       end
+
+      private
 
       def show_search(id)
         @queries[id].show
@@ -97,25 +106,12 @@ module Spin
         @queries[sid].extend_path(prev_nid, cur_nid)
       end
 
-      def repos_nodes
-        n = nodes.to_a.sort { | x, y | x[0] <=> y[0] }.map { | x | x[1] }
-
-        n.each_with_index do | node, idx |
-          pos =  idx / n.length.to_f 
-          rad = (pos * 2 * Math::PI - (Math::PI + Math::PI / 2))
-          x = -1.0 * Math::cos(rad) * 250 + 300
-          y = -1.0 * Math::sin(rad) * 250 + 300
-          node.set_pos(x, y)
-        end
-
-        @settings.node.move_update = true
-      end
-
       def handle_node_update(status, nid, *args)
         case status
         when :new
-          @nodes[nid] = Node.new(self, nid)
+          @nodes[nid] = Node.new(self, nid, @node_join_num)
           repos_nodes()
+          @node_join_num += 1
         when :failure
           @nodes[nid].fail
         end
@@ -132,10 +128,22 @@ module Spin
         end
       end
 
-      private
-
       OUT_EDGE_DENSITY = 0
       IN_EDGE_DENSITY  = 1
+
+      def repos_nodes
+        n = nodes.to_a.sort { | x, y | x[0] <=> y[0] }.map { | x | x[1] }
+
+        n.each_with_index do | node, idx |
+          pos =  idx / n.length.to_f 
+          rad = (pos * 2 * Math::PI - (Math::PI + Math::PI / 2))
+          x = -1.0 * Math::cos(rad) * 250 + 300
+          y = -1.0 * Math::sin(rad) * 250 + 300
+          node.set_pos(x, y)
+        end
+
+        @settings.node.move_update = true
+      end
 
       def render_all
         @nodes.each_value    { |n| n.render() }  unless @nodes.nil?
@@ -164,7 +172,9 @@ module Spin
       end
 
       def join_order_info_handler(widget, event)
-        @join_info = !@join_info
+        @settings.node.show_join_order = !@settings.node.show_join_order
+        @nodes.each_value { |n| n.dirty :join_order_info }  unless @nodes.nil?
+        force_render()
       end
 
       def out_edge_density_info_handler(widget, event)

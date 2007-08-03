@@ -19,11 +19,12 @@ module Spin
       # Include state-based rendering path
       include StateRenderer
 
-      def initialize(manager, id)
+      def initialize(manager, id, join_order)
         @settings = VizSettings::instance
 
         @manager = manager
         @id = id
+        @join_order = join_order
 
         @@nodes[id] = self
 
@@ -70,6 +71,7 @@ module Spin
         add_render_item :position,        &method(:position_render)
         add_render_item :out_degree_info, &method(:out_degree_info_render)
         add_render_item :in_degree_info,  &method(:in_degree_info_render)
+        add_render_item :join_order_info, &method(:join_order_info_render)
         add_render_item :edges,           &method(:edges_render)
       end
 
@@ -162,6 +164,8 @@ module Spin
                                       @width / 2 + 40, @height - 10)
         @in_degree_box = TextBox.new(self, "id: #{@in_degree}", 
                                      @width / 2 + 40, @height + 10)
+        @join_order_box = TextBox.new(self, "jo: #{@join_order}", 
+                                     @width / 2, @height + 20)
 
         @label.show
       end
@@ -245,9 +249,18 @@ module Spin
       def in_degree_info_render
         if(@settings.node.show_indegree)
           @in_degree_box.show()
-          @in_degree_box.set_value("in: #{@in_degree}")
+          @in_degree_box.set_value("id: #{@in_degree}")
         else
           @in_degree_box.hide()
+        end
+      end
+
+      def join_order_info_render
+        if(@settings.node.show_join_order)
+          @join_order_box.show()
+          #@join_order_box.set_value("jo: #{@join_order}")
+        else
+          @join_order_box.hide()
         end
       end
 
