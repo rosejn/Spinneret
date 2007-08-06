@@ -47,6 +47,20 @@ module Spin
     end
   end
 
+  class SimPauser < GoSim::Entity
+    def initialize(time, wl)
+      super()
+
+      @wl = wl
+
+      @sim.schedule_event(:unpause, @sid, time, nil)
+    end
+
+    def unpause(arg)
+      @wl.unpause()
+    end
+  end
+
   class SimKiller < GoSim::Entity
     def initialize(time)
       super()
@@ -113,6 +127,12 @@ module Spin
           @handler = SearchConvergeHandler.new(@wl_settings).method(:handle)
           @config.analyzer.stability_handlers << @handler
         end
+      end)
+
+      @generators[:pause] = WorkloadGenerator.new(/pause (\d+)/, false, 
+                                                  Proc.new do | opts |
+        @wl_settings.pause()
+        SimPauser.new(opts.to_i, @wl_settings)
       end)
 
       @generators[:flush] = WorkloadGenerator.new(/flush (\d+)/, false, 

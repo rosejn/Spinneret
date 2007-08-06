@@ -108,7 +108,7 @@ module Spinneret
     def to_s
       str = ""
       peers = peers_by_distance()
-      smallest = find_smallest_dist()
+      smallest = LTAlgorithms::Base::find_smallest_dist()
       (peers.length - 1).times do | idx | 
         str += RED  if peers[idx].nid == smallest
         str += peers[idx].nid.to_s
@@ -249,8 +249,9 @@ module Spinneret
     end
 
     # Array of peers sorted by distance from me.
-    def peers_by_distance
-      @nid_peers.values.sort {|a,b| a.distance <=> b.distance }
+    def peers_by_distance(arr = nil)
+      arr = @nid_peers.values if arr.nil?
+      arr.sort { | a, b | a.distance <=> b.distance }
     end
 
     # Find the sum of squares of our current distances to the ideal table
@@ -374,11 +375,11 @@ module Spinneret
     end
 
     def to_s
-      "nid=#{@nid}, addr=#{addr}, last_seen=#{@last_seen}"
+      "nid=#{@nid}, addr=#{addr}, last_seen=#{@last_seen}, distance=#{@distance}"
     end
 
     def inspect
-      "#<Spinneret::Peer #{to_s}"
+      "#<Spinneret::Peer #{to_s}>"
     end
   end
 end

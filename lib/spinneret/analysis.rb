@@ -426,7 +426,7 @@ module Spinneret
     end
 
     def gzip(filename)
-      `gzip #{filename}`
+      `rm -rf #{filename}.gz; gzip #{filename}`
       filename + ".gz"
     end
 

@@ -1,10 +1,10 @@
 module LTAlgorithms
   module Base
 
-    def find_smallest_dist
-      return nil  if @nid_peers.length < 2
+    def find_smallest_dist(dist_array)
+      return nil  if dist_array.length < 2
 
-      sorted_peers = peers_by_distance()
+      sorted_peers = peers_by_distance(dist_array)
 
       i_min = 1
       v_min = 2**160
@@ -37,7 +37,7 @@ module LTAlgorithms
     #
     # NOTE: This method is not threadsafe
     def trim
-      smallest = find_smallest_dist
+      smallest = find_smallest_dist(@nid_peers)
 
       GoSim::Data::DataSet[:link].log(:remove, @nid, smallest)
       @nid_peers.delete(smallest)

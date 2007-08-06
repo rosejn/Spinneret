@@ -61,6 +61,7 @@ require 'spinneret/maintenance/opportunistic'
 
 # Trim algorithms
 require 'spinneret/link_table/base'
+require 'spinneret/link_table/rand_upper'
 
 # Search algorithms
 require 'spinneret/search/search_base'

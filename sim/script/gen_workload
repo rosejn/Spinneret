@@ -171,7 +171,7 @@ class WLPrinter
     @file.write(sprintf(fmt_str, *args))
   end
 
-  def set_converge_point
+  def set_pause_point
     @converge_time = @sim.time
   end
 
@@ -263,13 +263,14 @@ opts = GetoptLong.new(
         ['--search-types',           '-t', GetoptLong::REQUIRED_ARGUMENT],
         ['--static-failure',         '-f', GetoptLong::REQUIRED_ARGUMENT],
         ['--converge-before-search', '-c', GetoptLong::NO_ARGUMENT],
+        ['--pause-after-joins',      '-p', GetoptLong::REQUIRED_ARGUMENT],
         ['--end-of-trace-flush',     '-.', GetoptLong::REQUIRED_ARGUMENT],
         ['--id-type',                '-i', GetoptLong::REQUIRED_ARGUMENT])
 
 Settings = Struct.new("Settings", :addr_space, :join_first, 
                                   :mxt, :mjt, :mft, :mlt, :mrt, :mst, 
-                                  :search_types, :static_failure, :converge,
-                                  :flush_end, :num_nodes)
+                                  :search_types, :static_failure, :converge, 
+                                  :pause, :flush_end, :num_nodes)
 class Settings
   def to_s
    "# Settings---\n# addr_space: #{addr_space}\n# join_first?: #{join_first}\n" +
@@ -280,9 +281,9 @@ class Settings
   end
 end
 
-settings = Settings.new(0, false, 0, 0, 0, 0, 0, 0, 
+settings = Settings.new(2**160, false, 0, 0, 0, 0, 0, 0, 
                         DEFAULT_SEARCH_TYPE, DEFAULT_STATIC_FAILURE, 
-                        false, -1, 0)
+                        false, 0, -1, 0)
 
 filename = nil
 length = 0
@@ -315,6 +316,9 @@ opts.each do | opt, arg |
     settings.static_failure = arg
   when '--converge-before-search'
     settings.converge = true
+    settings.join_first = true
+  when '--pause-after-joins'
+    settings.pause = arg.to_i
     settings.join_first = true
   when '--end-of-trace-flush'
     settings.flush_end = arg.to_i
@@ -419,21 +423,28 @@ class NodeFactory < GoSim::Entity
       exit(1)
     end
 
-    if(nodes.length < @num_nodes || @settings.mxt != 0)
-      nids = node_ids()
+    nids = (@settings.join_first ? @node_ids : node_ids())
+    if(nids.length < @num_nodes || @settings.mxt != 0)
       while(nids.include?(node_id = @id_gen.gen()))  
       end
       @wl.printf("%d init %d\n", node_id, node_id)
-      nodes << NodeObj.new(node_id, @settings)  if !@settings.join_first
+      @node_ids << node_id                     if @settings.join_first
+      nodes << NodeObj.new(node_id, @settings)  unless @settings.join_first
     end
 
     @sim.schedule_event(:node_gen, @sid, 
                         $R.poisson(@settings.mjt).round, nil)
-    if(nodes.length == @num_nodes && @settings.join_first)
+    if(@node_ids.length == @num_nodes && @settings.join_first)
       spawn_nodes()
+      @settings.join_first = false
+      @settings.mjt = 1 # Assures progress
       if(@settings.converge)
         @wl.printf("converge\n")
-        @wl.set_converge_point()
+        @wl.set_pause_point()
+      end
+      if(@settings.pause != 0)
+        @wl.printf("pause #{@settings.pause}\n")
+        @wl.set_pause_point()
       end
     end
   end
@@ -468,8 +479,9 @@ class NodeObj < GoSim::Entity
     end
 
     if @settings.mst != 0    
-      @sim.schedule_event(:send, @sid, 
-                          $R.poisson(@settings.mst).round, nil)     
+      wait = $R.uniform_int(@settings.mst * 2).round
+#      wait = $R.poisson(@settings.mst).round
+      @sim.schedule_event(:send, @sid, wait, nil)     
     end
   end
 

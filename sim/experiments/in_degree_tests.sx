@@ -1,0 +1,13 @@
+require 'experiments/shared_defaults'
+
+defaults $defaults
+
+experiment 'in_degree_tests'
+set 'workload', ['n1000-pause60000-search.wl.gz'].map {|w| "workloads/" + w }
+
+set 'link_table.max_peers', [16, 32]
+log 'link_table.address_space_divider', 2, 128, 2
+set 'node.maintenance_size', [10] #[5, 10, 20]
+#static 'link_table.trim_algorithm', LTAlgorithms::RandUpper
+static 'node.maintenance_opportunistic_alwayson', false
+

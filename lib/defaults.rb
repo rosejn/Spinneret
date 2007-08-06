@@ -17,7 +17,8 @@ module Spinneret
     lt.distance_func = nil  # set by simulation after final address space 
                             # is known
     lt.size_function = 'homogeneous'
-    lt.trim_algorithm = LTAlgorithms::Base   # must implement trim()
+    lt.trim_algorithm = LTAlgorithms::RandUpper   # must implement trim()
+    lt.address_space_divider = 4 # Used only by LTAlgorithms::RandUpper
 
     # Analyzer
     an = c.analyzer = OpenStruct.new
