@@ -21,7 +21,7 @@ module LTAlgorithms
       # Do we need to cut above or below?
       length_ratio = @config.address_space_divider / 2
 #      if above_peers.length >= below_peers.length  # cut above
-      if above_peers.length >= 
+      if above_peers.length > 
           @config.max_peers - (@config.max_peers / length_ratio)
         peer = above_peers.rand
 #        puts "cut above"

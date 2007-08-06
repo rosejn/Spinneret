@@ -39,8 +39,12 @@ module LTAlgorithms
     def trim
       smallest = find_smallest_dist(@nid_peers)
 
+#      puts "Removing #{smallest.inspect}."
+
       GoSim::Data::DataSet[:link].log(:remove, @nid, smallest)
       @nid_peers.delete(smallest)
+
+#      puts "#{@nid}: Table size is now #{@nid_peers.length}."
     end
 
   end # LinkTable

@@ -210,8 +210,8 @@ module Spinneret
           end
         rescue Exception => e
           #puts "#{@node.addr - @nid}:Could not compute distance from ourself(#{@nid}) to (#{peer.nid})"
-          #puts "Peer-> #{peer.inspect}" 
-          #puts "Self-> #{self.inspect}"
+          puts "Peer-> #{peer.inspect}" 
+          puts "Self-> #{self.inspect}"
           raise e
         end
 
@@ -219,7 +219,10 @@ module Spinneret
           @nid_peers[peer.nid] = peer
 
           GoSim::Data::DataSet[:link].log(:add, @nid, peer.nid)
-          trim if @nid_peers.size > @max_peers
+          trim() if @nid_peers.size > @max_peers
+          if(@nid_peers.size > @max_peers)
+            puts "Major issue: node #{@nid} should have reduced table size"
+          end
 #        end
       end
 

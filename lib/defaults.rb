@@ -18,7 +18,7 @@ module Spinneret
                             # is known
     lt.size_function = 'homogeneous'
     lt.trim_algorithm = LTAlgorithms::RandUpper   # must implement trim()
-    lt.address_space_divider = 4 # Used only by LTAlgorithms::RandUpper
+    lt.address_space_divider = 2 # Used only by LTAlgorithms::RandUpper (>= 2)
 
     # Analyzer
     an = c.analyzer = OpenStruct.new
