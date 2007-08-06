@@ -42,7 +42,7 @@ module LTAlgorithms
 #      puts "Removing #{smallest.inspect}."
 
       GoSim::Data::DataSet[:link].log(:remove, @nid, smallest)
-      @nid_peers.delete(smallest)
+      @nid_peers.delete(smallest) { | key | raise "#{key} removed val not found." }
 
 #      puts "#{@nid}: Table size is now #{@nid_peers.length}."
     end
