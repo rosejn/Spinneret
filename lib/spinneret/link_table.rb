@@ -36,8 +36,6 @@ module Spinneret
 
       @converge_measure = []
       @converge_means = []
-
-      @cut_granularity = @config.address_space / (@config.max_peers)
     end
 
     # Remove all peers from the link table
