@@ -9,9 +9,14 @@ require 'gosim'
 class KWalkerNode < Spinneret::Node
   attr_reader :got_response, :packet_counter
 
+  def initialize(id, bootstrap_node)
+    super(id, bootstrap_node)
+    @got_response = []
+    @packet_counter = 0
+  end
+
   # TODO: What do we want to do with search responses?
   def kwalker_response(uid, peer_addr, ttl)
-    @got_response ||= []
     @got_response << peer_addr
   end
 
@@ -20,7 +25,6 @@ class KWalkerNode < Spinneret::Node
   end
 
   def send_packet(*args)
-    @packet_counter ||= 0
     @packet_counter += 1
     super(*args)
   end
@@ -31,7 +35,7 @@ class TestKWalker < Test::Unit::TestCase
   include Spinneret
 
   def setup
-    @sim = GoSim::Simulation.instance
+    @sim = GoSim::Simulation::instance
     @sim.quiet
 
     @config = Configuration::instance

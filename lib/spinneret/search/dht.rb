@@ -1,8 +1,8 @@
 module Spinneret
 module Search
-  DHTQuery = SearchBase.new(:src_addr, :query, :ttl)
-  DHTBurstQuery = SearchBase.new(:src_addr, :query, :ttl)
-  DHTResponse = SearchBase.new(:src_addr, :src_id, :ttl)
+#  DHTQuery = SearchBase.new(:src_addr, :query, :ttl)
+#  DHTBurstQuery = SearchBase.new(:src_addr, :query, :ttl)
+#  DHTResponse = SearchBase.new(:src_addr, :src_id, :ttl)
 
   DHT_TTL          = 20
   DHT_BURST_TTL    = 2

@@ -66,6 +66,7 @@ require 'spinneret/link_table/rand_upper'
 # Search algorithms
 require 'spinneret/search/search_base'
 require 'spinneret/search/kwalker'
+require 'spinneret/search/kwalker_sample'
 require 'spinneret/search/dht'
 require 'spinneret/search/join_query'
 

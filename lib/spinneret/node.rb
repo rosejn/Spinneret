@@ -6,6 +6,7 @@ module Spinneret
 
     include Search::DHT
     include Search::KWalker
+    include Search::KWalkerSample
     include Search::JoinQuery
 
     attr_reader  :nid, :link_table
