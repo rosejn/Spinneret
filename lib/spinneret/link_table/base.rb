@@ -37,7 +37,7 @@ module LTAlgorithms
     #
     # NOTE: This method is not threadsafe
     def trim
-      smallest = find_smallest_dist(@nid_peers)
+      smallest = find_smallest_dist(@nid_peers.values)
 
 #      puts "Removing #{smallest.inspect}."
 

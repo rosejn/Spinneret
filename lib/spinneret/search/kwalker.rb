@@ -12,11 +12,13 @@ module Search
       return if !@topo.alive?(@addr)
 
       # Setup state keeping for reporting success or failure
-      @local_queries ||= []
-      @local_queries[uid] = false
-      set_timeout(KW_QUERY_TIMEOUT, false, uid, method(:handle_kwalker_timeout))
-
       new_uid = SearchBase::get_new_uid()
+
+      @local_queries ||= []
+      @local_queries[new_uid] = false
+      set_timeout(KW_QUERY_TIMEOUT, false, new_uid, 
+                  method(:handle_kwalker_timeout))
+
       k.times do
         kwalker_query(new_uid, dest_addr.to_i, src_addr, ttl, response_func)
       end
@@ -31,9 +33,9 @@ module Search
     end
 
     def kwalker_query(uid, query, src_addr = @addr, ttl = KW_TTL, 
-                      resonse_func = KW_RESPONSE)
+                      response_func = KW_RESPONSE)
 
-      log {"node: #{@nid} - kwalker_query( q = #{query}, src = #{src_addr}, ttl = #{ttl})"}
+      log {"#{@nid}: kwalker_query(q = #{query}, src = #{src_addr}, ttl = #{ttl})"}
 
       if(query == @nid)
         peer = @link_table.get_peer_by_addr(src_addr)

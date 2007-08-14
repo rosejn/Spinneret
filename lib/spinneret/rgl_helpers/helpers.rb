@@ -6,6 +6,28 @@ require 'rgl/connected_components'
 
 include RGL
 
+# This should really be type (digraph/unigraph) agnositc, but ehh, whatever 
+# for now.
+class DirectedAdjacencyGraph
+  EDGE_RE = /\s*(\d+)->(\d+)[^;]*;/
+  NODE_RE = /\s*(\d+) ?[^;]*;/
+
+  def read_from_dot(stream)
+    stream.each_line() do | line |
+      case line
+      when EDGE_RE
+        add_edge($1.to_i, $2.to_i)
+      when NODE_RE
+        add_vertex($1.to_i)
+      else
+        # eat the line for now
+        # puts "Unknown line:\n #{line}"
+      end
+    end # each_line
+  end
+
+end
+
 module Graph 
   def avg_path_length(n = 1000)
     verts = vertices()

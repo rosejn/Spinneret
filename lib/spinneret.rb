@@ -70,11 +70,13 @@ require 'spinneret/search/kwalker_sample'
 require 'spinneret/search/dht'
 require 'spinneret/search/join_query'
 
+# Graph helpers
+require 'spinneret/rgl_helpers/helpers'
+
 # Internals
 require 'spinneret/link_table'
 require 'spinneret/node'
 require 'spinneret/analysis'
-require 'spinneret/analysis_helpers'
 require 'spinneret/distance_functions'
 require 'spinneret/scratchpad'
 

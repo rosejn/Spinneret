@@ -17,7 +17,8 @@ module Spinneret
     lt.distance_func = nil  # set by simulation after final address space 
                             # is known
     lt.size_function = 'homogeneous'
-    lt.trim_algorithm = LTAlgorithms::RandUpper   # must implement trim()
+    #lt.trim_algorithm = LTAlgorithms::RandUpper   # must implement trim()
+    lt.trim_algorithm = LTAlgorithms::Base
     lt.address_space_divider = 2 # Used only by LTAlgorithms::RandUpper (>= 2)
 
     # Analyzer

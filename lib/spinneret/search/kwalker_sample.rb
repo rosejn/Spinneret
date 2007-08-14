@@ -12,7 +12,7 @@ module Search
     def kwalker_sample_response(uid, peer_addr, ttl, found)
       log {"KWalker-sample got a query response..."}
       
-      GoSim:::Data::EventCast::instance::publish(:kwalker_sample, peer_addr)
+      GoSim::Data::EventCast::instance::publish(:kwalker_sample, peer_addr)
 
       @local_queries[uid] = true  # Supress negative logging
     end

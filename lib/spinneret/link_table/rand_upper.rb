@@ -7,7 +7,7 @@ module LTAlgorithms
       # Distance on either side in which to consider nodes
       quarter_space = Math.log2(@config.address_space / @config.address_space_divider)
 
-      sorted_peers = peers_by_distance()
+      sorted_peers = peers_by_distance(dist_array)
 
       i = 0
       while i < sorted_peers.length && sorted_peers[i].distance < quarter_space
