@@ -9,8 +9,8 @@ include RGL
 # This should really be type (digraph/unigraph) agnositc, but ehh, whatever 
 # for now.
 class DirectedAdjacencyGraph
-  EDGE_RE = /\s*(\d+)->(\d+)[^;]*;/
-  NODE_RE = /\s*(\d+) ?[^;]*;/
+  EDGE_RE = /^\s*(\d+)->(\d+)[^;]*;/
+  NODE_RE = /^\s*(\d+) ?[^;]*;/
 
   def read_from_dot(stream)
     stream.each_line() do | line |
