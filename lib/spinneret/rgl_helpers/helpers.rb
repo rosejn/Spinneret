@@ -24,6 +24,8 @@ class DirectedAdjacencyGraph
         # puts "Unknown line:\n #{line}"
       end
     end # each_line
+
+    self
   end
 
 end
