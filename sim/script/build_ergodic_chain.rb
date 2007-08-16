@@ -6,6 +6,8 @@ require 'gsl'
 
 require 'spinneret'
 
+#require 'profile'
+
 class PathTransitionMatrix
 
   def initialize(stream)
@@ -14,7 +16,104 @@ class PathTransitionMatrix
 
     @cur_name = 0
     @vertex_names = {}
+  end
 
+  private
+
+  def get_name(v)
+    if !@vertex_names.has_key? v
+      @vertex_names[v] = @cur_name  
+      @cur_name += 1
+    end
+
+    return @vertex_names[v]
+  end
+
+end
+
+class GraphRandomWalk < PathTransitionMatrix
+  DEFAULT_WALK_LENGTH = 40
+
+  def initialize(stream, length = DEFAULT_WALK_LENGTH)
+    super(stream)
+    @converged = false
+    @vert_edges = {}
+    @walk_length = length
+  end
+
+  def converge
+    verts = @graph.vertices
+    
+    prev_probs = GSL::Matrix.alloc(@graph.num_vertices, @graph.num_vertices)
+    i = 0
+    while(!@converged)
+      verts.each do | v |
+        #puts "0x#{v.to_s[0..10]}..."
+        verts.size.times do
+          u = v
+          @walk_length.times { u = vertices(u).rand() }
+
+          v_name, u_name = get_name(v), get_name(u)
+          @matrix.set(v_name, u_name, @matrix.get(v_name, u_name) + 1)
+        end
+      end
+
+      @probs = normalize(@matrix, (i + 1) * verts.size)
+      @converged = @probs.equal?(prev_probs)
+
+      if(i % 10 == 4)
+        puts "#{i+1} steps have passed (sqme #{(@probs - prev_probs).norm})"
+        write_node_probs(File.new("#{i+1}.probs", "w"))
+      end
+      i += 1
+
+      prev_probs = @probs
+    end  # !converged
+
+  end
+
+  def write_node_probs(stream)
+#    return unless @converged
+  
+    @vertex_names.each do | key, value |
+      # Note, all rows should be created equal, but maybe we should average
+      # here instead of just picking the first one
+      col = @probs.col(value)
+      stream.write("#{key} #{col[0]} #{col.sum / col.size}\n")
+    end
+  end
+
+  private
+
+  def vertices(v)
+    if !@vert_edges.has_key?(v)
+      @vert_edges[v] = @graph.adjacent_vertices(v)
+    end
+
+    return @vert_edges[v]
+  end
+
+  def normalize(matrix, trials)
+    new_matrix = GSL::Matrix.alloc(@graph.num_vertices, @graph.num_vertices)
+
+    matrix.size1.times do | i | 
+      row = matrix.get_row(i)
+      sum = row.sum
+      row.collect! { | val | val / sum }
+      new_matrix.set_row(i, row)
+    end
+
+    return new_matrix
+  end
+
+end
+
+class ErgodicTransitionMatrix < PathTransitionMatrix
+
+  def initialize(stream)
+    super(stream)
+
+    @converged = nil
     generate_matrix()
   end
 
@@ -37,10 +136,10 @@ class PathTransitionMatrix
       res = @converged
       @converged = @converged * @matrix
 
-      i += 1
       if(i % 10 == 9)
         puts "#{i+1} steps have passed (sqme #{(@converged - res).norm})"
       end
+      i += 1
     end
 
     puts "#{i+1} steps have passed - converged"
@@ -48,20 +147,11 @@ class PathTransitionMatrix
 
   private
 
-  def get_name(v)
-    if !@vertex_names.has_key? v
-      @vertex_names[v] = @cur_name  
-      @cur_name += 1
-    end
-
-    return @vertex_names[v]
-  end
-
   def generate_matrix
     puts "Generating..."
     @graph.each_vertex do | v |
       @graph.each_adjacent(v) do | u |
-      @matrix.set(get_name(v), get_name(u), 1)
+        @matrix.set(get_name(v), get_name(u), 1)
       end
     end
 
@@ -83,7 +173,8 @@ if(ARGV.length < 2)
   exit
 end
 
-p = PathTransitionMatrix.new(Zlib::GzipReader::open(ARGV[0]))
+#p = ErgodicTransitionMatrix.new(Zlib::GzipReader::open(ARGV[0]))
+p = GraphRandomWalk.new(Zlib::GzipReader::open(ARGV[0]))
 puts "Running convergence..."
 p.converge
 p.write_node_probs(File.open(ARGV[1], "w"))
