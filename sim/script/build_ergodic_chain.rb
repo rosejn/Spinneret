@@ -1,7 +1,28 @@
 #!/usr/bin/env ruby
 
-require 'rubygems'
+# == Synopsis
+#
+# build_ergodic_chain: Analize graph reachability properties
+#
+# == Usage
+#
+# -h, --help:
+#    Show this help.
+#
+# -o filename, --output filename
+#
+# -i filename, --input filename
+#
+# -e, --ergodic
+#
+# -r length, --random-walk length 
+#    Optional argument
+
+require 'rdoc/usage'
+require 'getoptlong'
 require 'zlib'
+
+require 'rubygems'
 require 'gsl'
 
 require 'spinneret'
@@ -168,14 +189,39 @@ class ErgodicTransitionMatrix < PathTransitionMatrix
 
 end
 
-if(ARGV.length < 2)
-  puts "Please provide filename and output name."
-  exit
+opts = GetoptLong.new(
+        ['--help',                   '-h', GetoptLong::NO_ARGUMENT],
+        ['--output',                 '-o', GetoptLong::REQUIRED_ARGUMENT],
+        ['--input',                  '-i', GetoptLong::REQUIRED_ARGUMENT],
+        ['--ergodic',                '-e', GetoptLong::NO_ARGUMENT],
+        ['--random-walk',            '-r', GetoptLong::OPTIONAL_ARGUMENT])
+
+output_filename = nil
+input_filename = nil
+convergence_class = nil
+opts.each do | opt, arg |
+  case opt
+  when '--help'
+    RDoc::usage
+    exit(0)
+  when '--output'
+    output_filename = arg
+  when '--input'
+    input_filename = arg
+  when '--ergodic'
+    convergence_class = ErgodicTransitionMatrix
+  when '--random-walk'
+    convergence_class = GraphRandomWalk
+  end
 end
 
-#p = ErgodicTransitionMatrix.new(Zlib::GzipReader::open(ARGV[0]))
-p = GraphRandomWalk.new(Zlib::GzipReader::open(ARGV[0]))
+if(output_filename.nil? || input_filename.nil? || convergence_class.nil?)
+  RDoc::usage
+  exit(-1)
+end
+
+p = convergence_class.new(Zlib::GzipReader::open(input_filename))
 puts "Running convergence..."
 p.converge
-p.write_node_probs(File.open(ARGV[1], "w"))
+p.write_node_probs(File.open(output_filename, "w"))
 puts "Done."
