@@ -22,7 +22,9 @@ class PathTransitionMatrix
     return unless @converged
 
     @vertex_names.each do | key, value |
-      stream.write("#{key} #{@converged.col(value)[0]} #{@converged.col(value)[100]}\n")
+      # Note, all rows should be created equal, but maybe we should average
+      # here instead of just picking the first one
+      stream.write("#{key} #{@converged.col(value)[0]}\n")
     end
   end
 

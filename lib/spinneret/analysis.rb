@@ -436,7 +436,7 @@ module Spinneret
       command = "graph-tool --load #{filename} --extended-clustering-coefficient=\"c|2\" --average-vertex-property=\"c2|#{File.join(base_path, file_root) + ".c2"}\" --average-vertex-property=\"c1|#{File.join(base_path, file_root) + ".c1"}\" --average-distance=\"#{File.join(base_path, file_root) + ".avg_dist"}\" --label-components=\"comp\" --vertex-histogram=\"comp|#{File.join(base_path, file_root) + ".comp"}\" --vertex-histogram=\"in-degree|#{File.join(base_path, file_root) + ".in"}\" --average-vertex-property=\"in-degree|#{File.join(base_path, file_root) + ".in-avg"}\" --vertex-histogram=\"out-degree|#{File.join(base_path, file_root) + ".out"}\" --average-vertex-property=\"out-degree|#{File.join(base_path, file_root) + ".out-avg"}\" --edit-vertex-property=\"indegree|int|v.in_degree()\" --save #{File.join(base_path, file_root) + ".dot"}"
 #      puts "Executing #{command}"
       `#{command}`
-      gzip(file_root + ".dot")
+      gzip(File.join(base_path, file_root) + ".dot")
     end
   end
 end
