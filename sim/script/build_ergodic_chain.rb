@@ -37,6 +37,11 @@ class PathTransitionMatrix
 
     @cur_name = 0
     @vertex_names = {}
+    @args = {}
+  end
+
+  def set_args(hash)
+    @args.merge!(hash)
   end
 
   private
@@ -59,7 +64,7 @@ class GraphRandomWalk < PathTransitionMatrix
     super(stream)
     @converged = false
     @vert_edges = {}
-    @walk_length = length
+    @args[:length] = length
   end
 
   def converge
@@ -72,7 +77,7 @@ class GraphRandomWalk < PathTransitionMatrix
         #puts "0x#{v.to_s[0..10]}..."
         verts.size.times do
           u = v
-          @walk_length.times { u = vertices(u).rand() }
+          @args[:length].times { u = vertices(u).rand() }
 
           v_name, u_name = get_name(v), get_name(u)
           @matrix.set(v_name, u_name, @matrix.get(v_name, u_name) + 1)
@@ -84,7 +89,9 @@ class GraphRandomWalk < PathTransitionMatrix
 
       if(i % 10 == 4)
         puts "#{i+1} steps have passed (sqme #{(@probs - prev_probs).norm})"
-        write_node_probs(File.new("#{i+1}.probs", "w"))
+        f = File.new("#{i+1}.probs", "w")
+        write_node_probs(f)
+        f.close() # force flush in case of early exit
       end
       i += 1
 
@@ -199,6 +206,7 @@ opts = GetoptLong.new(
 output_filename = nil
 input_filename = nil
 convergence_class = nil
+args = {}
 opts.each do | opt, arg |
   case opt
   when '--help'
@@ -212,6 +220,7 @@ opts.each do | opt, arg |
     convergence_class = ErgodicTransitionMatrix
   when '--random-walk'
     convergence_class = GraphRandomWalk
+    args[:length] = arg.to_i unless arg.nil
   end
 end
 
@@ -221,6 +230,7 @@ if(output_filename.nil? || input_filename.nil? || convergence_class.nil?)
 end
 
 p = convergence_class.new(Zlib::GzipReader::open(input_filename))
+p.set_args(args)
 puts "Running convergence..."
 p.converge
 p.write_node_probs(File.open(output_filename, "w"))
