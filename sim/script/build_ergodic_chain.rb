@@ -69,6 +69,8 @@ class GraphRandomWalk < PathTransitionMatrix
 
   def converge
     verts = @graph.vertices
+
+    puts "Using random walks of length #{@args[:length]}."
     
     prev_probs = GSL::Matrix.alloc(@graph.num_vertices, @graph.num_vertices)
     i = 0
@@ -220,7 +222,7 @@ opts.each do | opt, arg |
     convergence_class = ErgodicTransitionMatrix
   when '--random-walk'
     convergence_class = GraphRandomWalk
-    args[:length] = arg.to_i unless arg.nil
+    args[:length] = arg.to_i unless arg.nil?
   end
 end
 
