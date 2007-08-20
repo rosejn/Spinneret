@@ -1,0 +1,68 @@
+#!/usr/bin/env ruby
+
+# == Synopsis
+#
+# sort_by_indegree
+#
+# == Usage
+#
+# -h, --help:
+#    Show this help.
+#
+# -o filename, --output filename
+#
+# -i filename, --input filename
+#
+# -e, --ergodic
+#
+# -r length, --random-walk length 
+#    Optional argument
+
+require 'rdoc/usage'
+require 'getoptlong'
+require 'zlib'
+
+require 'rubygems'
+require 'gsl'
+
+require 'spinneret'
+
+
+opts = GetoptLong.new(
+        ['--help',                   '-h', GetoptLong::NO_ARGUMENT],
+        ['--output',                 '-o', GetoptLong::REQUIRED_ARGUMENT],
+        ['--input',                  '-i', GetoptLong::REQUIRED_ARGUMENT])
+
+output = $stdout
+input_filename = nil
+opts.each do | opt, arg |
+  case opt
+  when '--help'
+    RDoc::usage
+    exit(0)
+  when '--output'
+    output = File.open(arg, "w")
+  when '--input'
+    input_filename = arg
+  end
+end
+
+if(output.nil? || input_filename.nil?)
+  RDoc::usage
+  exit(-1)
+end
+
+graph = RGL::DirectedAdjacencyGraph.new()
+graph.read_from_dot(Zlib::GzipReader::open(input_filename))
+
+verts = graph.vertices
+verts.sort! do | v, u |
+  v_in = graph.get_vertex_property(v, :indegree)
+  u_in = graph.get_vertex_property(u, :indegree) 
+
+  v_in <=> u_in
+end
+
+verts.each do | v |
+  output.write("#{v} #{graph.get_vertex_property(v, :indegree)}\n")
+end

@@ -10,7 +10,9 @@ include RGL
 # for now.
 class DirectedAdjacencyGraph
   EDGE_RE = /^\s*(\d+)->(\d+)[^;]*;/
-  NODE_RE = /^\s*(\d+) ?[^;]*;/
+  NODE_RE = /^\s*(\d+) ?([^;]*);/
+
+  NODE_INFO_RE = /(\w+)="(\d+\.?\d*)"/
 
   def read_from_dot(stream)
     stream.each_line() do | line |
@@ -18,7 +20,16 @@ class DirectedAdjacencyGraph
       when EDGE_RE
         add_edge($1.to_i, $2.to_i)
       when NODE_RE
-        add_vertex($1.to_i)
+        v = $1.to_i
+        add_vertex(v)
+
+        remainder = $2
+        while(!remainder.nil?)
+          if remainder =~ NODE_INFO_RE
+            add_vertex_property(v, $1.to_sym, $2.to_f)
+          end
+          remainder = $' 
+        end
       else
         # eat the line for now
         # puts "Unknown line:\n #{line}"
@@ -31,6 +42,23 @@ class DirectedAdjacencyGraph
 end
 
 module Graph 
+  def add_vertex_property(vertex, name, property)
+    @vertex_properties ||= {}
+    @vertex_properties[vertex] ||= {}
+    @vertex_properties[vertex][name.to_sym] = property
+    #puts "Added 0x#{vertex.to_s[0..5]}...[#{name}] = #{property}."
+  end
+
+  def get_vertex_property(vertex, name)
+    if @vertex_properties.has_key?(vertex)
+      if @vertex_properties[vertex].has_key?(name.to_sym)
+        return @vertex_properties[vertex][name.to_sym]
+      end
+    end
+
+    return nil
+  end
+
   def avg_path_length(n = 1000)
     verts = vertices()
 

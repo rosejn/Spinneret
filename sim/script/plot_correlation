@@ -1,0 +1,76 @@
+#!/usr/bin/env ruby
+
+# == Synopsis
+#
+# plot_correlation
+#
+# == Usage
+#
+# -h, --help:
+#    Show this help.
+#
+# -o filename, --output filename
+#
+# -1 filename:col, --input1 filename:col
+#
+# -2 filename:col, --input2 filename:col
+#
+
+require 'rdoc/usage'
+require 'getoptlong'
+require 'zlib'
+
+require 'rubygems'
+require 'gsl'
+
+require 'spinneret'
+
+
+opts = GetoptLong.new(
+        ['--help',                   '-h', GetoptLong::NO_ARGUMENT],
+        ['--output',                 '-o', GetoptLong::REQUIRED_ARGUMENT],
+        ['--input1',                 '-1', GetoptLong::REQUIRED_ARGUMENT],
+        ['--input2',                 '-2', GetoptLong::REQUIRED_ARGUMENT])
+        
+output = $stdout
+input_filename1 = nil
+input_filename2 = nil
+col1 = 1
+col2 = 1
+opts.each do | opt, arg |
+  case opt
+  when '--help'
+    RDoc::usage
+    exit(0)
+  when '--output'
+    output = File.open(arg, "w")
+  when '--input1'
+    input_filename1, col1 = arg.split(':')
+    col1 = col1.to_i
+  when '--input2'
+    input_filename2, col2 = arg.split(':')
+    col2 = col2.to_i
+  end
+end
+
+if(output.nil? || input_filename1.nil? || input_filename2.nil?)
+  RDoc::usage
+  exit(-1)
+end
+
+def get_data(stream, col)
+  hash = {}
+  stream.each_line do | line |
+    vals = line.split
+    hash[vals[0]] = vals[col]
+  end
+
+  return hash
+end
+
+file1_data = get_data(File.open(input_filename1), col1)
+file2_data = get_data(File.open(input_filename2), col2)
+
+file1_data.each_key do | key |
+  output.write("#{file1_data[key]} #{file2_data[key]}\n")
+end

@@ -2,7 +2,7 @@
 
 # == Synopsis
 #
-# build_ergodic_chain: Analize graph reachability properties
+# calc_rwalk_probs: Analize graph reachability properties
 #
 # == Usage
 #
