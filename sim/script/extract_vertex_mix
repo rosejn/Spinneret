@@ -1,0 +1,97 @@
+#!/usr/bin/env ruby
+
+# == Synopsis
+#
+# sort_by_indegree
+#
+# == Usage
+#
+# -h, --help:
+#    Show this help.
+#
+# -o filename, --output filename
+#
+# -i filename, --input filename
+#
+# -t property:property, --vertex-properties property:property
+#    Choose to extract a given property to analize for mixing from the input
+#    file. Defaults to "indegree:indegree".
+#
+
+require 'rdoc/usage'
+require 'getoptlong'
+require 'zlib'
+
+require 'rubygems'
+require 'gsl'
+
+require 'spinneret'
+
+
+opts = GetoptLong.new(
+        ['--help',                   '-h', GetoptLong::NO_ARGUMENT],
+        ['--output',                 '-o', GetoptLong::REQUIRED_ARGUMENT],
+        ['--input',                  '-i', GetoptLong::REQUIRED_ARGUMENT],
+        ['--vertex-properties',      '-p', GetoptLong::REQUIRED_ARGUMENT])
+
+output = $stdout
+input_filename = nil
+prop1 = prop2 = :indegree
+opts.each do | opt, arg |
+  case opt
+  when '--help'
+    RDoc::usage
+    exit(0)
+  when '--output'
+    output = File.open(arg, "w")
+  when '--input'
+    input_filename = arg
+  when '--vertex-properties'
+    prop1, prop2 = arg.split.map { | prop | prop.to_sym }
+  end
+end
+
+if(output.nil? || input_filename.nil? || prop1.nil? || prop2.nil?)
+  RDoc::usage
+  exit(-1)
+end
+
+graph = RGL::DirectedAdjacencyGraph.new()
+graph.read_from_dot(Zlib::GzipReader::open(input_filename))
+
+verts = graph.vertices.sort
+
+def verts.next_to(u, v)
+  return (index(u) - index(v)).abs == 1
+end
+
+def verts.checked(u, v)
+  p1 = [u, v].min
+  p2 = [u, v].max
+
+  @edges ||= {}
+  if @edges.has_key?(p1)
+    r = @edges[p1].include?(p2)
+    @edges[p1] << p2 if !r
+  else
+    r = false
+    @edges[p1] = [p2]
+  end
+
+  return r
+end
+
+verts.each do | v |
+  v_prop = graph.get_vertex_property(v, prop1)
+  
+  i = 0
+  graph.each_adjacent(v) do | u |  
+    next  if verts.checked(u, v) || !verts.next_to(u, v)
+
+    u_prop = graph.get_vertex_property(u, prop2) 
+    output.write("#{v_prop} #{u_prop}\n")
+    i += 1
+  end
+
+  puts i
+end
