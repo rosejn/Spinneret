@@ -1,0 +1,16 @@
+require 'experiments/shared_defaults'
+
+defaults $defaults
+
+experiment 'indegree_control'
+set 'workload', ['n1000-pause60000-search.wl.gz'].map {|w| "workloads/" + w }
+
+log 'node.maintenance_indegree_walker_local_avg', 5, 80, 2
+log 'node.maintenance_indegree_walker_ttl', 40, 160, 2
+set 'node.maintenance_indegree_walker_min_ttl', [10, 20]
+log 'node.maintenance_indegree_walker_rate', 5000, 80000, 2
+
+static 'link_table.max_peers', 16
+static 'node.maintenance_opportunistic_alwayson', false
+static 'sim_length', 120000
+

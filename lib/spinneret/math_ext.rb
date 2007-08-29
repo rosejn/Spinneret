@@ -69,32 +69,33 @@ class Array
   end
 end
 
-module MovingAverage
-  def avg
-    raise "MovingAverage::avg must be redefined."
+class BasicAverage
+  def initialize
+    @sum = 0
+    @count = 0
   end
 
   def <<(x)
-    @pts << x
+    @sum += x
+    @count += 1
   end
   alias :add :<<
+
+  def avg
+    return @sum / @count
+  end
 end
 
 class ExponentialMovingAverage
-  include MovingAverage
-
-  attr_reader :adds
-
   def initialize(guess, alpha)
     @cur_val = guess
     @alpha = alpha
-    @adds = 0
   end
 
   def <<(value)
     @cur_val = @alpha * value + (1.0 - @alpha) * @cur_val
-    @adds += 1
   end
+  alias :add :<<
 
   def avg
     return @cur_val
@@ -102,8 +103,6 @@ class ExponentialMovingAverage
 end
 
 class WeightedMovingAverage
-  include MovingAverage
-
   def initialize(size, weight_func = method(:default_weights))
     @pts = []
     @size = size
@@ -118,8 +117,14 @@ class WeightedMovingAverage
     return @pts.length >= @size
   end
 
+  def <<(x)
+    @pts << x
+  end
+  alias :add :<<
+
   def avg
-    raise "WeightedMovingAverage::avg: no data points." if @pts.empty?
+    return 0 if @pts.empty?
+#    raise "WeightedMovingAverage::avg: no data points." if @pts.empty?
 
     size = [@size, @pts.length].min
     weights = @weight_func.call(size)

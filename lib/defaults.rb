@@ -9,11 +9,12 @@ module Spinneret
     n.maintenance_opportunistic_alwayson = true
     n.maintenance_size = 5
     n.maintenance_rate = 1000
-    n.maintenance_indegree_walker_smoothing = 0.1    # Needs to be explored
+#    n.maintenance_indegree_walker_smoothing = 0.1 # Needs to be explored / deleted?
+    n.maintenance_indegree_walker_local_avg = 40          # Also needs to be explored
     n.maintenance_indegree_walker_ttl = 80          # Also needs to be explored
     n.maintenance_indegree_walker_min_ttl = 20
     n.maintenance_indegree_walker_list_size = 4
-    n.maintenance_indegree_walker_rate = 40000   # this value probably needs to be dynamic
+    n.maintenance_indegree_walker_rate = 5000   # this value probably needs to be dynamic
     
     # Link Table
     lt = c.link_table = OpenStruct.new

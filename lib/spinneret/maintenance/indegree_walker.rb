@@ -30,16 +30,20 @@ module Spinneret
 
     def initialize_indegree_walker
       @last_visit = 0
-      @visit_avg = WeightedMovingAverage.new(10)
-    end      
+      @visit_avg = WeightedMovingAverage.new(
+                          @config.maintenance_indegree_walker_local_avg)
+    end
+    attr_reader :visit_avg
 
     def spawn_maintenance_walker
       peer = @link_table.random_peer
-      exp_avg = ExponentialMovingAverage.new(
-                    (@visit_avg.available? ? @visit_avg.avg : 0), 
-                    @config.maintenance_indegree_walker_smoothing)
+      avg = BasicAverage.new
+      avg << (@visit_avg.available? ? @visit_avg.avg : 0)
+        #ExponentialMovingAverage.new(
+        #            (@visit_avg.available? ? @visit_avg.avg : 0), 
+        #            @config.maintenance_indegree_walker_smoothing)
 
-      info = WalkerMaintenanceInfo.new(exp_avg, @nid, IndegreeList.new())
+      info = WalkerMaintenanceInfo.new(avg, @nid, IndegreeList.new())
       peer.do_indegree_maintenance(info, 
                                    @config.maintenance_indegree_walker_ttl)
     end
@@ -55,7 +59,7 @@ module Spinneret
           # Makes sure that the random walk has sampled enough of the network.
           if(@config.maintenance_indegree_walker_ttl - ttl > 
              @config.maintenance_indegree_walker_min_ttl)
-             if(@visit_avg.avg > walker_info.visit_avg.avg)
+             if(@visit_avg.avg < walker_info.visit_avg.avg)
                walker_info.change_list.add(@nid, @visit_avg.avg)
              end
           end
@@ -70,7 +74,8 @@ module Spinneret
       else
         @@avgs ||= []
         @@avgs << walker_info.visit_avg.avg
-        puts "Avg visit gap: #{walker_info.visit_avg.avg} (#{GSL::Vector.alloc(@@avgs).mean} ovr #{walker_info.visit_avg.adds})."
+        @@avgs = @@avgs[-50, 50] if @@avgs.length > 50
+        puts "Avg visit gap: #{walker_info.visit_avg.avg} (#{GSL::Vector.alloc(@@avgs).mean})."
         #puts "list of high: #{walker_info.change_list.inspect}"
       end
 

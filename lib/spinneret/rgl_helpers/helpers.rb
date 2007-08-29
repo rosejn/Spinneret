@@ -117,7 +117,7 @@ module Graph
     s = "digraph G {\n"
     graph_attrs.each {|name, val| s << "#{name}=\"#{val}\";\n"}
     v.each do | k |
-      s << "#{k.nid} [id=\"#{k.nid}\"];\n"
+      s << "#{k.nid} [id=\"#{k.nid}\", visit_freq=\"#{k.visit_avg.avg}\"];\n"
       s << dot_node(k)
     end
     s << "}\n"
