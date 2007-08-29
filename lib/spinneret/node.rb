@@ -26,6 +26,7 @@ module Spinneret
       extend(@config.maintenance_algorithm)
       extend(Maintenance::Opportunistic)
       opportunistic_setup_aspects()
+      extend(Maintenance::IndegreeMaintenanceWalker)
 
       @nid = nid || @link_table.random_id
       @link_table = LinkTable.new(self)
@@ -70,6 +71,16 @@ module Spinneret
           do_maintenance  
         #end
         GoSim::Data::EventCast::instance.publish(:local_converge_report, @nid, status)
+      end
+
+      # avoid walker churn by randomizing initial send - this is to strange
+      # anomolous effects from mob joins
+      initialize_indegree_walker()
+      set_timeout(rand(@config.maintenance_indegree_walker_rate)) do
+        spawn_maintenance_walker()
+        set_timeout(@config.maintenance_indegree_walker_rate, true) do
+          spawn_maintenance_walker()
+        end
       end
 
       if @report_join

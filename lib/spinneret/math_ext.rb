@@ -69,6 +69,76 @@ class Array
   end
 end
 
+module MovingAverage
+  def avg
+    raise "MovingAverage::avg must be redefined."
+  end
+
+  def <<(x)
+    @pts << x
+  end
+  alias :add :<<
+end
+
+class ExponentialMovingAverage
+  include MovingAverage
+
+  attr_reader :adds
+
+  def initialize(guess, alpha)
+    @cur_val = guess
+    @alpha = alpha
+    @adds = 0
+  end
+
+  def <<(value)
+    @cur_val = @alpha * value + (1.0 - @alpha) * @cur_val
+    @adds += 1
+  end
+
+  def avg
+    return @cur_val
+  end
+end
+
+class WeightedMovingAverage
+  include MovingAverage
+
+  def initialize(size, weight_func = method(:default_weights))
+    @pts = []
+    @size = size
+    @weight_func = weight_func
+  end
+
+  def available?
+    return !@pts.empty?
+  end
+
+  def full?
+    return @pts.length >= @size
+  end
+
+  def avg
+    raise "WeightedMovingAverage::avg: no data points." if @pts.empty?
+
+    size = [@size, @pts.length].min
+    weights = @weight_func.call(size)
+    @pts = @pts[-size, size]
+
+    sum = 0.0
+    @pts.each_with_index { | val, i | sum += weights[i] * val.to_f }
+
+    return sum
+  end
+
+  private
+
+  def default_weights(size)
+    total_w = (1..size).inject { | sum, x | sum += x }
+    return (1..size).to_a.map { | w | w / total_w.to_f }
+  end
+end
+
 def calc_ideal_binning(num_nodes, addr_space, bin_size)
   density = num_nodes.to_f/addr_space.to_f
   table = Array.new(Math.log2(addr_space).ceil)

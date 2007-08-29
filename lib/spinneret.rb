@@ -58,6 +58,7 @@ require 'spinneret/maintenance/pull'
 require 'spinneret/maintenance/push'
 require 'spinneret/maintenance/push_pull'
 require 'spinneret/maintenance/opportunistic'
+require 'spinneret/maintenance/indegree_walker'
 
 # Trim algorithms
 require 'spinneret/link_table/base'
