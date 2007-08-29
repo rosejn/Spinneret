@@ -7,7 +7,7 @@ module Spinneret
     n.maintenance_algorithm = Maintenance::PushPull  # Must implement 
                                                      # do_maintenance()
     n.maintenance_opportunistic_alwayson = true
-    n.maintenance_size = 5
+    n.maintenance_size = 10
     n.maintenance_rate = 1000
 #    n.maintenance_indegree_walker_smoothing = 0.1 # Needs to be explored / deleted?
     n.maintenance_indegree_walker_local_avg = 40          # Also needs to be explored
