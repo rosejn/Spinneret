@@ -6,10 +6,10 @@ experiment 'indegree_control'
 times = ["0.125", "0.25", "0.5", "1"]
 set 'workload', times.map { | w | "workloads/n500-x#{w}h-l2h.wl.gz" }
 
-log 'node.maintenance_indegree_walker_local_avg', 10, 80, 2
-log 'node.maintenance_indegree_walker_ttl', 40, 160, 2
-set 'node.maintenance_indegree_walker_min_ttl', [30, 40, 60]
-log 'node.maintenance_indegree_walker_rate', 5000, 80000, 2
+log 'node.maintenance_indegree_walker_local_avg', 10, 40, 2
+log 'node.maintenance_indegree_walker_ttl', 40, 80, 2
+set 'node.maintenance_indegree_walker_min_ttl', [20, 40, 60]
+log 'node.maintenance_indegree_walker_rate', 10000, 40000, 2
 
 static 'link_table.max_peers', 16
 static 'node.maintenance_opportunistic_alwayson', false
