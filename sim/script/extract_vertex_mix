@@ -13,7 +13,7 @@
 #
 # -i filename, --input filename
 #
-# -t property:property, --vertex-properties property:property
+# -p property:property, --vertex-properties property:property
 #    Choose to extract a given property to analize for mixing from the input
 #    file. Defaults to "indegree:indegree".
 #
@@ -47,7 +47,7 @@ opts.each do | opt, arg |
   when '--input'
     input_filename = arg
   when '--vertex-properties'
-    prop1, prop2 = arg.split.map { | prop | prop.to_sym }
+    prop1, prop2 = arg.split(':').map { | prop | prop.to_sym }
   end
 end
 
