@@ -128,7 +128,7 @@ class WeightedMovingAverage
 
     size = [@size, @pts.length].min
     weights = @weight_func.call(size)
-    @pts = @pts[-size, size]
+    @pts = @pts[-size, size]  if @pts.size > size
 
     sum = 0.0
     @pts.each_with_index { | val, i | sum += weights[i] * val.to_f }

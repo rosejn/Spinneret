@@ -51,21 +51,25 @@ module Spinneret
     end
 
     def do_indegree_maintenance(walker_info, ttl)
-      if @last_visit != 0
-        @visit_avg << @sim.time - @last_visit  
+      if(@config.maintenance_indegree_walker_ttl - ttl > 
+         @config.maintenance_indegree_walker_min_ttl)
 
-        if @visit_avg.full?
-          # should this go above or below the checks for being high-indegree?
-          walker_info.visit_avg << @visit_avg.avg  
+         if @last_visit != 0
+           @visit_avg << @sim.time - @last_visit  
 
-          # Makes sure that the random walk has sampled enough of the network.
-          if(@config.maintenance_indegree_walker_ttl - ttl > 
-             @config.maintenance_indegree_walker_min_ttl)
+# not used for now
+=begin
+           if @visit_avg.full?
+             # should this go above or below the checks for being high-indegree?
+             walker_info.visit_avg << @visit_avg.avg  
+
+             # Makes sure that the random walk has sampled enough of the network.
              if(@visit_avg.avg < walker_info.visit_avg.avg)
                walker_info.change_list.add(@nid, @visit_avg.avg)
              end
-          end
-        end
+           end
+=end
+         end
       end
 
       if(ttl != 0)
@@ -74,10 +78,10 @@ module Spinneret
         peer = @link_table.random_peer
         peer.do_indegree_maintenance(walker_info, ttl - 1)  unless peer.nil?
       else
-        @@avgs ||= []
-        @@avgs << walker_info.visit_avg.avg
-        @@avgs = @@avgs[-50, 50] if @@avgs.length > 50
-        puts "Avg visit gap: #{walker_info.visit_avg.avg} (#{GSL::Vector.alloc(@@avgs).mean})."
+        #@@avgs ||= []
+        #@@avgs << walker_info.visit_avg.avg
+        #@@avgs = @@avgs.shift if @@avgs.length > 50
+        #puts "Avg visit gap: #{walker_info.visit_avg.avg} (#{GSL::Vector.alloc(@@avgs).mean})."
         #puts "list of high: #{walker_info.change_list.inspect}"
       end
 
