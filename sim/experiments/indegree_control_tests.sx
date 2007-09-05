@@ -3,7 +3,8 @@ require 'experiments/shared_defaults'
 defaults $defaults
 
 experiment 'indegree_control'
-times = ["0.125", "0.25", "0.5", "1"]
+# We can run run low runs seperately
+times = ["0.125", "0.25", "0.5"]
 set 'workload', times.map { | w | "workloads/n500-x#{w}h-l2h.wl.gz" }
 
 log 'node.maintenance_indegree_walker_local_avg', 10, 40, 2
