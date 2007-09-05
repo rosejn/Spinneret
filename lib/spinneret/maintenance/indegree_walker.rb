@@ -36,7 +36,9 @@ module Spinneret
     attr_reader :visit_avg
 
     def spawn_maintenance_walker
-      peer = @link_table.random_peer
+      return if @link_table.size == 0
+
+      peer = @link_table.random_peer  
       avg = BasicAverage.new
       avg << (@visit_avg.available? ? @visit_avg.avg : 0)
         #ExponentialMovingAverage.new(

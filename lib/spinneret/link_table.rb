@@ -104,6 +104,8 @@ module Spinneret
     RED = "\e[31m"
     CLEAR = "\e[0m"
     def to_s
+      return "LinkTable::to_s"
+
       str = ""
       peers = peers_by_distance()
       smallest = LTAlgorithms::Base::find_smallest_dist()
