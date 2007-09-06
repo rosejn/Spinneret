@@ -1,0 +1,110 @@
+\documentclass[a4paper,12pt]{article}
+
+\begin{document}
+
+\title{Controlling In-degree in Out-degree Constant P2P Topologies}
+\date{\today}
+\author{Cyrus P. Hall\\
+  hallc@lu.unisi.ch\\
+  \\
+  Department of Informatics\\
+  University of Lugano\\
+  %Lugano, Switzerland\\
+  %\\
+  %Advisor: Antonio Carzaniga
+}
+\maketitle
+
+\section*{Abstract}
+In-degree control in P2P networks has longed been known to be a problem, but
+current solutions are less than satisfactory.  We contribute two useful
+techniques to help design future structured and unstructured P2P topologies: an
+analysis using ergodic markov-models which shows the effects of variable
+in-degree, and second, a set of random walk driven transformations to control
+in-degree in both structured and unstructured topologies.  Both contributions
+are analyzed via simulation.
+
+\section{Introduction}
+% include relate work here, including why we feel the multi-node solution is
+% not appropriate.
+
+\section{Ergodic Analysis of P2P Topologies}
+
+Ergodic theory has been widely used in the long-term analysis of complex
+systems in physics and economics, but has seemingly slipped under the radar of
+the P2P research community.  We first offer a quick primer of ergodic
+markov-models, and then discuss their application to P2P topologies.  Finally,
+we give show an example using a P2P topology we have been developing. 
+
+\subsection{Ergodic Markov-Models}
+
+
+\subsection{Application of EMMs}
+\label{sec:ergodic-application}
+
+\subsubsection{A real world application}
+
+Our own exploration of ergodic theory, and ergodic markov-models in particular,
+came about when we noticed our own P2P topology, Spinneret, showed serious
+in-degree imbalance.  Spinneret is designed to support both structured and
+unstructured search techniques on a single topology, so we were alarmed to see
+over an order of magnitude difference between nodes in-degree.  The initial
+concern was that poorly balanced in-degree would lead to higher bandwidth usage
+for some nodes, creating natural bottlenecks for both greedy and unstructured
+search.  However, as we will now show, the analizing the topology as an ergodic
+markov-model revealed much a much deeper problem.
+
+\subsection{Common Topology Random-walk Reachability}
+
+It has been claimed that many unstructured techniques should work with minor
+modification on structured topologies, such as distributed-hash tables.  After
+we discovered the rather radical effects of in-degree on reachability,
+particularly in out-degree constant topologies, we came to suspect that these
+claims may need to be modified.  As such, we have conducted a brief
+investigation of reachability on several commonly studied topologies which,
+together, represent a cross-section of P2P topologies: Pastry, Gnutella, and
+Newscast/Cyclon.
+
+For each topology, we performed a similar transformation as described in
+Section \ref{sec:ergodic-application}.  As neither Pastry or Newscast are
+deployed widely on the Internet, we used available simulators and extracted
+topologies at various points in the run.  While Gnutella is widely deployed,
+there are no complete topology dumps available, so instead we used topology
+generators based on the measured properties of live networks.  The sources of
+our simulations are available in \cite{1,2,3}.  % Need cites
+
+\section{Controlling In-degree}
+
+Ergodic markov-models, while useful for analyzing topologies, also suggest
+possible solutions to control the standard deviation of the distribution of
+in-degree.  We now explore one of these.
+
+A direct result of ergodic mixing analysis is the needed length of a walk, $l$,
+before it can be considered random to a given degree.  This leads directly to a
+strategy for discovery node in-degree without the need for estimation based on
+incoming connections and request.  If a constant rate of walks is launched into
+the topology, with a time-to-live of at least $l$, the end point of those walks
+can be considered a random sample of the visitation rate of nodes in the
+network.  According to the results of the ergodic analysis in Section
+\ref{sec:ergodic-analysis}, nodes with higher in-degrees have a higher
+probability to be at the end of such a random walk, and therefore should have a
+higher rate of visitation.  If the number of such random walks in the network
+is high enough, the rate of visitation recorded at nodes in the network should
+be closely correlated with the actual in-degree of the node.
+
+In fact, we find this to be the case for Spinneret, as Figure
+\ref{fig:indegree-visitation-rate} shows.  Pearson's correlation coefficient
+gives the correlation between in-degree and visitation as anywhere between, 
+
+
+
+\section*{Acknowledgements}
+The authors would like to thank Shane Legg from the University of Lugano for
+the initial suggestion to explore using ergodic markov-models.  We'd also like
+to thank Tiago de Paula Peixoto from the University of São Paulo for his
+wonderful graph-tool program, which greatly streamlined our data analysis.
+
+%\bibliographystyle{plain}
+%\bibliography{works-cited}
+
+\end{document}

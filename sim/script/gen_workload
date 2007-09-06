@@ -470,7 +470,7 @@ class NodeObj < GoSim::Entity
 
     if @settings.mft != 0 
       @sim.schedule_event(:failure, @sid, 
-                          $R.uniform_int(@settings.mft * 2).round, nil)  
+                          $R.poisson(@settings.mft).round, nil)  
     end
 
     if @settings.mlt != 0

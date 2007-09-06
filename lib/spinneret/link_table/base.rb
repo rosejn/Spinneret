@@ -1,5 +1,6 @@
 module LTAlgorithms
   module Base
+    MAX_DIST = 2 ** 160
 
     def find_smallest_dist(dist_array)
       return nil  if dist_array.length < 2
@@ -7,7 +8,7 @@ module LTAlgorithms
       sorted_peers = peers_by_distance(dist_array)
 
       i_min = 1
-      v_min = 2**160
+      v_min = MAX_DIST
 
       i = 1
       last_idx = sorted_peers.size - 1

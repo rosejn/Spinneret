@@ -258,6 +258,7 @@ module Spinneret
     end
 
     # Find the sum of squares of our current distances to the ideal table
+=begin
     def sum_of_squares
       d = 0
       pbd = peers_by_distance
@@ -270,6 +271,7 @@ module Spinneret
       end
       d / @max_peers
     end
+=end
 
     def line_fit
       sorted_peers = peers_by_distance()
@@ -286,9 +288,11 @@ module Spinneret
     end
 
     # ??
+=begin
     def density
       return 1.0/2.0**line_fit[0]
     end
+=end
 
     def normal_fit
       sorted_peers = peers_by_distance()
