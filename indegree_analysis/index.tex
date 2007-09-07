@@ -1,9 +1,8 @@
-\documentclass[a4paper,12pt]{article}
+\documentclass[a4paper,11pt,twocolumn]{article}
 
 \begin{document}
 
-\title{Controlling In-degree in Out-degree Constant P2P Topologies}
-\date{\today}
+\title{Analysis and Control of In-degree with Ergodic Markov-chains}
 \author{Cyrus P. Hall\\
   hallc@lu.unisi.ch\\
   \\
@@ -19,7 +18,7 @@
 In-degree control in P2P networks has longed been known to be a problem, but
 current solutions are less than satisfactory.  We contribute two useful
 techniques to help design future structured and unstructured P2P topologies: an
-analysis using ergodic markov-models which shows the effects of variable
+analysis using ergodic Markov-chains which shows the effects of variable
 in-degree, and second, a set of random walk driven transformations to control
 in-degree in both structured and unstructured topologies.  Both contributions
 are analyzed via simulation.
@@ -27,34 +26,77 @@ are analyzed via simulation.
 \section{Introduction}
 % include relate work here, including why we feel the multi-node solution is
 % not appropriate.
+blah blah
 
-\section{Ergodic Analysis of P2P Topologies}
+\section{Ergodic Topology Analysis}
 
 Ergodic theory has been widely used in the long-term analysis of complex
 systems in physics and economics, but has seemingly slipped under the radar of
 the P2P research community.  We first offer a quick primer of ergodic
-markov-models, and then discuss their application to P2P topologies.  Finally,
+Markov-models, and then discuss their application to P2P topologies.  Finally,
 we give show an example using a P2P topology we have been developing. 
 
-\subsection{Ergodic Markov-Models}
+\subsection{Ergodic Markov-chains}
 
+We define a Markov-chain as a set of states, $S = {s_1, s_2, \ldots, s_n}$.  A
+Markov-process makes discrete progress from state to state as the process
+progresses.  The Markov-process uses a matrix $\textbf{P}$, the transition
+matrix, to decide which state to enter next.  Each element, $p_{ij}$, defines
+the probability of transitioning from state $s_i$ to state $s_j$.
+
+In an ergodic Markov-chain, it must be possible to go from every state to every
+state, including the same state.  Note that this transition does not have to
+happen in a single step of the Markov-process, and that every state does not
+need to be reachable during each step.  Chains in which a state can not be
+reached during a every step, even as the number of steps in a Markov-process
+goes to infinity, are called non-regular.  Any absorbing Markov-chain, where
+there is an absorbing state $s_i$ such that $\sum_{j, j \ne i}{p_{ij}} = 0$, is
+also non-regular.  While still ergodic, such chains are more difficult to
+analyze.  However, all P2P topologies we have encountered are regular, so we do
+not consider non-regular chains further in this work.
+
+%No matter, the techniques below should be extendible to such non-regular
+%chains.
+Whereas the probability to be in state $s_j$ after a single step in the
+Markov-process is given by $s_i$, the current state, and the probability of
+transition $p_{ij}$, the probability to be in $s_j$ after two steps if given by
+$p_{ij}^{(2)}$:
+
+\begin{equation}
+	p_{ij}^{(2)} = \sum_{k}{p_{ik}p_{kj}}
+\end{equation}
+
+For example, if there is a Markov-chain where $|S| = 3$, it clear that
+the probability of transitioning from $s_1$ to $s_3$ in two steps is:
+
+\begin{equation}
+	p_{13}^{(2)} = p_{11}p_{13} + p_{12}p_{23} + p_{13}p_{33}
+\end{equation}
+
+This is the same as taking element $p_{13}^{(2)}$ in the matrix
+$\textbf{P}^2$.  In general, $p_{ij}^{(n)}$ is found in a regular ergodic
+Markov-model by calculating $\textbf{P}^n$ and taking the value at the i-th
+row, j-th column.
 
 \subsection{Application of EMMs}
 \label{sec:ergodic-application}
 
+Applying the above, we find that 
+
 \subsubsection{A real world application}
 
-Our own exploration of ergodic theory, and ergodic markov-models in particular,
+Our own exploration of ergodic theory, and ergodic Markov-models in particular,
 came about when we noticed our own P2P topology, Spinneret, showed serious
 in-degree imbalance.  Spinneret is designed to support both structured and
 unstructured search techniques on a single topology, so we were alarmed to see
 over an order of magnitude difference between nodes in-degree.  The initial
 concern was that poorly balanced in-degree would lead to higher bandwidth usage
 for some nodes, creating natural bottlenecks for both greedy and unstructured
-search.  However, as we will now show, the analizing the topology as an ergodic
-markov-model revealed much a much deeper problem.
+search.  However, as we will now show, the analyzing the topology as an ergodic
+Markov-model revealed much a much deeper problem.
 
-\subsection{Common Topology Random-walk Reachability}
+
+\subsection{Random-walk Reachability}
 
 It has been claimed that many unstructured techniques should work with minor
 modification on structured topologies, such as distributed-hash tables.  After
@@ -72,6 +114,31 @@ topologies at various points in the run.  While Gnutella is widely deployed,
 there are no complete topology dumps available, so instead we used topology
 generators based on the measured properties of live networks.  The sources of
 our simulations are available in \cite{1,2,3}.  % Need cites
+
+\subsection{Limitations}
+
+Unfortunately, the presented ergodic analysis can only analyze \emph{static}
+topologies.  The various results that can be derived from analyzing the
+transformation matrix $P$ are only valid for the given temporal topology slice
+that $P$ was derived from.  If the topological properties of the graph change,
+there is little guarantee that the general results are still valid.
+
+Even if topological properties remain the same, the techniques for controlling
+in-degree derived from ergodic analyse may not be valid in a dynamic system.
+As nodes gain and lose in-edges, the mixing properties of the network may
+change either for the better or the worse.  Further, if the overall in-degree
+distribution changes faster than the in-degree control walks can accurately
+measure, their use becomes zero.  Protocols such as NewsCast exhibit
+such fast changing in-degrees, and other mechanisms would need to be used in
+order stabilize in-degree (which may not make sense in the case of NewsCast).
+
+Never the less, even for protocols with fast changing in-degrees, the more
+general analysis using $P$ can be useful.  For example, even though the
+probability of reaching a node after a properly mixed walk in NewsCast changes
+quickly, the distribution of probability of reachability remains almost the
+same as the network evolves.  % Would be sweet to show this.
+In general, we think these techniques will be useful to the community, but
+their applicability will change from protocol to protocol.
 
 \section{Controlling In-degree}
 
@@ -95,7 +162,6 @@ be closely correlated with the actual in-degree of the node.
 In fact, we find this to be the case for Spinneret, as Figure
 \ref{fig:indegree-visitation-rate} shows.  Pearson's correlation coefficient
 gives the correlation between in-degree and visitation as anywhere between, 
-
 
 
 \section*{Acknowledgements}
