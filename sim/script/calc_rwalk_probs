@@ -22,6 +22,10 @@ require 'rdoc/usage'
 require 'getoptlong'
 require 'zlib'
 
+# For slow, but very precise, version
+require 'matrix'
+require 'bigdecimal'
+
 require 'rubygems'
 require 'gsl'
 
@@ -147,13 +151,26 @@ class ErgodicTransitionMatrix < PathTransitionMatrix
     generate_matrix()
   end
 
-  def write_node_probs(stream)
+  def write_node_probs_dot(stream)
     return unless @converged
 
     @vertex_names.each do | key, value |
       # Note, all rows should be created equal, but maybe we should average
       # here instead of just picking the first one
-      stream.write("#{key} #{@converged.col(value)[0]}\n")
+      vec = GSL::Vector::alloc(@converged.col(value))
+      @graph.add_vertex_property(key, :prob_rwalk_mean, Stats::mean(vec))
+      @graph.add_vertex_property(key, :prob_rwalk_sd, Stats::sd(vec))
+    end
+
+    stream << @graph.to_dot()
+  end
+
+  def write_node_probs(stream)
+    return unless @converged
+
+    @vertex_names.each do | key, value |
+      vec = GSL::Vector::alloc(@converged.col(value))
+      stream.write("#{key} #{Stats::mean(vec)} #{Stats::sd(vec)}\n")
     end
   end
 
@@ -170,7 +187,6 @@ class ErgodicTransitionMatrix < PathTransitionMatrix
         puts "#{i+1} steps have passed (sqme #{(@converged - res).norm})"
       end
       i += 1
-      p.write_node_probs(File.open("#{i}.probs", "w"))
     end
 
     puts "#{i+1} steps have passed - converged"
@@ -192,9 +208,10 @@ class ErgodicTransitionMatrix < PathTransitionMatrix
       row.collect! { | val | val / size }
     end
 
-#    puts "Checking..."
-#    @matrix.each_row { | row | puts "error" unless row.sum == 1.0 }
-    puts "Done."
+    puts "Checking..."
+    error = false
+    @matrix.each_row { | row | error = true unless row.sum == 1.0 }
+    puts "Possible precision problems...beware." if error
   end
 
 end
@@ -227,14 +244,36 @@ opts.each do | opt, arg |
   end
 end
 
+output_filename = input_filename if(output_filename.nil?)
+
 if(output_filename.nil? || input_filename.nil? || convergence_class.nil?)
   RDoc::usage
   exit(-1)
 end
 
-p = convergence_class.new(Zlib::GzipReader::open(input_filename))
+def get_input_stream(filename)
+  case filename
+  when /.+\.gz/
+    Zlib::GzipReader::open(filename)
+  else
+    File::open(filename, "w")
+  end
+end
+
+def get_output_stream(filename)
+  case filename
+  when /.+\.gz/
+    Zlib::GzipWriter::open(filename)
+  else
+    File::open(filename, "w+")
+  end
+end
+
+p = convergence_class.new(get_input_stream(input_filename))
 p.set_args(args)
 puts "Running convergence..."
 p.converge
-p.write_node_probs(File.open(output_filename, "w"))
+output_f = get_output_stream(output_filename)
+p.write_node_probs_dot(output_f)
+output_f.close()      # Have to explicitly close gzip streams
 puts "Done."

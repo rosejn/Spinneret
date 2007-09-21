@@ -62,6 +62,10 @@ module Spinneret
       @maint_timeout.cancel
     end
 
+    def to_d
+      @nid
+    end
+
     def start_maintenance
       @maint_timeout = set_timeout(@config.maintenance_rate, true) do
         status = true
