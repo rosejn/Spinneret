@@ -1,0 +1,95 @@
+#!/usr/bin/env ruby
+
+# == Synopsis
+#
+# pearsons_correlation_dot
+#
+# == Usage
+#
+# -h, --help:
+#    Show this help.
+#
+# -o filename, --output filename
+#    Defaults to stdout.
+#
+# -i filename, --input filename
+#    Input dot file to read the properties from.
+#
+# -p property:property, --vertex-properties property:property
+#    Choose to extract a given property to analize for mixing from the input
+#    file. Defaults to "indegree:indegree".
+#
+require 'rdoc/usage'
+require 'getoptlong'
+require 'zlib'
+
+require 'rubygems'
+require 'gsl'
+
+require 'spinneret'
+
+opts = GetoptLong.new(
+        ['--help',                   '-h', GetoptLong::NO_ARGUMENT],
+        ['--output',                 '-o', GetoptLong::REQUIRED_ARGUMENT],
+        ['--input',                  '-i', GetoptLong::REQUIRED_ARGUMENT],
+        ['--vertex-properties',      '-p', GetoptLong::REQUIRED_ARGUMENT],
+        ['--log-base2',              '-l', GetoptLong::NO_ARGUMENT])
+
+output = $stdout
+input_filename = nil
+prop1 = prop2 = nil
+log = false
+opts.each do | opt, arg |
+  case opt
+  when '--help'
+    RDoc::usage
+    exit(0)
+  when '--output'
+    output = File.open(arg, "w")
+  when '--input'
+    input_filename = arg
+  when '--vertex-properties'
+    prop1, prop2 = arg.split(':').map { | prop | prop.to_sym }
+  when '--log-base2'
+    log = 2
+  end
+end
+
+if(output.nil? || input_filename.nil? || prop1.nil? || prop2.nil?)
+  RDoc::usage
+  exit(-1)
+end
+
+graph = RGL::DirectedAdjacencyGraph.new()
+graph.read_from_dot(Zlib::GzipReader::open(input_filename))
+
+input_str = ""
+x_vals = []
+y_vals = []
+graph.vertices.each do | v |
+  x = graph.get_vertex_property(v, prop1).to_f
+  y = graph.get_vertex_property(v, prop2).to_f
+
+  # Does smoothing of invalid values.  For the particular data set we're
+  # looking at this is okay, but could be totally invalid for others.
+  # Careful!
+  if(log)
+    x = (x == 0 ? 0 : Math.log(x) / Math.log(log))
+    y = (y == 0 ? 0 : Math.log(y) / Math.log(log))
+  end
+
+  x_vals << x
+  y_vals << y
+
+  input_str << "#{x_vals.last} #{y_vals.last}\n"
+end
+
+x_vals = GSL::Vector::alloc(x_vals)
+y_vals = GSL::Vector::alloc(y_vals)
+
+command = "echo \"#{input_str.rstrip}\" | pearsons_correlation " +
+          "-1 #{GSL::Stats::mean(x_vals)}:#{GSL::Stats::sd(x_vals)} " +
+          "-2 #{GSL::Stats::mean(y_vals)}:#{GSL::Stats::sd(y_vals)}"
+puts "#{input_str}"
+#system(command)
+
