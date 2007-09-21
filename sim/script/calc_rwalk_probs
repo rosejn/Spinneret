@@ -170,6 +170,7 @@ class ErgodicTransitionMatrix < PathTransitionMatrix
         puts "#{i+1} steps have passed (sqme #{(@converged - res).norm})"
       end
       i += 1
+      p.write_node_probs(File.open("#{i}.probs", "w"))
     end
 
     puts "#{i+1} steps have passed - converged"
@@ -191,8 +192,8 @@ class ErgodicTransitionMatrix < PathTransitionMatrix
       row.collect! { | val | val / size }
     end
 
-    puts "Checking..."
-    @matrix.each_row { | row | puts "error" unless row.sum == 1.0 }
+#    puts "Checking..."
+#    @matrix.each_row { | row | puts "error" unless row.sum == 1.0 }
     puts "Done."
   end
 
