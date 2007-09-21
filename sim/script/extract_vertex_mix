@@ -92,6 +92,4 @@ verts.each do | v |
     output.write("#{v_prop} #{u_prop}\n")
     i += 1
   end
-
-  puts i
 end
