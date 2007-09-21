@@ -6,7 +6,7 @@ require 'rgl/connected_components'
 
 include RGL
 
-# This should really be type (digraph/unigraph) agnositc, but ehh, whatever 
+# This should really be type (digraph/unigraph) agnostic, but ehh, whatever 
 # for now.
 class DirectedAdjacencyGraph
   EDGE_RE = /^\s*(\d+)->(\d+)[^;]*;/
@@ -59,6 +59,8 @@ module Graph
     return nil
   end
 
+  # All of this is no longer used.  Depreicated, delete latter.
+=begin
   def avg_path_length(n = 1000)
     verts = vertices()
 
@@ -111,21 +113,38 @@ module Graph
     return ((directed? ? 1.0 : 2.0) * nofns.size()) / 
               (num_edges * (num_edges - 1)).to_f
   end
+=end
 
-  def to_dot(graph_attrs)
+  #[id=\"#{k.nid}\", visit_freq=\"#{k.visit_avg.avg}\"];\n"
+  def vertex_props_dot(v)
+    s = ""
+    if @vertex_properties.has_key?(v)
+      if @vertex_properties[v].size > 0
+        s << " [" 
+        s << @vertex_properties[v].map do | name, value |
+          name.to_s + "=\"#{value}\""
+        end.join(", ")
+        s << "]"
+      end
+    end
+    s << ";\n"
+
+    return s
+  end
+
+  def to_dot(graph_attrs = [])
     v = vertices()
     s = "digraph G {\n"
     graph_attrs.each {|name, val| s << "#{name}=\"#{val}\";\n"}
     v.each do | k |
-      s << "#{k.nid} [id=\"#{k.nid}\", visit_freq=\"#{k.visit_avg.avg}\"];\n"
-      s << dot_node(k)
+      s << "#{k.to_d}" << vertex_props_dot(k) << dot_node(k)
     end
     s << "}\n"
   end
 
   def dot_node(k)
     s = ""
-    each_adjacent(k) { | kk | s << "#{k.nid}->#{kk.nid};\n" if !kk.nil? } 
+    each_adjacent(k) { | kk | s << "#{k.to_d}->#{kk.to_d};\n" if !kk.nil? } 
     return s
   end
 end

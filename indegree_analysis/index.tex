@@ -1,5 +1,7 @@
 \documentclass[a4paper,11pt,twocolumn]{article}
 
+\usepackage{amsmath}
+
 \begin{document}
 
 \title{Analysis and Control of In-degree with Ergodic Markov-chains}
@@ -38,22 +40,23 @@ we give show an example using a P2P topology we have been developing.
 
 \subsection{Ergodic Markov-chains}
 
-We define a Markov-chain as a set of states, $S = {s_1, s_2, \ldots, s_n}$.  A
-Markov-process makes discrete progress from state to state as the process
-progresses.  The Markov-process uses a matrix $\textbf{P}$, the transition
-matrix, to decide which state to enter next.  Each element, $p_{ij}$, defines
-the probability of transitioning from state $s_i$ to state $s_j$.
+We define a Markov-chain as a set of states, $S = \{s_1, s_2, \ldots, s_n\}$.  A
+Markov-process moves discreetly from state to state as the process
+progresses.  Such Markov-processes use a matrix $\textbf{P}$, the transition
+matrix, to decide which state to enter next.  Each element $p_{ij}$ in
+$\textbf{P}$ defines the probability of transitioning from state $s_i$ to state $s_j$.
 
-In an ergodic Markov-chain, it must be possible to go from every state to every
-state, including the same state.  Note that this transition does not have to
+In an ergodic Markov-chain (EMC) it must be possible to go from every state to every
+state, including the same state, as a Markov-process runs to time $n \rightarrow
+\infty$.  Note that this transition does not have to
 happen in a single step of the Markov-process, and that every state does not
-need to be reachable during each step.  Chains in which a state can not be
-reached during a every step, even as the number of steps in a Markov-process
-goes to infinity, are called non-regular.  Any absorbing Markov-chain, where
+need to be reachable during each step.  Such chains are periodic, and are
+called irregular.  Any absorbing Markov-chain, where
 there is an absorbing state $s_i$ such that $\sum_{j, j \ne i}{p_{ij}} = 0$, is
-also non-regular.  While still ergodic, such chains are more difficult to
+also irregular.  While still ergodic, irregular chains are more difficult to
 analyze.  However, all P2P topologies we have encountered are regular, so we do
-not consider non-regular chains further in this work.
+not consider irregular chains further in this work.
+%It would be nice to show that this holds with high probability
 
 %No matter, the techniques below should be extendible to such non-regular
 %chains.
@@ -66,8 +69,8 @@ $p_{ij}^{(2)}$:
 	p_{ij}^{(2)} = \sum_{k}{p_{ik}p_{kj}}
 \end{equation}
 
-For example, if there is a Markov-chain where $|S| = 3$, it clear that
-the probability of transitioning from $s_1$ to $s_3$ in two steps is:
+For example, if there is a Markov-chain where $|S| = 3$, the probability of
+transitioning from $s_1$ to $s_3$ in two steps is:
 
 \begin{equation}
 	p_{13}^{(2)} = p_{11}p_{13} + p_{12}p_{23} + p_{13}p_{33}
@@ -78,10 +81,107 @@ $\textbf{P}^2$.  In general, $p_{ij}^{(n)}$ is found in a regular ergodic
 Markov-model by calculating $\textbf{P}^n$ and taking the value at the i-th
 row, j-th column.
 
-\subsection{Application of EMMs}
+As $n \rightarrow \infty$, $\textbf{P}^{n+1} \rightarrow \textbf{P}^n$, or in
+other words, the matrix converges to a steady state.  This limiting matrix,
+called $\textbf{W}$, contains the stationary distribution $\textbf{w}$, a row
+vector which is repeated for each row in $\textbf{W}$.  We do not offer
+a full proof for convergence here,
+%See [Aldous and Fill], [Lovasz], or [Grinstead and Snell]
+but instead offer the following intuition: at each multiplication of
+$\textbf{P}^n$ with $\textbf{P}$, the values in $\textbf{P}^{n+1}$ are averages
+of the components in $\textbf{P}^n$.  In particular, each component in a column
+vector of $\textbf{P}^n$ is averaged with its fellow components, until they
+eventually converge to a single value, $\textbf{w}_i$ for column $i$.
+The stationary distribution $w$ in turn gives the probability in to be in
+state $s_i$ after a perfectly mixed random walk across the Markov model.
+
+\subsection{Application of EMCs for P2P}
 \label{sec:ergodic-application}
 
-Applying the above, we find that 
+We can easily apply ergodic Markov-chains two numerically solve for two
+interesting properties of unstructured search: the probability of reaching any
+given node after a walk of length $n$, and the necessary length of a random
+walk for it to be fully ``mixed'' into the network.  After a brief discussion on
+transforming P2P topologies into Markov-models, we review each result in turn.
+
+\subsubsection{Deriving the Markov-chain}
+
+There are two elements to consider when modeling unstructured networks using
+Markov-models: the \emph{structure of the topology} and \emph{the random walk
+process}.  Structure can be defined in a number of ways in different systems,
+but is usually thought of as a graph $G = (V, E)$ resulting from local decision
+rules.  The local rules can often be further modeled as a link probability
+function, $q(i,j)$, which gives the probability that nodes $i$ and $j$ are
+connected.  The random walk process is also modeled as a set of local rules,
+used to decide the next hop of the walk.  Typically these rules consists no
+more than a probability distribution that assigns a probability to take each
+link at the current node.
+
+The easiest case in which to the transition probability matrix $P$ describing
+the Markov-chain assumes a directed graph and an unbiased random walk.
+Given an existing topology and these assumptions , we can easily find the
+elements of $\textbf{P}$ given $d_{out}(i)$, the out degree of node $i$:
+
+\begin{equation}
+	p_{ij} = \begin{cases}
+							1 / d_{out}(i) & \text{if $ij \in E$,}\\
+							0              & \text{otherwise.}
+					 \end{cases}
+\end{equation}
+% Directed formulation of version from [Lovasz].  Needs a cite?
+
+Similar transformations are easy to derive for other random walk processes.
+Extending the technique further, we can also analyze the entire set of
+topologies defined by $q(i,j)$ at once.  Given a constant out-degree $d_{out}$,
+and a set of nodes $V$, we define the elements of $\textbf{P}$ as:
+
+\begin{equation}
+	p_{ij} = q(i,j) / d_{out}
+\end{equation}
+
+Note, we no longer need the edge set $E$.  Instead, we are now looking at
+properties across \emph{all} topologies defined by $q(i,j)$ and a given set of
+nodes.
+
+\subsubsection{Converging the Markov-chain}
+
+Once $\textbf{P}$ is derived, it is simple to find $\textbf{P}^n$ by either
+brute computation or single-value decomposition of the first left-eigenvalue.
+Blah blah on how$\ldots$
+
+Once $\textbf{w}$ is found in $n$ steps, we can characterize the fitness of a
+given topology (or set of topologies) for random walks.  The simplest way to do
+this is to assume $\textbf{w}$ has a Gaussian distribution and
+calculate the standard deviation.  What exactly this number means depends on
+the P2P network, so we now walk through a typical example.
+
+Imagine a file sharing network, such as Gnutella, where data is statically
+placed on the originating node.  Assume, for the moment, that such data is
+uniformly distributed across the network.  For a single random walk to
+efficiently find a piece of desired data, it needs to visit the greatest number
+of nodes possible during it's limited number of hops.  Clearly, if some nodes
+have a higher change to be visited, they will be visited more often during the
+walk, possibly in place of nodes that actually contain the data.  The higher
+the standard deviation of $\textbf{w}$, the worse a single walk will perform.
+Multiple walks only make this more apparent.  Assuming the walks are
+uncorrelated, each walk now has a greater change to visit the \emph{same nodes}
+which are reached with greater probability, a waste of resource.
+
+The problem remains even if one assumes a more realistic distribution of data,
+such as Zipf.  Unless the nodes with greater reachability probability also
+happen to contain an equal proportion of the data, the network is still
+inefficient.  And all this assumes a uniform request rate, something that
+is long-tailed in currently deployed networks.
+
+Next, the speed at which $\textbf{P}$ converges to $\textbf{W}$ gives the
+mixing length.  The mixing length describes how long a random walk must be
+before being uncorrelated with the starting location, or in other words, is ina
+truly random location in the network.  The longer a walk stays correlated with
+the starting node $i$, the longer it is likely to be visiting nodes in the
+neighborhood of $i$.
+
+% Wayyyyy more here, but need to move on tonight...
+
 
 \subsubsection{A real world application}
 
@@ -167,7 +267,7 @@ gives the correlation between in-degree and visitation as anywhere between,
 \section*{Acknowledgements}
 The authors would like to thank Shane Legg from the University of Lugano for
 the initial suggestion to explore using ergodic markov-models.  We'd also like
-to thank Tiago de Paula Peixoto from the University of São Paulo for his
+to thank Tiago de Paula Peixoto from the University of S\~ao Paulo for his
 wonderful graph-tool program, which greatly streamlined our data analysis.
 
 %\bibliographystyle{plain}
