@@ -15,6 +15,11 @@
 #
 # -e, --ergodic
 #
+# -s, --eigen
+#    Find the eigen vector of the first eigne value (1) and then take the
+#    single-value decomposition.  This is an alternative method of finding the
+#    static distribution.
+#
 # -r length, --random-walk length 
 #    Optional argument
 
@@ -150,7 +155,6 @@ class ErgodicTransitionMatrix < PathTransitionMatrix
     super(stream)
 
     @converged = nil
-    generate_matrix()
   end
 
   def write_node_probs_dot(stream)
@@ -177,6 +181,7 @@ class ErgodicTransitionMatrix < PathTransitionMatrix
   end
 
   def converge
+    generate_matrix()
     res = @matrix ^ 2
     @converged = res * @matrix
 
@@ -214,8 +219,94 @@ class ErgodicTransitionMatrix < PathTransitionMatrix
     error = false
     @matrix.each_row { | row | error = true unless row.sum == 1.0 }
     puts "Possible precision problems...beware." if error
+
+    if @args.has_key?(:print_transition_matrix)
+      puts "# name: P"
+      puts "# type: matrix"
+      puts "# rows: #{@matrix.size1}"
+      puts "# columns: #{@matrix.size2}"
+      @matrix.each_row do | row |
+        str = []
+        row.each { | val | str << val.to_s }
+        puts str.join(" ")
+      end
+    end
   end
 
+end
+
+class ErgodicEigenSolver < ErgodicTransitionMatrix
+  def initialize(stream)
+    super(stream)
+  end
+
+  def write_node_probs_dot(stream)
+    return unless @converged
+
+    @vertex_names.each do | key, value |
+      # Note, all rows should be created equal, but maybe we should average
+      # here instead of just picking the first one
+      @graph.add_vertex_property(key, :prob_rwalk_mean, @final[value])
+      @graph.add_vertex_property(key, :prob_rwalk_sd, 0.0)
+    end
+
+    stream << @graph.to_dot()
+  end
+=begin
+  def write_node_probs(stream)
+    return unless @converged
+
+    @vertex_names.each do | key, value |
+      vec = GSL::Vector::alloc(@converged.col(value))
+      stream.write("#{key} #{Stats::mean(vec)} #{Stats::sd(vec)}\n")
+    end
+  end
+=end
+
+  def converge
+    generate_matrix()
+
+    puts "Performing decomposition / inverse..."
+
+    sol_idx = -1
+    @eigval, @eigvec = Eigen::nonsymmv(@matrix)
+    @eigval.each_index do | idx | 
+      if @eigval[idx].imag == 0
+        #print_eigen_idx(idx)
+        if @eigval[idx].real.deltafrom(1.0, 0.0001)
+          sol_idx = idx
+        end
+      end
+    end
+  
+    throw "No solution found using eigen solver" if sol_idx == -1
+
+    @eigvec = @eigvec.inv
+
+    sol = @eigvec.row(sol_idx)
+    arr = []
+    sol.each do | val |
+      arr << val.real
+    end
+    sol = GSL::Vector::alloc(arr)
+    @final = sol / sol.sum
+
+    @converged = true
+  end
+
+  private
+
+  def print_eigen_idx(idx)
+    sol = @eigvec.col(idx)
+    arr = []
+    sol.each do | val |
+      arr << val.real
+    end
+    sol = GSL::Vector::alloc(arr)
+    final = sol / sol.sum
+
+    puts "#{@eigval[idx].real} -> #{Stats::mean(final)} #{Stats::sd(final)}"
+  end
 end
 
 opts = GetoptLong.new(
@@ -223,11 +314,14 @@ opts = GetoptLong.new(
         ['--output',                 '-o', GetoptLong::REQUIRED_ARGUMENT],
         ['--input',                  '-i', GetoptLong::REQUIRED_ARGUMENT],
         ['--ergodic',                '-e', GetoptLong::NO_ARGUMENT],
+        ['--eigen',                  '-s', GetoptLong::NO_ARGUMENT],
+        ['--initial-matrix',         '-t', GetoptLong::NO_ARGUMENT],
         ['--random-walk',            '-r', GetoptLong::OPTIONAL_ARGUMENT])
 
 output_filename = nil
 input_filename = nil
 convergence_class = nil
+eigen_converge = false
 args = {}
 opts.each do | opt, arg |
   case opt
@@ -243,6 +337,10 @@ opts.each do | opt, arg |
   when '--random-walk'
     convergence_class = GraphRandomWalk
     args[:length] = arg.to_i unless arg.nil?
+  when '--eigen'
+    convergence_class = ErgodicEigenSolver
+  when '--initial-matrix'
+    args[:print_transition_matrix] = true
   end
 end
 

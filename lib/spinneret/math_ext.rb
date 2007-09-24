@@ -169,7 +169,7 @@ def chi_squared_distance(observed, expected)
   return sum
 end
 
-class Fixnum
+class Integer
   def to_d
     self
   end

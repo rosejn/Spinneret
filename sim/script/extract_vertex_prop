@@ -66,15 +66,13 @@ graph = RGL::DirectedAdjacencyGraph.new().read_from_dot(input)
 
 verts = graph.vertices.sort
 
-data_str = ""
 verts.each do | v |
   vals = []
   props.each do | prop |
     vals << graph.get_vertex_property(v, prop)
   end
 
-  data_str << vals.join(" ") { | val | val.to_s }
+  output.write(vals.join(" ") { | val | val.to_s } + "\n")
 end
 
-output.write(data_str)
 output.close()

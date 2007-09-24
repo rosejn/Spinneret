@@ -26,9 +26,19 @@ class DirectedAdjacencyGraph
         remainder = $2
         while(!remainder.nil?)
           if remainder =~ NODE_INFO_RE
-            add_vertex_property(v, $1.to_sym, $2.to_f)
+            remainder = $' 
+            name = $1
+            val = $2
+            case val
+            when /^\d+\.\d+$/
+              val = val.to_f
+            when /^\d+$/
+              val = val.to_i
+            end
+            add_vertex_property(v, name, val)
+          else
+            break
           end
-          remainder = $' 
         end
       else
         # eat the line for now
