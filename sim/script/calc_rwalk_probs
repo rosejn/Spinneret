@@ -31,6 +31,8 @@ require 'gsl'
 
 require 'spinneret'
 
+require 'stream_types'
+
 #require 'profile'
 
 class PathTransitionMatrix
@@ -249,24 +251,6 @@ output_filename = input_filename if(output_filename.nil?)
 if(output_filename.nil? || input_filename.nil? || convergence_class.nil?)
   RDoc::usage
   exit(-1)
-end
-
-def get_input_stream(filename)
-  case filename
-  when /.+\.gz/
-    Zlib::GzipReader::open(filename)
-  else
-    File::open(filename, "w")
-  end
-end
-
-def get_output_stream(filename)
-  case filename
-  when /.+\.gz/
-    Zlib::GzipWriter::open(filename)
-  else
-    File::open(filename, "w+")
-  end
 end
 
 p = convergence_class.new(get_input_stream(input_filename))

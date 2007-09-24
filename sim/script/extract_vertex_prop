@@ -1,0 +1,80 @@
+#!/usr/bin/env ruby
+
+# == Synopsis
+#
+# extract_vertex_props
+#
+# Reads a given dot topology and returns tuples of attributes from each vertex,
+# with one vertex per line, each value separated by whitespace.  Attributed
+# with whitespace need to be stored in the dot file escaped.
+#
+# == Usage
+#
+# -h, --help:
+#    Show this help.
+#
+# -o filename, --output filename
+#    Defaults to stdout
+#
+# -i filename, --input filename
+#    Defaults to stdin
+#
+# -p property:property:...:property, --vertex-properties ...
+#    Extract the given properties.  The ':' character is in no way supported.
+#
+
+require 'rdoc/usage'
+require 'getoptlong'
+require 'zlib'
+
+require 'rubygems'
+require 'gsl'
+
+require 'spinneret'
+
+require 'stream_types'
+
+opts = GetoptLong.new(
+        ['--help',                   '-h', GetoptLong::NO_ARGUMENT],
+        ['--output',                 '-o', GetoptLong::REQUIRED_ARGUMENT],
+        ['--input',                  '-i', GetoptLong::REQUIRED_ARGUMENT],
+        ['--vertex-properties',      '-p', GetoptLong::REQUIRED_ARGUMENT])
+
+output = $stdout
+input = $stdin
+props = nil
+opts.each do | opt, arg |
+  case opt
+  when '--help'
+    RDoc::usage
+    exit(0)
+  when '--output'
+    output = get_output_stream(arg)
+  when '--input'
+    input = get_input_stream(arg)
+  when '--vertex-properties'
+    props = arg.split(':').map { | prop | prop.to_sym }
+  end
+end
+
+if(output.nil? || input.nil? || props.nil?)
+  RDoc::usage
+  exit(-1)
+end
+
+graph = RGL::DirectedAdjacencyGraph.new().read_from_dot(input)
+
+verts = graph.vertices.sort
+
+data_str = ""
+verts.each do | v |
+  vals = []
+  props.each do | prop |
+    vals << graph.get_vertex_property(v, prop)
+  end
+
+  data_str << vals.join(" ") { | val | val.to_s }
+end
+
+output.write(data_str)
+output.close()
