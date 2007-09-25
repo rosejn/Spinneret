@@ -27,10 +27,6 @@ require 'rdoc/usage'
 require 'getoptlong'
 require 'zlib'
 
-# For slow, but very precise, version
-require 'matrix'
-require 'bigdecimal'
-
 require 'rubygems'
 require 'gsl'
 
@@ -264,29 +260,31 @@ class ErgodicEigenSolver < ErgodicTransitionMatrix
 =end
 
   def converge
-    generate_matrix()
+    generate_matrix()  # generates the traditional src->dest matrix
+                       # but we take the transpose below in order to
+                       # get the dest <- src form needed for the right
+                       # eigenvector to make sense.
 
-    puts "Performing decomposition / inverse..."
+    puts "Performing decomposition, solving for eigenvectors..."
 
     sol_idx = -1
-    @eigval, @eigvec = Eigen::nonsymmv(@matrix)
+    @eigval, @eigvec = Eigen::nonsymmv(@matrix.transpose)
     @eigval.each_index do | idx | 
-      if @eigval[idx].imag == 0
-        #print_eigen_idx(idx)
-        if @eigval[idx].real.deltafrom(1.0, 0.0001)
+      if @eigval[idx].imag == 0 && @eigval[idx].real.deltafrom(1.0, 0.0001)
           sol_idx = idx
-        end
       end
     end
   
     throw "No solution found using eigen solver" if sol_idx == -1
 
-    @eigvec = @eigvec.inv
-
-    sol = @eigvec.row(sol_idx)
+    sol = @eigvec.col(sol_idx)
     arr = []
     sol.each do | val |
-      arr << val.real
+      if val.imag == 0
+        arr << val.real
+      else
+        throw "eigenvector corresponding to eigenvalue 1 has imaginary components!"
+      end
     end
     sol = GSL::Vector::alloc(arr)
     @final = sol / sol.sum
