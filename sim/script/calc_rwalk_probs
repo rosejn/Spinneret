@@ -71,7 +71,7 @@ class GraphRandomWalk < PathTransitionMatrix
     super(stream)
     @converged = false
     @vert_edges = {}
-    @args[:length] = length
+    @args[:length] = length  # possibly overwritten by a call to set_args()
   end
 
   def converge
@@ -200,15 +200,11 @@ class ErgodicTransitionMatrix < PathTransitionMatrix
   def generate_matrix
     puts "Generating..."
     @graph.each_vertex do | v |
-      @graph.each_adjacent(v) do | u |
-        @matrix.set(get_name(v), get_name(u), 1)
+      adj_v = @graph.adjacent_vertices(v)
+      size = adj_v.length.to_f
+      adj_v.each do | u |
+        @matrix.set(get_name(v), get_name(u), 1.0 / size)
       end
-    end
-
-    puts "Normalizing..."
-    @matrix.each_row do | row |
-      size = row.sum
-      row.collect! { | val | val / size }
     end
 
     puts "Checking..."
@@ -216,6 +212,8 @@ class ErgodicTransitionMatrix < PathTransitionMatrix
     @matrix.each_row { | row | error = true unless row.sum == 1.0 }
     puts "Possible precision problems...beware." if error
 
+    # Check if there was a debug request - this format can be imported easily
+    # into octave.
     if @args.has_key?(:print_transition_matrix)
       puts "# name: P"
       puts "# type: matrix"
@@ -240,44 +238,42 @@ class ErgodicEigenSolver < ErgodicTransitionMatrix
     return unless @converged
 
     @vertex_names.each do | key, value |
-      # Note, all rows should be created equal, but maybe we should average
-      # here instead of just picking the first one
       @graph.add_vertex_property(key, :prob_rwalk_mean, @final[value])
+      # there is no sd, as we are not averaging across a set of values
+      # in a "converged" matrix
       @graph.add_vertex_property(key, :prob_rwalk_sd, 0.0)
     end
 
     stream << @graph.to_dot()
   end
-=begin
+
   def write_node_probs(stream)
     return unless @converged
 
     @vertex_names.each do | key, value |
-      vec = GSL::Vector::alloc(@converged.col(value))
-      stream.write("#{key} #{Stats::mean(vec)} #{Stats::sd(vec)}\n")
+      stream << "#{key} #{@final[value]} #{0.0}\n"
     end
   end
-=end
 
   def converge
     generate_matrix()  # generates the traditional src->dest matrix
                        # but we take the transpose below in order to
-                       # get the dest <- src form needed for the right
+                       # get the dest<-src form needed for the right
                        # eigenvector to make sense.
 
     puts "Performing decomposition, solving for eigenvectors..."
 
     sol_idx = -1
-    @eigval, @eigvec = Eigen::nonsymmv(@matrix.transpose)
-    @eigval.each_index do | idx | 
-      if @eigval[idx].imag == 0 && @eigval[idx].real.deltafrom(1.0, 0.0001)
-          sol_idx = idx
+    eigval, eigvec = Eigen::nonsymmv(@matrix.transpose)
+    eigval.each_index do | idx | 
+      if eigval[idx].imag == 0 && eigval[idx].real.deltafrom(1.0, 0.0001)
+        sol_idx = idx
       end
     end
   
     throw "No solution found using eigen solver" if sol_idx == -1
 
-    sol = @eigvec.col(sol_idx)
+    sol = eigvec.col(sol_idx)
     arr = []
     sol.each do | val |
       if val.imag == 0
@@ -292,19 +288,6 @@ class ErgodicEigenSolver < ErgodicTransitionMatrix
     @converged = true
   end
 
-  private
-
-  def print_eigen_idx(idx)
-    sol = @eigvec.col(idx)
-    arr = []
-    sol.each do | val |
-      arr << val.real
-    end
-    sol = GSL::Vector::alloc(arr)
-    final = sol / sol.sum
-
-    puts "#{@eigval[idx].real} -> #{Stats::mean(final)} #{Stats::sd(final)}"
-  end
 end
 
 opts = GetoptLong.new(
