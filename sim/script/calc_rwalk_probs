@@ -2,7 +2,7 @@
 
 # == Synopsis
 #
-# calc_rwalk_probs: Analize graph reachability properties
+# calc_rwalk_probs: Analyze graph reachability properties
 #
 # == Usage
 #
@@ -16,7 +16,7 @@
 # -e, --ergodic
 #
 # -s, --eigen
-#    Find the eigen vector of the first eigne value (1) and then take the
+#    Find the eigen vector of the first eigen value (1) and then take the
 #    single-value decomposition.  This is an alternative method of finding the
 #    static distribution.
 #
@@ -25,7 +25,6 @@
 
 require 'rdoc/usage'
 require 'getoptlong'
-require 'zlib'
 
 require 'rubygems'
 require 'gsl'
@@ -178,6 +177,9 @@ class ErgodicTransitionMatrix < PathTransitionMatrix
 
   def converge
     generate_matrix()
+
+    puts "Performing convergence..."
+
     res = @matrix ^ 2
     @converged = res * @matrix
 

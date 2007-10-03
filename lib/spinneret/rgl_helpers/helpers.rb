@@ -60,6 +60,7 @@ module Graph
   end
 
   def get_vertex_property(vertex, name)
+    @vertex_properties ||= {}
     if @vertex_properties.has_key?(vertex)
       if @vertex_properties[vertex].has_key?(name.to_sym)
         return @vertex_properties[vertex][name.to_sym]
@@ -127,6 +128,7 @@ module Graph
 
   #[id=\"#{k.nid}\", visit_freq=\"#{k.visit_avg.avg}\"];\n"
   def vertex_props_dot(v)
+    @vertex_properties ||= {}
     s = ""
     if @vertex_properties.has_key?(v)
       if @vertex_properties[v].size > 0

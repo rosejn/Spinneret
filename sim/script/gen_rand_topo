@@ -1,0 +1,214 @@
+#!/usr/bin/env ruby
+
+# == Synopsis
+#
+# gen_rand_topo: Generates random topologies using various models.  For now
+# supports the Kleinberg model (see Kleinberg 99, "The Small-World Phenomenon:
+# An Algorithmic Perspective").
+#
+# == Usage
+#
+# -h, --help:
+#    Show this help.
+#
+# -o filename, --output filename
+#
+# -p scheme, --placement-scheme scheme
+#    Defines the placement scheme.  Defaults to
+#       kleinberg:1:1:2.0:10
+#    Use -l to list available schemes.
+#
+# -l, --list-placement-schemes
+#    Lists the available placement schemes and their parameters.
+
+require 'rdoc/usage'
+require 'getoptlong'
+
+require 'rubygems'
+require 'gsl'
+
+require 'spinneret'
+
+require 'stream_types'
+
+opts = GetoptLong.new(
+        ['--help',                   '-h', GetoptLong::NO_ARGUMENT],
+        ['--output',                 '-o', GetoptLong::REQUIRED_ARGUMENT],
+        ['--placement-scheme',       '-p', GetoptLong::REQUIRED_ARGUMENT],
+        ['--list-placement-schemes', '-l', GetoptLong::NO_ARGUMENT])
+
+class RandomGraphScheme
+  def initialize(args)
+    args = args.split(':')
+    @settings = {}
+    arg_order.split(':').each { | arg | @settings[arg.to_sym] = args.shift }
+  end
+
+  def usage
+    puts "EdgePlacementScheme can not be used, but must be subclassed."
+  end
+
+  def arg_order
+    throw "arg_order not implimented."
+  end
+
+  def write(stream)
+
+  end
+
+  def generate(verts)
+    throw "generate(v, num) not implimented."
+  end
+end
+
+class Array
+  def to_d
+    "#{self[0]}#{self[1]}"
+  end
+end
+
+class Kleinberg < RandomGraphScheme
+  @@arg_order = "p:q:r:dim"
+
+  def Kleinberg.usage
+    puts "Kleinberg's model has four parameters (defaults in parens):\n" +
+         "  p\tlattice distance radius for local nodes (p = 1)\n" +
+         "  q\tnumber of long-distance links (q = 1)\n" +
+         "  r\tprobability mass exponent (r = 2)\n" +
+         "  dim\tlattice dimensions (r = 10, ie. 10x10 = 100 verts)\n" +
+         "Each edges is selected using an independent random trial, where " +
+         "the probability\nmass of edge (u, v) is d(u,v)^{-r}.  These " +
+         "masses are then weighted by\n\\sum_v{d(u,v)^{-r}} to find the " +
+         "probability distribution.  By default, the\noptimal r is used " +
+         "with p = q = 1.  The arguments are given in the following\n" +
+         "order: #{@@arg_order}"
+  end
+
+  def initialize(args)
+    super(args)
+    [:dim, :p, :q].each { | s | @settings[s] = @settings[s].to_i }
+    [:r].each           { | s | @settings[s] = @settings[s].to_f }
+
+    @graph = DirectedAdjacencyGraph.new()
+  end
+
+  def arg_order
+    return @@arg_order
+  end
+
+  def generate()
+    create_verts()
+
+    @graph.each_vertex do | v |
+      # Add local edges
+      add_local_edges(v, v, @settings[:p])
+
+      # Add long-distance edges
+      prob_dist = Kleinberg::EdgeDist::new(v, @graph.vertices, @settings[:r])
+
+      @settings[:q].times do
+        u = prob_dist.rand()
+        #puts "#{v.to_d} -> #{u.to_d}"
+        @graph.add_edge(v, u) #prob_dist.rand())
+      end
+    end
+  end
+
+  def write(stream)
+    stream << @graph.to_dot
+  end
+
+  private
+
+  def add_local_edges(target_v, cur_v, p)
+    @graph.add_edge(target_v, cur_v) unless target_v == cur_v
+
+    return if p == 0
+
+    next_v = [cur_v[0] - 1, cur_v[1]]
+    add_local_edges(target_v, next_v, p - 1) if valid_vertex?(next_v)
+    next_v = [cur_v[0] + 1, cur_v[1]]
+    add_local_edges(target_v, next_v, p - 1) if valid_vertex?(next_v)
+    next_v = [cur_v[0], cur_v[1] - 1]
+    add_local_edges(target_v, next_v, p - 1) if valid_vertex?(next_v)
+    next_v = [cur_v[0], cur_v[1] + 1]
+    add_local_edges(target_v, next_v, p - 1) if valid_vertex?(next_v)
+  end
+
+  def valid_vertex?(v)
+    return (v[0] < @settings[:dim] && v[0] >= 0 &&
+            v[1] < @settings[:dim] && v[1] >= 0)
+  end
+
+  def create_verts()
+    verts = []
+    @settings[:dim].times do | i |
+      @settings[:dim].times do | j |
+        @graph.add_vertex([i, j])
+      end
+    end
+  end
+
+  class EdgeDist
+    def initialize(v, verts, r)
+      prob_mass = 0.0
+      @u_probs = []
+
+      verts.each do | u |
+        next if v == u
+
+        mass = 1.0 / (lattice_distance(v, u) ** r)
+        prob_mass += mass
+        @u_probs << [u, mass]
+      end
+
+      @u_probs.map! { | event | [event[0], event[1] / prob_mass] }
+    end
+
+    def rand
+      prob_sum = 0.0
+      roll = Kernel::rand()
+
+      event = @u_probs.detect { | e | prob_sum += e[1]; roll < prob_sum }
+
+      if event.nil?
+        raise "Kleinberg::EdgeDist::rand: returned event should not be nil." 
+      end
+
+      return event[0]
+    end
+
+    def lattice_distance(v, u)
+      return ((u[0] - v[0]).abs + (u[1] - v[1]).abs)
+    end
+  end  # EdgeDist
+
+end # Kleinberg
+
+topo = nil
+output = $stdout
+opts.each do | opt, arg |
+  case opt
+  when '--help'
+    RDoc::usage
+    exit(0)
+  when '--output'
+    output = get_output_stream(arg)
+  when '--placement-scheme'
+    delim = arg.index(':')
+    eval "topo = #{arg[0...delim].capitalize}.new(arg[delim+1..-1])"
+  when '--list-placement-schemes'
+    puts "-- kleinberg"
+    Kleinberg::usage()
+    exit(0)
+  end
+end
+
+if(topo.nil? || output.nil?)
+  RDoc::usage
+  exit(-1)
+end
+
+topo.generate
+topo.write(output)
+output.close
