@@ -44,20 +44,16 @@ class RandomGraphScheme
     arg_order.split(':').each { | arg | @settings[arg.to_sym] = args.shift }
   end
 
-  def usage
-    puts "EdgePlacementScheme can not be used, but must be subclassed."
-  end
-
   def arg_order
     throw "arg_order not implimented."
   end
 
   def write(stream)
-
+    throw "write not implimented."
   end
 
-  def generate(verts)
-    throw "generate(v, num) not implimented."
+  def generate
+    throw "generate not implimented."
   end
 end
 
@@ -77,8 +73,8 @@ class Kleinberg < RandomGraphScheme
          "  r\tprobability mass exponent (r = 2)\n" +
          "  dim\tlattice dimensions (r = 10, ie. 10x10 = 100 verts)\n" +
          "Each edges is selected using an independent random trial, where " +
-         "the probability\nmass of edge (u, v) is d(u,v)^{-r}.  These " +
-         "masses are then weighted by\n\\sum_v{d(u,v)^{-r}} to find the " +
+         "the probability\nmass of edge (v, u) is d(v,u)^{-r}.  These " +
+         "masses are then weighted by\n\\sum_v{d(v,u)^{-r}} to find the " +
          "probability distribution.  By default, the\noptimal r is used " +
          "with p = q = 1.  The arguments are given in the following\n" +
          "order: #{@@arg_order}"
@@ -86,6 +82,7 @@ class Kleinberg < RandomGraphScheme
 
   def initialize(args)
     super(args)
+
     [:dim, :p, :q].each { | s | @settings[s] = @settings[s].to_i }
     [:r].each           { | s | @settings[s] = @settings[s].to_f }
 
@@ -108,7 +105,6 @@ class Kleinberg < RandomGraphScheme
 
       @settings[:q].times do
         u = prob_dist.rand()
-        #puts "#{v.to_d} -> #{u.to_d}"
         @graph.add_edge(v, u) #prob_dist.rand())
       end
     end
@@ -172,11 +168,13 @@ class Kleinberg < RandomGraphScheme
       event = @u_probs.detect { | e | prob_sum += e[1]; roll < prob_sum }
 
       if event.nil?
-        raise "Kleinberg::EdgeDist::rand: returned event should not be nil." 
+        raise "Kleinberg::EdgeDist::rand: event should not be nil." 
       end
 
       return event[0]
     end
+
+    private
 
     def lattice_distance(v, u)
       return ((u[0] - v[0]).abs + (u[1] - v[1]).abs)
@@ -184,6 +182,138 @@ class Kleinberg < RandomGraphScheme
   end  # EdgeDist
 
 end # Kleinberg
+
+class Constdegree < RandomGraphScheme
+  @@arg_order = "v:e"
+
+  def Constdegree.usage
+    puts "The in-degree constant model has two parameters (defaults in " + 
+         "parens):\n" +
+         "  v\tnumber of vertices\n" +
+         "  e\tnumber of edges\n" +
+         "Vertices are numbered from 0 to v.  v is rounded upwards so that " +
+         "v % e = 0,\ni.e. all nodes have equal numbers of in-edges.  " +
+         "Out-degree is assumed to be\nconstant.  The probability mass of " +
+         "edge (v, u) is (e - |u|)^{-2}, where |u|\nis the number of in-edges." +
+         "  This is normalized over all (v, u).  The arguments\nare given " +
+         "in the following order: #{@@arg_order}"
+  end
+
+  def initialize(args)
+    super(args)
+
+    [:v, :e].each { | s | @settings[s] = @settings[s].to_i }
+    # Make sure that the number of edges evenly devides the number of verts
+    if @settings[:v] % @settings[:e] != 0
+      @settings[:v] = ((@settings[:v] / @settings[:e]) + 1) * @settings[:e]
+    end
+
+    puts "|V|: #{@settings[:v]}, |E|: #{@settings[:e]}"
+
+    @graph = DirectedAdjacencyGraph.new()
+  end
+
+  def arg_order
+    return @@arg_order
+  end
+
+  def write(stream)
+    stream << @graph.to_dot
+  end
+
+  def generate
+    # Create vertices
+    @settings[:v].times { | v | @graph.add_vertex(v) }
+
+    # Create edges
+    prob_dist = Constdegree::ExponentialEdgeDist::new(@graph.vertices, @settings[:e])
+    @settings[:e].times do | i |
+      puts i+1
+      @graph.each_vertex do | v |
+        u = prob_dist.rand 
+        while (u == v || 
+              !@graph.adjacent_vertices(v).detect { | x | x == u }.nil?) &&
+              prob_dist.mass > 1  # make sure we exit - otherwise a node may loop
+                                  # here on the very last selection, due to a
+                                  # multi-edge - can slightly scew results for 
+                                  # smaller topologies
+          u = prob_dist.rand 
+        end
+
+        prob_dist.update(u)
+        @graph.add_edge(v, u)
+      end
+    end
+  end
+
+  class EdgeDist
+    def initialize(verts, num_edges)
+      @in_edge_count = {}
+      @num_edges = num_edges
+      verts.each { | v | @in_edge_count[v] = 0 }
+    end
+
+    def update(v)
+      @in_edge_count[v] += 1
+    end
+  end
+
+  # Not used for now - was a test.  Runs into cases where final assignment
+  # hangs a little more often
+  class FlatEdgeDist < EdgeDist
+    def mass
+      return @in_edge_count.inject(0) do | mass, pair | 
+        pair[1] < @num_edges ? mass += 1 : mass
+      end.to_f
+    end
+    
+    def rand
+      tot_mass = mass
+
+      u_probs = []
+      @in_edge_count.each do | key, val | 
+        u_probs << [key, 1.0 / tot_mass]  if val < @num_edges
+      end
+
+      prob_sum = 0.0
+      roll = Kernel::rand()
+      event = u_probs.detect { | e | prob_sum += e[1]; roll < prob_sum }
+      
+      if event.nil?
+        raise "Constdegree::FlatEdgeDist::rand: event should not be nil." 
+      end
+
+      return event[0]
+    end
+  end
+
+  class ExponentialEdgeDist < EdgeDist
+    def mass
+      @in_edge_count.inject(0.0) do | mass, pair | 
+        pair[1] < @num_edges ? mass + (@num_edges - pair[1]) : mass
+      end.to_f
+    end
+
+    def rand
+      tot_mass = mass
+      u_probs = []
+      @in_edge_count.each do | key, val | 
+        u_probs << [key, (@num_edges - val) / tot_mass] 
+      end
+
+      prob_sum = 0.0
+      roll = Kernel::rand()
+      event = u_probs.detect { | e | prob_sum += e[1]; roll < prob_sum }
+      
+      if event.nil?
+        raise "Constdegree::ExpEdgeDist::rand: event should not be nil." 
+      end
+
+      return event[0]
+    end
+  end
+
+end
 
 topo = nil
 output = $stdout
@@ -200,6 +330,9 @@ opts.each do | opt, arg |
   when '--list-placement-schemes'
     puts "-- kleinberg"
     Kleinberg::usage()
+    puts "\n-- constdegree"
+    Constdegree::usage()
+
     exit(0)
   end
 end
