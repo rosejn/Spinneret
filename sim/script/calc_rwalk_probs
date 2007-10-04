@@ -35,6 +35,8 @@ require 'stream_types'
 
 #require 'profile'
 
+$verbose = false
+
 class PathTransitionMatrix
 
   def initialize(stream)
@@ -76,13 +78,13 @@ class GraphRandomWalk < PathTransitionMatrix
   def converge
     verts = @graph.vertices
 
-    puts "Using random walks of length #{@args[:length]}."
+    puts "Using random walks of length #{@args[:length]}." if $verbose
     
     prev_probs = GSL::Matrix.alloc(@graph.num_vertices, @graph.num_vertices)
     i = 0
     while(!@converged)
       verts.each do | v |
-        #puts "0x#{v.to_s[0..10]}..."
+        #puts "0x#{v.to_s[0..10]}..." if $verbose
         verts.size.times do
           u = v
           @args[:length].times { u = vertices(u).rand() }
@@ -96,7 +98,9 @@ class GraphRandomWalk < PathTransitionMatrix
       @converged = @probs.equal?(prev_probs)
 
       if(i % 10 == 4)
-        puts "#{i+1} steps have passed (sqme #{(@probs - prev_probs).norm})"
+        if $verbose
+          puts "#{i+1} steps have passed (sqme #{(@probs - prev_probs).norm})"
+        end
         f = File.new("#{i+1}.probs", "w")
         write_node_probs(f)
         f.close() # force flush in case of early exit
@@ -178,7 +182,7 @@ class ErgodicTransitionMatrix < PathTransitionMatrix
   def converge
     generate_matrix()
 
-    puts "Performing convergence..."
+    puts "Performing convergence..." if $verbose
 
     res = @matrix ^ 2
     @converged = res * @matrix
@@ -189,18 +193,20 @@ class ErgodicTransitionMatrix < PathTransitionMatrix
       @converged = @converged * @matrix
 
       if(i % 10 == 9)
-        puts "#{i+1} steps have passed (sqme #{(@converged - res).norm})"
+        if $verbose
+          puts "#{i+1} steps have passed (sqme #{(@converged - res).norm})"
+        end
       end
       i += 1
     end
 
-    puts "#{i+1} steps have passed - converged"
+    puts "#{i+1} steps have passed - converged" if $verbose
   end
 
   private
 
   def generate_matrix
-    puts "Generating..."
+    puts "Generating..." if $verbose
     @graph.each_vertex do | v |
       adj_v = @graph.adjacent_vertices(v)
       size = adj_v.length.to_f
@@ -209,10 +215,10 @@ class ErgodicTransitionMatrix < PathTransitionMatrix
       end
     end
 
-    puts "Checking..."
+    puts "Checking..." if $verbose
     error = false
     @matrix.each_row { | row | error = true unless row.sum == 1.0 }
-    puts "Possible precision problems...beware." if error
+    puts "WARN: Possible precision problems. Usually not serious." if error
 
     # Check if there was a debug request - this format can be imported easily
     # into octave.
@@ -263,7 +269,7 @@ class ErgodicEigenSolver < ErgodicTransitionMatrix
                        # get the dest<-src form needed for the right
                        # eigenvector to make sense.
 
-    puts "Performing decomposition, solving for eigenvectors..."
+    puts "Performing decomposition, solving for eigenvectors..." if $verbose
 
     sol_idx = -1
     eigval, eigvec = Eigen::nonsymmv(@matrix.transpose)
@@ -292,6 +298,10 @@ class ErgodicEigenSolver < ErgodicTransitionMatrix
 
 end
 
+def puts(str)
+  $stderr.puts str
+end
+
 opts = GetoptLong.new(
         ['--help',                   '-h', GetoptLong::NO_ARGUMENT],
         ['--output',                 '-o', GetoptLong::REQUIRED_ARGUMENT],
@@ -299,10 +309,11 @@ opts = GetoptLong.new(
         ['--ergodic',                '-e', GetoptLong::NO_ARGUMENT],
         ['--eigen',                  '-s', GetoptLong::NO_ARGUMENT],
         ['--initial-matrix',         '-t', GetoptLong::NO_ARGUMENT],
-        ['--random-walk',            '-r', GetoptLong::OPTIONAL_ARGUMENT])
+        ['--random-walk',            '-r', GetoptLong::OPTIONAL_ARGUMENT],
+        ['--verbose',                '-v', GetoptLong::NO_ARGUMENT])
 
-output_filename = nil
-input_filename = nil
+output = $stdout
+input = $stdin
 convergence_class = nil
 eigen_converge = false
 args = {}
@@ -312,9 +323,9 @@ opts.each do | opt, arg |
     RDoc::usage
     exit(0)
   when '--output'
-    output_filename = arg
+    output = get_output_stream(input_filename)
   when '--input'
-    input_filename = arg
+    input = get_input_stream(input_filename)
   when '--ergodic'
     convergence_class = ErgodicTransitionMatrix
   when '--random-walk'
@@ -324,21 +335,20 @@ opts.each do | opt, arg |
     convergence_class = ErgodicEigenSolver
   when '--initial-matrix'
     args[:print_transition_matrix] = true
+  when '--verbose'
+    $verbose = true
   end
 end
 
-output_filename = input_filename if(output_filename.nil?)
-
-if(output_filename.nil? || input_filename.nil? || convergence_class.nil?)
+if(output.nil? || input.nil? || convergence_class.nil?)
   RDoc::usage
   exit(-1)
 end
 
-p = convergence_class.new(get_input_stream(input_filename))
+p = convergence_class.new(input)
 p.set_args(args)
-puts "Running convergence..."
+puts "Running convergence..." if $verbose
 p.converge
-output_f = get_output_stream(output_filename)
-p.write_node_probs_dot(output_f)
-output_f.close()      # Have to explicitly close gzip streams
-puts "Done."
+p.write_node_probs_dot(output)
+output.close()      # Have to explicitly close gzip streams
+puts "Done." if $verbose

@@ -2,7 +2,7 @@
 
 # == Synopsis
 #
-# extract_vertex_props
+# calc_normal_dist
 #
 # Reads a given dot topology and returns tuples of attributes from each vertex,
 # with one vertex per line, each value separated by whitespace.  Attributed
@@ -19,11 +19,11 @@
 # -i filename, --input filename
 #    Defaults to stdin
 #
-# -d, --print-id
-#    Forces the id of the node to be printed first.
+# -r row, --row row
+#    Which row of data to find the normal of
 #
-# -p property:property:...:property, --vertex-properties ...
-#    Extract the given properties.  The ':' character is in no way supported.
+# -s character, --separator character
+#    Which character to use as a separator.  Defaults to whitespace.
 #
 
 require 'rdoc/usage'
@@ -41,13 +41,14 @@ opts = GetoptLong.new(
         ['--help',                   '-h', GetoptLong::NO_ARGUMENT],
         ['--output',                 '-o', GetoptLong::REQUIRED_ARGUMENT],
         ['--input',                  '-i', GetoptLong::REQUIRED_ARGUMENT],
-        ['--print-id',               '-d', GetoptLong::NO_ARGUMENT],
-        ['--vertex-properties',      '-p', GetoptLong::REQUIRED_ARGUMENT])
+        ['--row',                    '-r', GetoptLong::REQUIRED_ARGUMENT],
+        ['--separator',              '-s', GetoptLong::REQUIRED_ARGUMENT])
+
 
 output = $stdout
 input = $stdin
-props = nil
-force_id = false
+row = -1
+sep = /\s+/
 opts.each do | opt, arg |
   case opt
   when '--help'
@@ -57,30 +58,20 @@ opts.each do | opt, arg |
     output = get_output_stream(arg)
   when '--input'
     input = get_input_stream(arg)
-  when '--print-id'
-    force_id = true
-  when '--vertex-properties'
-    props = arg.split(':').map { | prop | prop.to_sym }
+  when '--row'
+    row = arg.to_i
+  when '--separator'
+    sep = arg
   end
 end
 
-if(output.nil? || input.nil? || props.nil?)
+if(output.nil? || input.nil? || row == -1)
   RDoc::usage
   exit(-1)
 end
 
-graph = RGL::DirectedAdjacencyGraph.new().read_from_dot(input)
-
-verts = graph.vertices.sort
-
-verts.each do | v |
-  vals = []
-  props.each do | prop |
-    vals << graph.get_vertex_property(v, prop)
-  end
-
-  output.write("#{v} ") if force_id
-  output.write(vals.join(" ") { | val | val.to_s } + "\n")
-end
-
+vals = []
+input.each_line { | line | vals << line.split(sep)[row].to_f }
+v = GSL::Vector::alloc(vals)
+output.write("#{GSL::Stats::mean(v)} #{GSL::Stats::sd(v)}\n")
 output.close()

@@ -20,6 +20,9 @@
 #
 # -l, --list-placement-schemes
 #    Lists the available placement schemes and their parameters.
+#
+# -v, --verbose
+#    Turn on status output.
 
 require 'rdoc/usage'
 require 'getoptlong'
@@ -31,11 +34,14 @@ require 'spinneret'
 
 require 'stream_types'
 
+$verbose = false
+
 opts = GetoptLong.new(
         ['--help',                   '-h', GetoptLong::NO_ARGUMENT],
         ['--output',                 '-o', GetoptLong::REQUIRED_ARGUMENT],
         ['--placement-scheme',       '-p', GetoptLong::REQUIRED_ARGUMENT],
-        ['--list-placement-schemes', '-l', GetoptLong::NO_ARGUMENT])
+        ['--list-placement-schemes', '-l', GetoptLong::NO_ARGUMENT],
+        ['--verbose',                '-v', GetoptLong::NO_ARGUMENT])
 
 class RandomGraphScheme
   def initialize(args)
@@ -208,7 +214,7 @@ class Constdegree < RandomGraphScheme
       @settings[:v] = ((@settings[:v] / @settings[:e]) + 1) * @settings[:e]
     end
 
-    puts "|V|: #{@settings[:v]}, |E|: #{@settings[:e]}"
+    puts "|V|: #{@settings[:v]}, |E|: #{@settings[:e]}" if $verbose
 
     @graph = DirectedAdjacencyGraph.new()
   end
@@ -226,18 +232,18 @@ class Constdegree < RandomGraphScheme
     @settings[:v].times { | v | @graph.add_vertex(v) }
 
     # Create edges
-    prob_dist = Constdegree::ExponentialEdgeDist::new(@graph.vertices, @settings[:e])
+    prob_dist = Constdegree::ExponentialEdgeDist::new(@graph.vertices, 
+                                                      @settings[:e])
     @settings[:e].times do | i |
-      puts i+1
+      puts i+1  if $verbose
       @graph.each_vertex do | v |
         u = prob_dist.rand 
-        while (u == v || 
-              !@graph.adjacent_vertices(v).detect { | x | x == u }.nil?) &&
-              prob_dist.mass > 1  # make sure we exit - otherwise a node may loop
-                                  # here on the very last selection, due to a
-                                  # multi-edge - can slightly scew results for 
-                                  # smaller topologies
-          u = prob_dist.rand 
+        while((u == v || 
+               !@graph.adjacent_vertices(v).detect { | x | x == u }.nil?) &&
+              prob_dist.mass > 1) # makes sure we exit - otherwise a node may 
+                                  # loop here on the very last selection, due
+          u = prob_dist.rand      # to a multi-edge - can slightly skew
+                                  # results for smaller topologies
         end
 
         prob_dist.update(u)
@@ -259,7 +265,7 @@ class Constdegree < RandomGraphScheme
   end
 
   # Not used for now - was a test.  Runs into cases where final assignment
-  # hangs a little more often
+  # hangs a little more often than the Exponential version
   class FlatEdgeDist < EdgeDist
     def mass
       return @in_edge_count.inject(0) do | mass, pair | 
@@ -315,7 +321,12 @@ class Constdegree < RandomGraphScheme
 
 end
 
-topo = nil
+def puts(str)
+  $stderr.puts str
+end
+
+
+topo = "kleinberg:1:1:2.0:10"
 output = $stdout
 opts.each do | opt, arg |
   case opt
@@ -325,17 +336,20 @@ opts.each do | opt, arg |
   when '--output'
     output = get_output_stream(arg)
   when '--placement-scheme'
-    delim = arg.index(':')
-    eval "topo = #{arg[0...delim].capitalize}.new(arg[delim+1..-1])"
+    topo = arg
   when '--list-placement-schemes'
     puts "-- kleinberg"
     Kleinberg::usage()
     puts "\n-- constdegree"
     Constdegree::usage()
-
     exit(0)
+  when '--verbose'
+    $verbose = true
   end
 end
+
+delim = topo.index(':')
+topo = eval "#{topo[0...delim].capitalize}.new(topo[(delim + 1)..-1])"
 
 if(topo.nil? || output.nil?)
   RDoc::usage
