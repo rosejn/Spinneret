@@ -44,7 +44,6 @@ opts = GetoptLong.new(
         ['--row',                    '-r', GetoptLong::REQUIRED_ARGUMENT],
         ['--separator',              '-s', GetoptLong::REQUIRED_ARGUMENT])
 
-
 output = $stdout
 input = $stdin
 row = -1
