@@ -1,0 +1,35 @@
+#!/usr/bin/env ruby
+
+require 'ostruct'
+require 'yaml'
+require 'rdoc/usage'
+require 'getoptlong'
+
+require 'script/config'
+
+class Configuration < OpenStruct
+  include Singleton
+end
+
+c = Configuration::instance
+
+g = c.generator = OpenStruct.new
+g.program = "gen_rand_topo"
+g.mode    = "constdegree:100:10"
+
+a = c.analysis = OpenStruct.new
+a.ergodic_mode = :eigen  # or :mm_converge
+
+opts = GetoptLong.new(
+        ['--help',                   '-h', GetoptLong::NO_ARGUMENT],
+        ['--config',                 '-c', GetoptLong::REQUIRED_ARGUMENT])
+
+opts.each do | opt, arg |
+  case opt
+  when '--help'
+    RDoc::usage
+    exit(0)
+  when '--config'
+    load_config(c, YAML::load(File.read(arg)))
+  end
+end
