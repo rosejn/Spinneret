@@ -263,6 +263,33 @@ In fact, we find this to be the case for Spinneret, as Figure
 \ref{fig:indegree-visitation-rate} shows.  Pearson's correlation coefficient
 gives the correlation between in-degree and visitation as anywhere between, 
 
+\section{Experiments}
+
+\subsection{Degree Constrained Graphs}
+Several experiments of interest here.  
+
+\begin{enumeration}
+	\item Start with a degree constrained graph,
+and for each edge mix it with some other with prob $p$.  This should alternate
+between $G_D$ and $G_{rand}$.
+	\item Keep all starting vertices of edges in a $G_D$ the same, but change the
+end-points.  Start with a grid like topology, where neighbors are connected to
+near neighbors, and at each vertex, rewire the end point with probability $p$.
+\end{enumeration}
+
+The point with these is to show the unsurprising result that degree distribution
+matters.  We should see a sub-class of $G_D$ which is small world.
+
+\subsection{Real topologies}
+
+Look at results of analysis of Gnutella, Cyclon, Pastry, Chord, and Spinneret,
+across both mixing degree at different levels of precision and the spread of
+reachability probs.
+
+\subsection{Constraining In-degree}
+
+Show that the basic concept of constraining in-degree works by doing so with
+Spinneret.  Alternatively, show we can un-bias walks on a biased substrate.
 
 \section*{Acknowledgements}
 The authors would like to thank Shane Legg from the University of Lugano for

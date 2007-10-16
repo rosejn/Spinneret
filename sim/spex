@@ -5,7 +5,10 @@
 # Spex, the SPace-EXplorer, will load the given space exploration
 # file (.sx) and execute the spin simulation driver for all experiments
 # created.  If supplied with a job server spex can load jobs onto a remote
-# computer.  
+# computer.
+#
+# Jeff Rose  <rosejn@rosejn.net>
+# Cyrus Hall <hallc@lu.unisi.ch>
 #
 # == Usage
 #
@@ -45,20 +48,8 @@ class Exploration
   def initialize
     @current_experiment = nil
     @params = {}
-    
-    # Create or connect to the job server object
-=begin
-    if $server_addr.nil?
-      require 'rjserve'
-      @job_queue = RJobServer.new
-      @remote = false
-    else
-      DRb.start_service
-      @job_queue = DRbObject.new(nil, "druby://#{$server_addr + ':' + $server_port.to_s}")
-      @remote = true
-    end
-=end
     @remote = true
+    @prog_name = "spin"
   end
 
   def defaults(vals)
@@ -116,6 +107,10 @@ class Exploration
     add_param(name, vals)
   end
 
+  def prog_name(name)
+    @prog_name = name
+  end
+
   def new_experiment(name)
     send_experiment unless @current_experiment.nil?
     @current_experiment = name
@@ -168,6 +163,7 @@ class Exploration
       end
     end
 
+    # Use the resolver to round robin around job servers
     resolver = RJServe::Helpers::Resolv.new
     resolver.round_robin { jobs.shift }
 
@@ -182,7 +178,7 @@ class Exploration
 
     jc << job( make_fresh_dir(dir) )
     jc << job( dump_config(dir, @default_params.merge(param_set)) )
-    jc << job( "spin --config #{File.join(dir, "config")}" )
+    jc << job( "#{@prog_name} --config #{File.join(dir, "config")}" )
 
     @num_jobs += 1
 

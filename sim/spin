@@ -71,6 +71,7 @@ require 'English'
 
 require 'script/workload_parser'
 require 'script/spin_sim'
+require 'script/config'
 #require 'script/mem_prof'
 
 #MemoryProfiler.start
@@ -102,17 +103,6 @@ $config.sim_length = 0
 $config.workload = nil
 $config.converge_quit = -1
 
-# Load the hash names into the hierarchical config structure
-def load_config(config_hash)
-  config_hash.each do |name, value|
-    levels = name.split('.')
-    final = levels.pop
-
-    set_point = levels.inject($config) {|conf, val| conf.send(val) }
-    set_point.send(final + '=', value)
-  end
-end
-
 opts.each do | opt, arg |
   case opt
   when '--help'
@@ -120,7 +110,7 @@ opts.each do | opt, arg |
   when '--verbose'
     GoSim::Simulation.instance.verbose
   when '--config'
-    load_config(YAML::load(File.read(arg)))
+    load_config($config, YAML::load(File.read(arg)))
   when '--converge-quit'
     $config.converge_quit = arg.to_i
   when '--output-dir'

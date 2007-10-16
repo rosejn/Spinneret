@@ -189,6 +189,11 @@ class Kleinberg < RandomGraphScheme
 
 end # Kleinberg
 
+class Randconstmix < Constdegree
+  @@arg_order = "v:e:p"
+
+end
+
 class Constdegree < RandomGraphScheme
   @@arg_order = "v:e"
 
@@ -216,7 +221,7 @@ class Constdegree < RandomGraphScheme
 
     puts "|V|: #{@settings[:v]}, |E|: #{@settings[:e]}" if $verbose
 
-    @graph = DirectedAdjacencyGraph.new()
+    @graph = nil
   end
 
   def arg_order
@@ -228,27 +233,32 @@ class Constdegree < RandomGraphScheme
   end
 
   def generate
-    # Create vertices
-    @settings[:v].times { | v | @graph.add_vertex(v) }
+    @graph = attempt_generate()  while @graph.nil?
+  end
 
-    # Create edges
+  private
+
+  def attempt_generate
+    graph =  DirectedAdjacencyGraph.new()
+    @settings[:v].times { | v | graph.add_vertex(v) }
+
     prob_dist = Constdegree::ExponentialEdgeDist::new(@graph.vertices, 
                                                       @settings[:e])
     @settings[:e].times do | i |
       puts i+1  if $verbose
-      @graph.each_vertex do | v |
+      graph.each_vertex do | v |
         u = prob_dist.rand 
         j = 0
         while u == v || 
-              !@graph.adjacent_vertices(v).detect { | x | x == u }.nil?
+              !graph.adjacent_vertices(v).detect { | x | x == u }.nil?
           # makes sure we exit - otherwise a node may loop here on the very 
           # last selection, due to a multi-edge - can slightly skew results
           # for smaller topologies
           if(j > 1000 &&
              prob_dist.sub_d_vertices.length < @settings[:e] && 
              i + 1 == @settings[:e])
-            puts "WARN: early exit from graph gen loop, miss-balanced edges."
-            break
+            puts "restart: miss-balanced edges." if $verbose
+            return nil
           end
                                    
           u = prob_dist.rand
@@ -256,9 +266,11 @@ class Constdegree < RandomGraphScheme
         end
 
         prob_dist.update(u)
-        @graph.add_edge(v, u)
+        graph.add_edge(v, u)
       end
     end
+
+    return graph
   end
 
   class EdgeDist
@@ -271,6 +283,12 @@ class Constdegree < RandomGraphScheme
     def update(v)
       @in_edge_count[v] += 1
     end
+
+    def sub_d_vertices
+      return @in_edge_count.inject([]) do | pad, pair | 
+        pair[1] < @num_edges ? pad << pair[0] : pad 
+      end
+    end
   end
 
   # Not used for now - was a test.  Runs into cases where final assignment
@@ -282,12 +300,6 @@ class Constdegree < RandomGraphScheme
       end.to_f
     end
 
-    def sub_d_vertices
-      return @in_edge_count.inject([]) do | pad, pair | 
-        pair[1] < @num_edges ? pad << pair[0] : pad 
-      end
-    end
-    
     def rand
       tot_mass = mass
 
@@ -313,12 +325,6 @@ class Constdegree < RandomGraphScheme
       @in_edge_count.inject(0.0) do | mass, pair | 
         pair[1] < @num_edges ? mass + (@num_edges - pair[1]) : mass
       end.to_f
-    end
-
-    def sub_d_vertices
-      return @in_edge_count.inject([]) do | pad, pair | 
-        pair[1] < @num_edges ? pad << pair[0] : pad 
-      end
     end
 
     def rand
