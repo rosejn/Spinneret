@@ -12,12 +12,12 @@ maintainers to understand the state of a widely deployed system, allowing for
 the introduction of changes in parameterizations or algorithms when necessary.
 
 Similarly, it is often desirable to run unstructured queries across P2P
-topologies that were either created for structured search (e.g., DHTs) or that
+topologies that were either created for structured search (e.g., DHTs), or that
 maintain suboptimal search topologies.  Like the monitoring problems above,
 such a search would optimally behave like a \emph{uniform random sample} of
 network, with the likelihood of visiting any particular node $1/n$, where $n$
 is the number of peers.  Our goal in this paper is to demonstrate such an
-algorithm and demonstrate its effectiveness across a range of topologies.
+algorithm and demonstrate its effectiveness across a wide range of topologies.
 
 The first attempts at sampling P2P topologies assumed that a random walk was,
 as the name suggest, random.  While in a strict sense this is true, the
@@ -31,9 +31,9 @@ Topological bias has largely been solved for undirected networks, but no
 comparable solution has been found for unidirectional networks. Unlike
 undirected topologies, the probability of reaching a node in a directed
 topology is not determined directly by the in-degree.  Rather, a complicated
-mixture of in- and out-degree, link-distribution, vertex mixing, clustering,
-and more, can all play a role in shaping a nodes final probability of being
-reached. In this paper we propose a solution for directed topologies by
+mix of in- and out-degree, link-distribution, vertex mixing, clustering,
+and more, all play a role in shaping a nodes final probability of being
+reached.  In this paper we propose a solution for directed topologies by
 augmenting techniques previously used for undirected topologies.
 
 We first discuss an off-line static analysis method involving Markov-chains in
@@ -47,13 +47,13 @@ algorithm for directed topologies in Section \ref{sec:sampling}.  The algorithm
 has two steps: first, unbiased random walks are used to sample the reachability
 of nodes in the network.  These samples are in terms of \emph{frequency of
 visitation}, a value directly proportional to the probability of reaching a
-node at the end of a random walk.  Using a Metropolized Random Walk with
-Backtracking (MRWB) \cite{stutzberg:imc06} and the frequency of visitation
+node at the end of a random walk.  Using Metropolized Random Walk with
+Backtracking (MRWB) \cite{stutzbach:imc06} and the frequency of visitation
 information, we demonstrate how to create biased walks that uniformly sample
-the topology.  This technique works universally for any directed topology,
+a topology.  This technique works universally for any directed topology,
 although with varying cost.
 
-Finally, results of the method are given Section \ref{sec:results}.  Although
+Finally, results of the method are given in Section \ref{sec:results}.  Although
 our technique is rather n\"{a}ive, we demonstrate that it works well across a
 wide range of P2P topologies, using the analysis methods developed in Section
-\ref{sec:methods}.
+\ref{sec:methods}. 
