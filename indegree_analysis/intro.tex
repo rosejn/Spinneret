@@ -1,0 +1,59 @@
+\section{Introduction}
+
+As P2P networks continue to develop and larger deployments are made, it will
+become crucial that cheap and effective sampling techniques are available to
+measure network dynamics.  While simulation and testbed deployments are
+important steps toward creating resilient and well-behaved systems, often
+wide-scale deployments expose issues of scaling and dependability not
+experienced in the lab.
+%Note the recent skype example as a major example of this
+It is therefore crucial to develop tools that allow P2P networks and their
+maintainers to understand the state of a widely deployed system, allowing for
+the introduction of changes in parameterizations or algorithms when necessary.
+
+Similarly, it is often desirable to run unstructured queries across P2P
+topologies that were either created for structured search (e.g., DHTs) or that
+maintain suboptimal search topologies.  Like the monitoring problems above,
+such a search would optimally behave like a \emph{uniform random sample} of
+network, with the likelihood of visiting any particular node $1/n$, where $n$
+is the number of peers.  Our goal in this paper is to demonstrate such an
+algorithm and demonstrate its effectiveness across a range of topologies.
+
+The first attempts at sampling P2P topologies assumed that a random walk was,
+as the name suggest, random.  While in a strict sense this is true, the
+unstated assumption is that it would be \emph{uniformly} random.  However, P2P
+networks (with a few exceptions, such as Cyclon) do not create and maintain
+topologies which give uniform visitation probabilities across nodes in the
+network.  As such, these methods are biased toward particular nodes, often
+those with high in-degree.
+
+Topological bias has largely been solved for undirected networks, but no
+comparable solution has been found for unidirectional networks. Unlike
+undirected topologies, the probability of reaching a node in a directed
+topology is not determined directly by the in-degree.  Rather, a complicated
+mixture of in- and out-degree, link-distribution, vertex mixing, clustering,
+and more, can all play a role in shaping a nodes final probability of being
+reached. In this paper we propose a solution for directed topologies by
+augmenting techniques previously used for undirected topologies.
+
+We first discuss an off-line static analysis method involving Markov-chains in
+Section \ref{sec:methods}.  Using the presented method we explore various P2P
+topologies' reachability behavior.  Further, we also look at mixing-degree, a
+parameter that determines the necessary length of a random walk in order that
+its destination is chosen uniformly at random. 
+
+Using the knowledge gained in the analysis, we design our random sample
+algorithm for directed topologies in Section \ref{sec:sampling}.  The algorithm
+has two steps: first, unbiased random walks are used to sample the reachability
+of nodes in the network.  These samples are in terms of \emph{frequency of
+visitation}, a value directly proportional to the probability of reaching a
+node at the end of a random walk.  Using a Metropolized Random Walk with
+Backtracking (MRWB) \cite{stutzberg:imc06} and the frequency of visitation
+information, we demonstrate how to create biased walks that uniformly sample
+the topology.  This technique works universally for any directed topology,
+although with varying cost.
+
+Finally, results of the method are given Section \ref{sec:results}.  Although
+our technique is rather n\"{a}ive, we demonstrate that it works well across a
+wide range of P2P topologies, using the analysis methods developed in Section
+\ref{sec:methods}.
