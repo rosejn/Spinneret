@@ -80,7 +80,15 @@ verts.each do | v |
   end
 
   output.write("#{v} ") if force_id
-  output.write(vals.join(" ") { | val | val.to_s } + "\n")
+  output.write(
+    vals.map do | val | 
+      if val.class == Float
+        sprintf("%9.9f", val);
+      else
+        val.to_s
+      end
+    end.join(" ") + "\n"
+  );
 end
 
 output.close()

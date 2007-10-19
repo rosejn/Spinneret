@@ -252,7 +252,7 @@ class ErgodicEigenSolver < ErgodicTransitionMatrix
       @graph.add_vertex_property(key, :prob_rwalk_sd, 0.0)
     end
 
-    stream << @graph.to_dot()
+    stream << @graph.to_dot({"mixing_time_bound" => @mix_time_l})
   end
 
   def write_node_probs(stream)
@@ -271,17 +271,18 @@ class ErgodicEigenSolver < ErgodicTransitionMatrix
 
     puts "Performing decomposition, solving for eigenvectors..." if $verbose
 
-    sol_idx = -1
     eigval, eigvec = Eigen::nonsymmv(@matrix.transpose)
-    eigval.each_index do | idx | 
-      if eigval[idx].imag == 0 && eigval[idx].real.deltafrom(1.0, 0.0001)
-        sol_idx = idx
+    Eigen::nonsymmv_sort(eigval, eigvec, GSL::Eigen::SORT_ABS_DESC)
+
+    puts eigval[0]
+  
+    if eigval[0].imag != 0 
+      if eigval[0].real.deltafrom(1.0, 0.0001)
+        throw "No solution found using eigen solver"  
       end
     end
-  
-    throw "No solution found using eigen solver" if sol_idx == -1
 
-    sol = eigvec.col(sol_idx)
+    sol = eigvec.col(0)
     arr = []
     sol.each do | val |
       if val.imag == 0
@@ -291,7 +292,9 @@ class ErgodicEigenSolver < ErgodicTransitionMatrix
       end
     end
     sol = GSL::Vector::alloc(arr)
+
     @final = sol / sol.sum
+    @mix_time_l = Math::log(@vertex_names.length) / 1.0 - eigval[1].real
 
     @converged = true
   end
@@ -323,9 +326,9 @@ opts.each do | opt, arg |
     RDoc::usage
     exit(0)
   when '--output'
-    output = get_output_stream(input_filename)
+    output = get_output_stream(arg)
   when '--input'
-    input = get_input_stream(input_filename)
+    input = get_input_stream(arg)
   when '--ergodic'
     convergence_class = ErgodicTransitionMatrix
   when '--random-walk'

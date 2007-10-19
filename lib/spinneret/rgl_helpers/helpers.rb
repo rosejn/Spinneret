@@ -134,6 +134,9 @@ module Graph
       if @vertex_properties[v].size > 0
         s << " [" 
         s << @vertex_properties[v].map do | name, value |
+          if value.class == Float
+            value = sprintf("%9.9f", value)
+          end
           name.to_s + "=\"#{value}\""
         end.join(", ")
         s << "]"
@@ -144,7 +147,7 @@ module Graph
     return s
   end
 
-  def to_dot(graph_attrs = [])
+  def to_dot(graph_attrs = {})
     v = vertices()
     s = "digraph G {\n"
     graph_attrs.each {|name, val| s << "#{name}=\"#{val}\";\n"}

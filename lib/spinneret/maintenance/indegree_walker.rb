@@ -26,7 +26,7 @@ module Spinneret
         end
       end
       alias :add :<<
-    end
+    end # IndegreeList
 
     def initialize_indegree_walker
       @last_visit = 0
@@ -39,7 +39,7 @@ module Spinneret
       return if @link_table.size == 0
 
       peer = @link_table.random_peer  
-      avg = BasicAverage.new
+      avg = BasicAverage.new()
       avg << (@visit_avg.available? ? @visit_avg.avg : 0)
         #ExponentialMovingAverage.new(
         #            (@visit_avg.available? ? @visit_avg.avg : 0), 
@@ -51,8 +51,9 @@ module Spinneret
     end
 
     def do_indegree_maintenance(walker_info, ttl)
-      if(@config.maintenance_indegree_walker_ttl - ttl > 
-         @config.maintenance_indegree_walker_min_ttl)
+#      if(@config.maintenance_indegree_walker_ttl - ttl > 
+#         @config.maintenance_indegree_walker_min_ttl)
+       if ttl == 0
 
          if @last_visit != 0
            @visit_avg << @sim.time - @last_visit  

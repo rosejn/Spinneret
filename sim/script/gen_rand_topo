@@ -23,6 +23,7 @@
 #
 # -v, --verbose
 #    Turn on status output.
+#
 
 require 'rdoc/usage'
 require 'getoptlong'
@@ -189,10 +190,9 @@ class Kleinberg < RandomGraphScheme
 
 end # Kleinberg
 
-class Randconstmix < Constdegree
-  @@arg_order = "v:e:p"
-
-end
+#class Randconstmix < Constdegree
+#  @@arg_order = "v:e:p"
+#end
 
 class Constdegree < RandomGraphScheme
   @@arg_order = "v:e"
@@ -242,7 +242,7 @@ class Constdegree < RandomGraphScheme
     graph =  DirectedAdjacencyGraph.new()
     @settings[:v].times { | v | graph.add_vertex(v) }
 
-    prob_dist = Constdegree::ExponentialEdgeDist::new(@graph.vertices, 
+    prob_dist = Constdegree::ExponentialEdgeDist::new(graph.vertices, 
                                                       @settings[:e])
     @settings[:e].times do | i |
       puts i+1  if $verbose
