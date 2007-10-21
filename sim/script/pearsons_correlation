@@ -1,0 +1,88 @@
+#!/usr/bin/env ruby
+
+# == Synopsis
+#
+# pearsons_correlation
+#
+# == Usage
+#
+# -h, --help:
+#    Show this help.
+#
+# -i filename, --input filename
+#
+# -1 mean:std_dev, --gaussian1 mean:std_dev
+#    Gives the mean and standard deviation for the first property.
+#
+# -2 mean:std_dev, --gaussian2 mean:std_dev
+#    Gives the mean and standard deviation for the second property.
+#
+# -s character, --separator character
+#    Which character to use as a separator.  Defaults to whitespace.
+#
+
+require 'rdoc/usage'
+require 'getoptlong'
+require 'zlib'
+
+require 'rubygems'
+require 'gsl'
+
+require 'spinneret'
+
+opts = GetoptLong.new(
+        ['--help',                   '-h', GetoptLong::NO_ARGUMENT],
+        ['--input',                  '-i', GetoptLong::REQUIRED_ARGUMENT],
+        ['--gaussian1',              '-1', GetoptLong::OPTIONAL_ARGUMENT],
+        ['--gaussian2',              '-2', GetoptLong::OPTIONAL_ARGUMENT],
+        ['--separator',              '-s', GetoptLong::REQUIRED_ARGUMENT])
+
+input_filename = nil
+m1 = m2 = s1 = s2 = nil
+input = $stdin
+sep = /\s+/
+opts.each do | opt, arg |
+  case opt
+  when '--help'
+    RDoc::usage
+    exit(0)
+  when '--input'
+    input = File.open(arg)
+  when '--gaussian1'
+    m1, s1 = arg.split(':').map { | val | val.to_f }
+  when '--gaussian2'
+    m2, s2 = arg.split(':').map { | val | val.to_f }
+  when '--separator'
+    sep = arg
+  end
+end
+
+if(input.nil?)
+  RDoc::usage
+  exit(-1)
+end
+
+x = []
+y = []
+input.each_line do | line | 
+  vals = line.split(sep).map { | val | val.to_f }
+  x << vals[0]; y << vals[1]
+end
+
+if m1.nil? || s1.nil? 
+  v = GSL::Vector::alloc(x)
+  m1, s1 = GSL::Stats::mean(v), GSL::Stats::sd(v)
+end
+
+if m2.nil? || s2.nil?
+  v = GSL::Vector::alloc(y)
+  m2, s2 = GSL::Stats::mean(v), GSL::Stats::sd(v)
+end
+
+num_samples = x.length
+sample_sum = 0
+num_samples.times { | idx | sample_sum += (x[idx] - m1) * (y[idx] - m2) }
+
+r = sample_sum / ((num_samples - 1) * s1 * s2)
+
+puts r
