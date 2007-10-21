@@ -218,7 +218,9 @@ class ErgodicTransitionMatrix < PathTransitionMatrix
     puts "Checking..." if $verbose
     error = false
     @matrix.each_row { | row | error = true unless row.sum == 1.0 }
-    puts "WARN: Possible precision problems. Usually not serious." if error
+    if error
+      $stderr.write("WARN: Possible precision problems. Usually not serious.\n")
+    end
 
     # Check if there was a debug request - this format can be imported easily
     # into octave.
@@ -274,7 +276,7 @@ class ErgodicEigenSolver < ErgodicTransitionMatrix
     eigval, eigvec = Eigen::nonsymmv(@matrix.transpose)
     Eigen::nonsymmv_sort(eigval, eigvec, GSL::Eigen::SORT_ABS_DESC)
 
-    puts eigval[0]
+    # puts eigval[0]
   
     if eigval[0].imag != 0 
       if eigval[0].real.deltafrom(1.0, 0.0001)
