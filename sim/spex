@@ -111,10 +111,15 @@ class Exploration
     @prog_name = name
   end
 
+  def clear_dirs(clear = true)
+    @clear_dirs = clear
+  end
+
   def new_experiment(name)
     send_experiment unless @current_experiment.nil?
     @current_experiment = name
     @params = {}
+    @clear_dirs = true
 
     puts "    Creating new experiment: #{name}"
   end
@@ -127,7 +132,11 @@ class Exploration
   end
 
   def make_fresh_dir(path)
-    "rm -rf #{path} && mkdir -p #{path}"
+    if @clear_dirs
+      "rm -rf #{path} && mkdir -p #{path}" 
+    else
+      "echo \"No Action\""
+    end
   end
 
   def dump_config(dir, params)
