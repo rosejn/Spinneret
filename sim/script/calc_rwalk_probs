@@ -13,7 +13,17 @@
 #
 # -i filename, --input filename
 #
+# -m, --metropolis-hastings
+#    Perform analysis of the metropolis hastings data.  Note that the following
+#    fields are expected in the graph file for all nodes and edges:
+#      nodes: mh_self_prob - the metropolis-hastings self-transition prob
+#      edges: mh_trans_prob - the metropolis-hastings edge transition
+#    Only works with the eigen solver currently, although there is no reason it
+#    couldn't be extended (although that would be quite slow).
+#
 # -e, --ergodic
+#    Use matrix multiplication on the ergodic input graph.  Much slower than
+#    using the eigen solver, but give a precise mixing time to a given degree.
 #
 # -s, --eigen
 #    Find the eigen vector of the first eigen value (1) and then take the
@@ -21,7 +31,9 @@
 #    static distribution.
 #
 # -r length, --random-walk length 
-#    Optional argument
+#    Length is an optional argument, default is 40.  This is an *extremely* slow
+#    solver, meant no more than as a check for the eigen and ergodic solvers.
+#    Don't use unless you want to wait for near eternity.
 
 require 'rdoc/usage'
 require 'getoptlong'
@@ -38,10 +50,9 @@ require 'stream_types'
 $verbose = false
 
 class PathTransitionMatrix
-
   def initialize(stream)
     @graph = RGL::DirectedAdjacencyGraph.new().read_from_dot(stream)
-    @matrix = GSL::Matrix.alloc(@graph.num_vertices, @graph.num_vertices)
+    @matrix = new_matrix()
 
     @cur_name = 0
     @vertex_names = {}
@@ -50,6 +61,10 @@ class PathTransitionMatrix
 
   def set_args(hash)
     @args.merge!(hash)
+  end
+
+  def new_matrix()
+    return GSL::Matrix.alloc(@graph.num_vertices, @graph.num_vertices)
   end
 
   private
@@ -75,7 +90,7 @@ class GraphRandomWalk < PathTransitionMatrix
     @args[:length] = length  # possibly overwritten by a call to set_args()
   end
 
-  def converge
+  def converge(type)
     verts = @graph.vertices
 
     puts "Using random walks of length #{@args[:length]}." if $verbose
@@ -153,6 +168,7 @@ class ErgodicTransitionMatrix < PathTransitionMatrix
   def initialize(stream)
     super(stream)
 
+    @mh_matrix = nil
     @converged = nil
   end
 
@@ -179,7 +195,7 @@ class ErgodicTransitionMatrix < PathTransitionMatrix
     end
   end
 
-  def converge
+  def converge(type)
     generate_matrix()
 
     puts "Performing convergence..." if $verbose
@@ -237,6 +253,35 @@ class ErgodicTransitionMatrix < PathTransitionMatrix
     end
   end
 
+  def generate_mh_matrix()
+    puts "Generating mh..." if $verbose
+
+    @mh_matrix = new_matrix()
+    @graph.each_vertex do | v |
+      adj_v = @graph.adjacent_vertices(v)
+      size = adj_v.length.to_f
+
+      self_prob = @graph.get_vertex_property(v, :mh_self_prob)
+      next if(self_prob == 1.0)  # Don't include this node - this leave a row empty!  NEeds to be fixed!
+
+      if self_prob.nil?
+        puts "Node #{v} has a nill self prob"
+      end
+      @mh_matrix.set(get_name(v), get_name(v), self_prob)
+      adj_v.each do | u |
+        @mh_matrix.set(get_name(v), get_name(u), 
+                       @graph.get_edge_property(v, u, :mh_trans_prob))
+      end
+    end
+
+    puts "Checking..." if $verbose
+    error = false
+    @mh_matrix.each_row { | row | error = true unless row.sum == 1.0 }
+    if error
+      $stderr.write("WARN: Possible precision problems. Usually not serious.\n")
+    end
+
+  end
 end
 
 class ErgodicEigenSolver < ErgodicTransitionMatrix
@@ -252,9 +297,16 @@ class ErgodicEigenSolver < ErgodicTransitionMatrix
       # there is no sd, as we are not averaging across a set of values
       # in a "converged" matrix
       @graph.add_vertex_property(key, :prob_rwalk_sd, 0.0)
+
+      # Check if we have MH data to report as well
+      if(@mh_matrix) 
+        @graph.add_vertex_property(key, :prob_rwalk_mh_mean, @final_mh[value])
+      end
     end
 
-    stream << @graph.to_dot({"mixing_time_bound" => @mix_time_l})
+    graph_params = {"mixing_time_bound" => @mix_time_l}
+    graph_params["mixing_time_bound_mh"] = @mix_time_l_mh if @mh_matrix
+    stream << @graph.to_dot(graph_params)
   end
 
   def write_node_probs(stream)
@@ -265,15 +317,22 @@ class ErgodicEigenSolver < ErgodicTransitionMatrix
     end
   end
 
-  def converge
-    generate_matrix()  # generates the traditional src->dest matrix
-                       # but we take the transpose below in order to
-                       # get the dest<-src form needed for the right
-                       # eigenvector to make sense.
-
+  def converge(type)
+    # generates the traditional src->dest matrix  but we take the 
+    # transpose below in order to  get the dest<-src form needed for 
+    # the right  eigenvector to make sense.
+    case type
+    when :mh
+      generate_mh_matrix()
+      p = @mh_matrix
+    else
+      generate_matrix()
+      p = @matrix 
+    end
+  
     puts "Performing decomposition, solving for eigenvectors..." if $verbose
 
-    eigval, eigvec = Eigen::nonsymmv(@matrix.transpose)
+    eigval, eigvec = Eigen::nonsymmv(p.transpose)
     Eigen::nonsymmv_sort(eigval, eigvec, GSL::Eigen::SORT_ABS_DESC)
 
     # puts eigval[0]
@@ -295,12 +354,16 @@ class ErgodicEigenSolver < ErgodicTransitionMatrix
     end
     sol = GSL::Vector::alloc(arr)
 
-    @final = sol / sol.sum
-    @mix_time_l = Math::log(@vertex_names.length) / 1.0 - eigval[1].real
+    if type == :mh
+      @final_mh = sol / sol.sum
+      @mix_time_l_mh = Math::log(@vertex_names.length) / 1.0 - eigval[1].real
+    else
+      @final = sol / sol.sum
+      @mix_time_l = Math::log(@vertex_names.length) / 1.0 - eigval[1].real
+    end
 
     @converged = true
   end
-
 end
 
 def puts(str)
@@ -311,6 +374,7 @@ opts = GetoptLong.new(
         ['--help',                   '-h', GetoptLong::NO_ARGUMENT],
         ['--output',                 '-o', GetoptLong::REQUIRED_ARGUMENT],
         ['--input',                  '-i', GetoptLong::REQUIRED_ARGUMENT],
+        ['--metropolis-hastings',    '-m', GetoptLong::NO_ARGUMENT],
         ['--ergodic',                '-e', GetoptLong::NO_ARGUMENT],
         ['--eigen',                  '-s', GetoptLong::NO_ARGUMENT],
         ['--initial-matrix',         '-t', GetoptLong::NO_ARGUMENT],
@@ -320,7 +384,8 @@ opts = GetoptLong.new(
 output = $stdout
 input = $stdin
 convergence_class = nil
-eigen_converge = false
+#eigen_converge = false
+do_mh = true
 args = {}
 opts.each do | opt, arg |
   case opt
@@ -329,6 +394,8 @@ opts.each do | opt, arg |
     exit(0)
   when '--output'
     output = get_output_stream(arg)
+  when '--metropolis-hastings'
+    do_mh = true
   when '--input'
     input = get_input_stream(arg)
   when '--ergodic'
@@ -353,7 +420,8 @@ end
 p = convergence_class.new(input)
 p.set_args(args)
 puts "Running convergence..." if $verbose
-p.converge
+p.converge(:normal)
+p.converge(:mh)                 if(do_mh)
 p.write_node_probs_dot(output)
 output.close()      # Have to explicitly close gzip streams
 puts "Done." if $verbose
