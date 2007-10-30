@@ -356,13 +356,19 @@ class ErgodicEigenSolver < ErgodicTransitionMatrix
 
     if type == :mh
       @final_mh = sol / sol.sum
-      @mix_time_l_mh = Math::log(@vertex_names.length) / 1.0 - eigval[1].real
+      @mix_time_l_mh = Math::log(@vertex_names.length) / 1.0 - mod(eigval[1])
     else
       @final = sol / sol.sum
-      @mix_time_l = Math::log(@vertex_names.length) / 1.0 - eigval[1].real
+      @mix_time_l = Math::log(@vertex_names.length) / 1.0 - mod(eigval[1])
     end
 
     @converged = true
+  end
+
+  private
+
+  def mod(complex)
+    return Math.sqrt(complex.real**2 + complex.imag**2)
   end
 end
 
