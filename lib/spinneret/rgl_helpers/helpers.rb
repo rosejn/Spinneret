@@ -27,7 +27,7 @@ class DirectedAdjacencyGraph
         add_props($2) { | name, val | add_vertex_property(v, name, val) }
       else
         # eat the line for now
-        # puts "Unparsed line:\n #{line}"
+        #puts "Unparsed line:\n #{line}"
       end
     end # each_line
 
@@ -59,17 +59,23 @@ end
 
 module Graph
   # Does not work for undirected!
+  def edge_id(u, v)
+    return u.to_s + "->" + v.to_s
+  end
+
   def add_edge_property(u, v, name, value)
+    id = edge_id(u, v)
     @edge_properties ||= {}
-    @edge_properties[u+v] ||= {}
-    @edge_properties[u+v][name.to_sym] = value
+    @edge_properties[id] ||= {}
+    @edge_properties[id][name.to_sym] = value
   end
 
   def get_edge_property(u, v, name)
+    id = edge_id(u, v)
     @edge_properties ||= {}
-    if @edge_properties.has_key?(u+v)
-      if @edge_properties[u+v].has_key?(name.to_sym)
-        return @edge_properties[u+v][name.to_sym]
+    if @edge_properties.has_key?(id)
+      if @edge_properties[id].has_key?(name.to_sym)
+        return @edge_properties[id][name.to_sym]
       end
     end
 
@@ -116,7 +122,7 @@ module Graph
   end
 
   def edge_props_dot(u, v)
-    key = u + v
+    key = edge_id(u, v)
     @edge_properties ||= {}
     s = ""
     if @edge_properties.has_key?(key)
