@@ -83,7 +83,7 @@ verts.each do | v |
   output.write(
     vals.map do | val | 
       if val.class == Float
-        sprintf("%9.9f", val);
+        sprintf("%20.20f", val);
       else
         val.to_s
       end

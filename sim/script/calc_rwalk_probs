@@ -391,7 +391,7 @@ output = $stdout
 input = $stdin
 convergence_class = nil
 #eigen_converge = false
-do_mh = true
+do_mh = false
 args = {}
 opts.each do | opt, arg |
   case opt
