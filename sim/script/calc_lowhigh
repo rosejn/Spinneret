@@ -68,5 +68,5 @@ end
 vals = []
 input.each_line { | line | vals << line.split(sep)[row].to_f }
 v = GSL::Vector::alloc(vals)
-output.write("#{v.min} #{v.max}\n")
+output.write(sprintf("%20.20f %20.20f\n", v.min, v.max))
 output.close()
