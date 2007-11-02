@@ -50,6 +50,7 @@ class Exploration
     @params = {}
     @remote = true
     @prog_name = "spin"
+    @default_params = {}
   end
 
   def defaults(vals)
@@ -153,8 +154,8 @@ class Exploration
     puts "param_set: " + param_set.inspect
 
     name = ""
-    param_set.each { | param, val | name << "__#{param}-#{val}" }
-    File.join(base, name[2..-1])
+    param_set.each { | param, val | name << "__#{param[(param.rindex('.')+1)..-1]}-#{val}" }
+    File.join(base, name[3..-1])
   end
 
   def send_experiment
