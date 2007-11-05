@@ -259,12 +259,20 @@ class ErgodicTransitionMatrix < PathTransitionMatrix
     puts "Generating mh..." if $verbose
 
     @mh_matrix = new_matrix()
+    # first filter dead nodes
+    @graph.vertices.each do | v |
+      if @graph.get_vertex_property(v, :mh_self_prob).nil?
+        @graph.remove_vertex(v) 
+      end
+    end
+
+    # create Q
     @graph.each_vertex do | v |
       adj_v = @graph.adjacent_vertices(v)
       size = adj_v.length.to_f
 
       self_prob = @graph.get_vertex_property(v, :mh_self_prob)
-      next if(self_prob == 1.0)  # Don't include this node - this leave a row empty!  NEeds to be fixed!
+      puts "WARN: self_prob 1" if(self_prob == 1.0)  # Don't include this node - this leave a row empty!  NEeds to be fixed!
 
       if self_prob.nil?
         puts "Node #{v} has a nill self prob"
