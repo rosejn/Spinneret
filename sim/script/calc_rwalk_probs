@@ -231,12 +231,14 @@ class ErgodicTransitionMatrix < PathTransitionMatrix
       end
     end
 
+=begin
     puts "Checking..." if $verbose
     error = false
     @matrix.each_row { | row | error = true unless row.sum == 1.0 }
     if error
       $stderr.write("WARN: Possible precision problems. Usually not serious.\n")
     end
+=end
 
     # Check if there was a debug request - this format can be imported easily
     # into octave.
@@ -269,17 +271,24 @@ class ErgodicTransitionMatrix < PathTransitionMatrix
       end
       @mh_matrix.set(get_name(v), get_name(v), self_prob)
       adj_v.each do | u |
-        @mh_matrix.set(get_name(v), get_name(u), 
-                       @graph.get_edge_property(v, u, :mh_trans_prob))
+        val = @graph.get_edge_property(v, u, :mh_trans_prob)
+        if val.nil?
+          puts "Stream does not have :mh_trans_prob on at least one edge."
+          return
+        else
+          @mh_matrix.set(get_name(v), get_name(u), val)
+        end
       end
     end
 
+=begin
     puts "Checking..." if $verbose
     error = false
     @mh_matrix.each_row { | row | error = true unless row.sum == 1.0 }
     if error
       $stderr.write("WARN: Possible precision problems. Usually not serious.\n")
     end
+=end
 
   end
 end
